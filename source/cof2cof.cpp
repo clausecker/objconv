@@ -7,17 +7,13 @@
 * Description:
 * Module for changing symbol names in PE/COFF file
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
 
 CCOF2COF::CCOF2COF () {
    // Constructor
-}
-
-CCOF2COF::~CCOF2COF () {
-   // Destructor
 }
 
 void CCOF2COF::Convert() {

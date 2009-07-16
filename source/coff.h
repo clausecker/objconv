@@ -1,14 +1,14 @@
 /****************************   coff.h   *************************************
 * Author:        Agner Fog
 * Date created:  2006-07-15
-* Last modified: 2007-01-18
+* Last modified: 2008-06-04
 * Project:       objconv
 * Module:        coff.h
 * Description:
 * Header file for definition of structures in MS Windows COFF Intel x86 (PE)
 * object file format.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 * Parts (c) 1995 DJ Delorie GNU General Public License
 *****************************************************************************/
 
@@ -40,12 +40,12 @@ struct SCOFF_FileHeader {
 #define PE_MACHINE_I386       0x14c
 #define PE_MACHINE_X8664     0x8664
 
-/* Bits for Flags:
-#define F_RELFLG 0x0001   // relocation info stripped from file
-#define F_EXEC   0x0002   // file is executable (no unresolved external references)
-#define F_LNNO   0x0004   // line numbers stripped from file
-#define F_LSYMS  0x0008   // local symbols stripped from file
-*/
+// Bits for Flags:
+#define PE_F_RELFLG 0x0001   // relocation info stripped from file
+#define PE_F_EXEC   0x0002   // file is executable (no unresolved external references)
+#define PE_F_LNNO   0x0004   // line numbers stripped from file
+#define PE_F_LSYMS  0x0008   // local symbols stripped from file
+
 
 // Structure used in optional header
 struct SCOFF_IMAGE_DATA_DIRECTORY {
@@ -516,15 +516,19 @@ struct SCOFF_Relocation {
 #define COFF64_RELOC_PPC_GPREL   0x15   // 16 bit signed relative to GP
 #define COFF64_RELOC_PPC_TOKEN   0x16   // CLR token
 
+/********************** Strings **********************/
+#define COFF_CONSTRUCTOR_NAME    ".CRT$XCU"   // Name of constructors segment
+
+
 // Function prototypes
 
 // Function to put a name into SCOFF_SymTableEntry. Put name in string table
 // if longer than 8 characters
-uint32 COFF_PutNameInSymbolTable(SCOFF_SymTableEntry & sym, char * name, CMemoryBuffer & StringTable);
+uint32 COFF_PutNameInSymbolTable(SCOFF_SymTableEntry & sym, const char * name, CMemoryBuffer & StringTable);
 
 // Function to put a name into SCOFF_SectionHeader. Put name in string table
 // if longer than 8 characters
-void COFF_PutNameInSectionHeader(SCOFF_SectionHeader & sec, char * name, CMemoryBuffer & StringTable);
+void COFF_PutNameInSectionHeader(SCOFF_SectionHeader & sec, const char * name, CMemoryBuffer & StringTable);
 
 
 #endif // #ifndef PECOFF_H

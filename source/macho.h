@@ -1,7 +1,7 @@
 /****************************    macho.h    ****************************************
 * Author:        Agner Fog
 * Date created:  2007-01-06
-* Last modified: 2007-04-29
+* Last modified: 2008-05-23
 * Project:       objconv
 * Module:        macho.h
 * Description:
@@ -9,7 +9,7 @@
 * Also defines class MacSymbolTableBuilder
 * Also defines structures for MacIntosh universal binaries
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 * Parts (c) 2003 Apple public source license http://www.opensource.apple.com/apsl/
 ***********************************************************************************/
 #ifndef MACHO_H
@@ -17,7 +17,7 @@
 
 /********************** FILE HEADER **********************/
 
-struct MAC_header {
+struct MAC_header_32 {
 	uint32	magic;		// mach magic number identifier
 	uint32	cputype;	   // cpu specifier
 	uint32	cpusubtype;	// machine specifier
@@ -26,6 +26,18 @@ struct MAC_header {
 	uint32	sizeofcmds;	// the size of all the load commands
 	uint32   flags;		// flags
 };
+
+struct MAC_header_64 {
+	uint32	magic;		// mach magic number identifier
+	uint32	cputype;	   // cpu specifier
+	uint32	cpusubtype;	// machine specifier
+	uint32	filetype;	// type of file
+	uint32	ncmds;		// number of load commands
+	uint32	sizeofcmds;	// the size of all the load commands
+	uint32   flags;		// flags
+   uint32   reserved;   // reserved for future use
+};
+
 
 // Constant for the magic field of the MAC_header (32-bit architectures)
 #define	MAC_MAGIC_32   0xFEEDFACE  // 32 bit little endian
@@ -90,6 +102,7 @@ struct MAC_load_command {
 };
 
 // Constants for the cmd field of all load commands, the type
+#define MAC_LC_REQ_DYLD  0x80000000 // This bit is added if unknown command cannot be ignored
 #define MAC_LC_SEGMENT          0x1 /* segment of this file to be mapped */
 #define MAC_LC_SYMTAB	        0x2	/* link-edit stab symbol table info */
 #define MAC_LC_SYMSEG	        0x3	/* link-edit gdb symbol table info (obsolete) */
@@ -106,6 +119,17 @@ struct MAC_load_command {
 #define MAC_LC_LOAD_DYLINKER    0xe	/* load a dynamic linker */
 #define MAC_LC_ID_DYLINKER	     0xf	/* dynamic linker identification */
 #define MAC_LC_PREBOUND_DYLIB  0x10	/* modules prebound for a dynamicly linked shared library */
+#define MAC_LC_ROUTINES	       0x11	/* image routines */
+#define MAC_LC_SUB_FRAMEWORK   0x12 /* sub framework */
+#define MAC_LC_SUB_UMBRELLA    0x13 /* sub umbrella */
+#define MAC_LC_SUB_CLIENT      0x14 /* sub client */
+#define MAC_LC_SUB_LIBRARY     0x15 /* sub library */
+#define MAC_LC_TWOLEVEL_HINTS  0x16 /* two-level namespace lookup hints */
+#define MAC_LC_PREBIND_CKSUM   0x17 /* prebind checksum */
+#define MAC_LC_LOAD_WEAK_DYLIB (0x18 | MAC_LC_REQ_DYLD)
+#define MAC_LC_SEGMENT_64      0x19 /* 64-bit segment of this file to be mapped */
+#define MAC_LC_ROUTINES_64     0x1a /* 64-bit image routines */
+#define MAC_LC_UUID            0x1b /* the uuid */
 
 /*
  * The segment load command indicates that a part of this file is to be
@@ -119,7 +143,7 @@ struct MAC_load_command {
  * section structures directly follow the segment command and their size is
  * reflected in cmdsize.
  */
-struct MAC_segment_command {	/* for 32-bit architectures */
+struct MAC_segment_command_32 {	/* for 32-bit architectures */
 	uint32	cmd;		      /* LC_SEGMENT */
 	uint32	cmdsize;	      /* includes sizeof section structs */
 	char		segname[16];	/* segment name */
@@ -145,8 +169,8 @@ struct MAC_segment_command_64 {	/* for 64-bit architectures */
 	char		segname[16]; /* segment name */
 	uint64	vmaddr;		 /* memory address of this segment */
 	uint64	vmsize;		 /* memory size of this segment */
-	uint32	fileoff;	    /* file offset of this segment */
-	uint32	filesize;	 /* amount to map from the file */
+	uint64	fileoff;	    /* file offset of this segment */
+	uint64	filesize;	 /* amount to map from the file */
 	uint32	maxprot;	    /* maximum VM protection */
 	uint32	initprot;	 /* initial VM protection */
 	uint32	nsects;		 /* number of sections in segment */
@@ -189,7 +213,7 @@ struct MAC_segment_command_64 {	/* for 64-bit architectures */
  * fields of the section structure for mach object files is described in the
  * header file <reloc.h>.
  */
-struct MAC_section {	      /* for 32-bit architectures */
+struct MAC_section_32 {	      /* for 32-bit architectures */
 	char		sectname[16];	/* name of this section */
 	char		segname[16];	/* segment this section goes in */
 	uint32	addr;		      /* memory address of this section */
@@ -215,7 +239,7 @@ struct MAC_section_64 {    /* for 64-bit architectures */
 	uint32	flags;		   /* flags (section type and attributes)*/
 	uint32	reserved1;	   /* reserved (for offset or index) */
 	uint32	reserved2;	   /* reserved (for count or sizeof) */
-	uint32	reserved3;	   /* reserved */
+	uint32	reserved3;	   // reserved (Note: specified in loader.h, but not in MachORuntime.pdf)
 };
 
 
@@ -246,19 +270,32 @@ struct MAC_section_64 {    /* for 64-bit architectures */
  * in the section is 4 bytes and for symbol stubs sections the byte size of the
  * stubs is stored in the reserved2 field of the section structure. */
 
-#define	MAC_S_NON_LAZY_SYMBOL_POINTERS	0x6  // section with only non-lazy symbol pointers
-#define	MAC_S_LAZY_SYMBOL_POINTERS		   0x7  // section with only lazy symbol pointers
-#define	MAC_S_SYMBOL_STUBS	            0x8  // section with only symbol stubs, byte size of stub in the reserved2 field
-#define	MAC_S_MOD_INIT_FUNC_POINTERS	   0x9  // section with only function pointers for initialization
+#define  MAC_S_NON_LAZY_SYMBOL_POINTERS	0x6  // section with only non-lazy symbol pointers
+#define  MAC_S_LAZY_SYMBOL_POINTERS		   0x7  // section with only lazy symbol pointers
+#define  MAC_S_SYMBOL_STUBS	            0x8  // section with only symbol stubs, byte size of stub in the reserved2 field
+#define  MAC_S_MOD_INIT_FUNC_POINTERS	   0x9  // section with only function pointers for initialization
+#define  MAC_S_MOD_TERM_FUNC_POINTERS	   0xa  // section with only function pointers for termination
+#define  MAC_S_COALESCED                  0xb  // section contains symbols that are to be coalesced
+#define  MAC_S_GB_ZEROFILL                0xc  // zero fill on demand section that can be larger than 4 gigabytes
+#define  MAC_S_INTERPOSING                0xd  // section with only pairs of function pointers for interposing
+#define  MAC_S_16BYTE_LITERALS            0xe  // section with only 16 byte literals
+
 
 // Constants for the section attributes part of the flags field of a section structure.
 
 #define MAC_SECTION_ATTRIBUTES_USR	  0xff000000	/* User setable attributes */
 #define MAC_S_ATTR_PURE_INSTRUCTIONS  0x80000000	/* section contains only true machine instructions */
+#define MAC_S_ATTR_NO_TOC             0x40000000	/* section contains coalesced symbols that are not to be in a ranlib table of contents */
+#define MAC_S_ATTR_STRIP_STATIC_SYMS  0x20000000	/* ok to strip static symbols in this section in files with the MH_DYLDLINK flag */
+#define MAC_S_ATTR_NO_DEAD_STRIP      0x10000000	/* no dead stripping */
+#define MAC_S_ATTR_LIVE_SUPPORT       0x08000000	/* blocks are live if they reference live blocks */
+#define MAC_S_ATTR_SELF_MODIFYING_CODE 0x04000000	/* Used with i386 code stubs written on by dyld */
+#define MAC_S_ATTR_DEBUG              0x02000000	/* a debug section */
 #define MAC_SECTION_ATTRIBUTES_SYS	  0x00ffff00	/* system setable attributes */
 #define MAC_S_ATTR_SOME_INSTRUCTIONS  0x00000400	/* section contains some machine instructions */
 #define MAC_S_ATTR_EXT_RELOC	        0x00000200	/* section has external relocation entries */
 #define MAC_S_ATTR_LOC_RELOC	        0x00000100	/* section has local relocation entries */
+
 
 /* The names of segments and sections in them are mostly meaningless to the
  * link-editor.  But there are few things to support traditional UNIX
@@ -293,6 +330,8 @@ struct MAC_section_64 {    /* for 64-bit architectures */
 #define	MAC_SECT_ICON_TIFF    "__tiff"          // the icons in tiff format 
 #define	MAC_SEG_LINKEDIT	    "__LINKEDIT"      // the segment containing all structs created and maintained by the link editor.  Created with -seglinkedit option to ld(1) for MH_EXECUTE and FVMLIB file types only
 #define  MAC_SEG_UNIXSTACK	    "__UNIXSTACK"	    // the unix stack segment 
+#define  MAC_SEG_IMPORT        "__IMPORT"        // the segment for the self (dyld) modifing code stubs that has read, write and execute permissions
+
 
 /* The symtab_command contains the offsets and sizes of the link-edit 4.3BSD
  * "stab" style symbol table information as described in the header files
@@ -476,7 +515,7 @@ struct MAC_relocation_info {
    uint32  r_symbolnum:24, // symbol table index (0-based) if r_extern == 1 or section number (1-based) if r_extern == 0
            r_pcrel:1,      // pc relative. The target address (inline) is already pc relative
            r_length:2,     // 0=byte, 1=word, 2=dword
-           r_extern:1,     // r_extern = 1 for external symbols (not for public symbols)
+           r_extern:1,     // r_extern = 1 for symbols in symbol table
            r_type:4;       // if not 0, machine specific relocation type
 };                         // The inline value of the source is the target address (pc-relative
                            // or absolute) if r_extern = 0, or an addend if r_extern = 1.
@@ -484,15 +523,15 @@ struct MAC_relocation_info {
 struct MAC_scattered_relocation_info {
    uint32  r_address:24,   // offset in the section to what is being relocated (source)
            r_type:4,       // if not 0, machine specific relocation type
-           r_length:2,     // 0=byte, 1=word, 2=dword
+           r_length:2,     // 0=byte, 1=word, 2=dword, 3=qword
            r_pcrel:1,      // pc relative. The target address is already pc relative
            r_scattered:1;  // 1=scattered, 0=non-scattered (see above)
    int32   r_value;        // target address (without any offset added. The offset is stored inline in the source)
 };
 
-// Relocation types
+// 32-bit relocation types:
 /* Relocation types used in a generic implementation.  Relocation entries for
- * nornal things use the generic relocation as discribed above and their r_type
+ * normal things use the generic relocation as discribed above and their r_type
  * is GENERIC_RELOC_VANILLA (a value of zero).
  *
  * Another type of generic relocation, GENERIC_RELOC_SECTDIFF, is to support
@@ -508,16 +547,65 @@ struct MAC_scattered_relocation_info {
  * using the GENERIC_RELOC_PB_LA_PTR r_type.  This is a scattered relocation
  * entry where the r_value field is the value of the lazy pointer not prebound. */
 
-#define MAC_RELOC_VANILLA        0   // A generic relocation entry for both addresses contained in data
-                                     // and addresses contained in CPU instructions.
-#define MAC_RELOC_PAIR           1   // The second relocation entry of a pair. Only follows a GENERIC_RELOC_SECTDIFF
-#define MAC_RELOC_SECTDIFF       2   // A relocation entry for an item that contains the difference of
-                                     // two section addresses. This is generally used for position-independent code generation.
-#define MAC_RELOC_PB_LA_PTR      3   // PTR—Arelocation entry for a prebound lazy pointer. This is always
-                                     // a scattered relocation entry. The r_value field contains the non-prebound value of the lazy pointer.
-#define MAC_RELOC_LOCAL_SECTDIFF 4   // SECTDIFF—Similar to GENERIC_RELOC_SECTDIFF except that this entry refers specifically to the address in this item. 
-                                     // If the address is that of a globally visible coalesced symbol, this relocation entry does not change if the symbol is overridden. 
-                                     // This is used to associate stack unwinding information with the object code this relocation entry describes.
+/* My interpretation (A Fog):
+   32-bit: Objects are not addressed by their offset into the section but by 
+   their "absolute" address. This "absolute" address has no reality. 
+   It is the address that the object would have if the section was placed 
+   at the address specified in the addr field of the section header. 
+   Scattered:
+   The first record, of type MAC32_RELOC_SECTDIFF or MAC32_RELOC_LOCAL_SECTDIFF
+   contains the "absolute" address of a first reference point, let's call it ref1,
+   in the r_value field. The second record, of type MAC32_RELOC_PAIR contains the 
+   "absolute" address of a second reference point, ref2, in the r_value field.
+   The inline value is the "absolute" address of the relocation target minus ref2.
+   ref1 is often = target, but may be any label preceding the target. The linker
+   has to add (ref1 - ref2) in image minus (ref1 - ref2) in object file to the
+   inline value. The relocation source (the position of the inline field) is
+   given in r_address in the first record, relative the the section.
+   Non-scattered, absolute, r_extern = 1:
+   r_symbolnum = symbol index (0-based)
+   Non-scattered, absolute, r_extern = 0:
+   r_symbolnum = section index, inline = absolute address of target?
+   Non-scattered, r_pcrel = 1, r_extern = 1:
+   r_symbolnum = symbol index (0-based)
+   Inline = source absolute address - 4
+   Non-scattered, r_pcrel = 1, r_extern = 0:
+   r_symbolnum = section index, 
+   inline = absolute address of target - absolute address of source - 4
+*/
+
+#define MAC32_RELOC_VANILLA        0   // A generic relocation entry for both addresses contained in data
+                                       // and addresses contained in CPU instructions.
+#define MAC32_RELOC_PAIR           1   // The second relocation entry of a pair. Only follows a GENERIC_RELOC_SECTDIFF
+#define MAC32_RELOC_SECTDIFF       2   // A relocation entry for an item that contains the difference of
+                                       // two section addresses. This is generally used for position-independent code generation.
+#define MAC32_RELOC_PB_LA_PTR      3   // PTR—Arelocation entry for a prebound lazy pointer. This is always
+                                       // a scattered relocation entry. The r_value field contains the non-prebound value of the lazy pointer.
+#define MAC32_RELOC_LOCAL_SECTDIFF 4   // SECTDIFF—Similar to GENERIC_RELOC_SECTDIFF except that this entry refers specifically to the address in this item. 
+                                       // If the address is that of a globally visible coalesced symbol, this relocation entry does not change if the symbol is overridden. 
+                                       // This is used to associate stack unwinding information with the object code this relocation entry describes.
+
+// 64-bit relocation types:
+// Scattered relocations are not used in 64-bit Mach-O.
+// reloc.h says that references to local symbols are made by the nearest
+// preceding public symbol + displacement, but my experiments show that
+// local symbol records are used, which of course is easier.
+// r_extern = 1 is used even for non-external symbols!
+// The target address is not stored inline. The -4 offset for self-relative
+// addresses is implicit, unlike in 32-bit Mach-O. If the difference 
+// between source address and instruction pointer is e.g. -5, then the
+// -4 is implicit, and the -1 is explicit!
+
+#define MAC64_RELOC_UNSIGNED       0   // absolute address, 32 or 64 bits
+#define MAC64_RELOC_SIGNED         1   // signed 32-bit displacement with implicit -4 addend
+#define MAC64_RELOC_BRANCH         2   // same, used for CALL and JMP instructions
+#define MAC64_RELOC_GOT_LOAD       3   // self-relative load of a GOT entry
+#define MAC64_RELOC_GOT            4   // other GOT references
+#define MAC64_RELOC_SUBTRACTOR     5   // must be followed by a X86_64_RELOC_UNSIGNED
+#define MAC64_RELOC_SIGNED_1       6   // signed 32-bit displacement with implicit -4 addend and explicit -1 addend
+#define MAC64_RELOC_SIGNED_2       7   // signed 32-bit displacement with implicit -4 addend and explicit -2 addend
+#define MAC64_RELOC_SIGNED_4       8   // signed 32-bit displacement with implicit -4 addend and explicit -4 addend
+
 
 // Symbol table entries
 /* Format of a symbol table entry of a Mach-O file.  Modified from the BSD
@@ -526,12 +614,20 @@ struct MAC_scattered_relocation_info {
  * modifications are required to support symbols in an arbitrary number of
  * sections not just the three sections (text, data and bss) in a BSD file. */
 
-struct MAC_nlist {
+struct MAC_nlist_32 {
    uint32  n_strx;   // index into the string table 
    uint8   n_type;   // type flag, see below 
    uint8   n_sect;   // section number or NO_SECT 
    int16   n_desc;   // see <mach-o/stab.h> 
    uint32  n_value;  // value of this symbol (or stab offset) 
+};
+
+struct MAC_nlist_64 {
+   uint32  n_strx;   // index into the string table 
+   uint8   n_type;   // type flag, see below 
+   uint8   n_sect;   // section number or NO_SECT 
+   int16   n_desc;   // see <mach-o/stab.h> 
+   uint64  n_value;  // value of this symbol (or stab offset) 
 };
 
 /* Symbols with a index into the string table of zero are
@@ -640,22 +736,25 @@ struct MAC_nlist {
                                          // (non-weak) definition for this symbol, theweak definition is ignored. Only symbols in a coalesced section (page 21) can be marked as a weak definition.
 
 // Data structure used when sorting symbol table for Mach-O file in MacSymbolTableBuilder
-struct MacSymbolRecord : public MAC_nlist {
-   char * name;
-   int OldIndex;
+template <class TMAC_nlist>
+struct MacSymbolRecord : public TMAC_nlist {
+   uint32 Name;                        // Index into MacSymbolTableBuilder::StringBuffer
+   int OldIndex;                       // Old symbol index
 };
 
-
-// Class for building and storing sorted symbol table
+// Class for building and storing symbol table, sorted or unsorted
+template <class TMAC_nlist, class MInt>
 class MacSymbolTableBuilder : public CMemoryBuffer {
    int sorted;                                   // Remember if list is sorted
+   CMemoryBuffer StringBuffer;                   // Temporary storage of symbol names
 public:
    MacSymbolTableBuilder();                      // Constructor
-   void AddSymbol(int OldIndex, char * name, int type, int Desc, int section, uint32 value); // Add symbol to list
+   void AddSymbol(int OldIndex, const char * name, int type, int Desc, int section, MInt value); // Add symbol to list
    void SortList();                              // Sort the list
    int TranslateIndex(int OldIndex);             // Translate old index to new index, after sorting
    void StoreList(CMemoryBuffer * SymbolTable, CMemoryBuffer * StringTable); // Store sorted list in buffers
-   MacSymbolRecord & operator[] (uint32 i);      // Access member
+   int Search(const char * name);                // Search for name. -1 if not found
+   MacSymbolRecord<TMAC_nlist> & operator[] (uint32 i);      // Access member
 };
 
 // structures for MacIntosh universal binaries
@@ -679,5 +778,14 @@ struct MAC_SECT_WITH_RELOC {
    uint32 NumReloc;                    // Number of relocations records for this section
    uint32 ReltabOffset;                // File offset of relocation table for this section
 };
+
+/********************** Strings **********************/
+#define MAC_CONSTRUCTOR_NAME    "__mod_init_func"  // Name of constructors section
+
+
+// Macros listing all word-size dependent structures, used as template parameter list
+#define MACSTRUCTURES    TMAC_header,   TMAC_segment_command,   TMAC_section,   TMAC_nlist, MInt
+#define MAC32STRUCTURES  MAC_header_32, MAC_segment_command_32, MAC_section_32, MAC_nlist_32, int32
+#define MAC64STRUCTURES  MAC_header_64, MAC_segment_command_64, MAC_section_64, MAC_nlist_64, int64
 
 #endif // #ifndef MACHO_H

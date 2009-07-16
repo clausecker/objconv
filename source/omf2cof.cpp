@@ -1,13 +1,13 @@
 /****************************  omf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2007-02-08
-* Last modified: 2007-02-08
+* Last modified: 2009-07-16
 * Project:       objconv
 * Module:        omf2cof.cpp
 * Description:
 * Module for converting OMF file to PE/COFF file
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -17,10 +17,6 @@ static const uint32 OMFAlignTranslate[8] = {0,1,2,16,256,4,0,0};
 COMF2COF::COMF2COF() {
    // Constructor
    memset(this, 0, sizeof(*this));               // Reset everything
-}
-
-COMF2COF::~COMF2COF() {
-   // Destructor
 }
 
 void COMF2COF::Convert() {
@@ -90,7 +86,7 @@ void COMF2COF::MakeSymbolTable1() {
    OMF_SAttrib Attributes;
    // Other segment properties
    uint32 Offset, SegLength, NameIndex, ClassIndex;
-   char * sname;                                 // Segment/section name
+   const char * sname;                           // Segment/section name
    uint32 SegNum = 0;                            // Segment/section number
    uint32 StringI;                               // New sting table index
    uint32 i;                                     // Record number
@@ -227,6 +223,10 @@ void COMF2COF::MakeSymbolTable1() {
             NewSectionHeaders.Push(sec);
          }
          if (Records[i].Index != Records[i].End) err.submit(1203);   // Check for consistency
+      }
+      if (Records[i].Type2 == OMF_COMDAT || Records[i].Type2 == OMF_COMDEF) {
+         // Communal sections
+         err.submit(1055);
       }
    }
 }

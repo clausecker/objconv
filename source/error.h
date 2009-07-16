@@ -7,6 +7,7 @@
 * Description:
 * Header file for error handler error.cpp
 *
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef OBJCONV_ERROR_H
 #define OBJCONV_ERROR_H

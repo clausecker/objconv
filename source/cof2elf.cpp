@@ -1,28 +1,26 @@
 /****************************  cof2elf.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2006-07-20
-* Last modified: 2006-07-20
+* Last modified: 2008-05-22
 * Project:       objconv
 * Module:        cof2elf.cpp
 * Description:
 * Module for converting PE/COFF file to ELF file
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
 
-CCOF2ELF::CCOF2ELF () {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+CCOF2ELF<ELFSTRUCTURES>::CCOF2ELF () {
    // Constructor
    memset(this, 0, sizeof(*this));
 }
 
-CCOF2ELF::~CCOF2ELF () {
-   // Destructor
-}
 
-
-void CCOF2ELF::Convert() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CCOF2ELF<ELFSTRUCTURES>::Convert() {
    // Do the conversion
    NumSectionsNew = 5;                                    // Number of sections generated so far
 
@@ -38,21 +36,24 @@ void CCOF2ELF::Convert() {
    NewSymbolIndex.SetZero();                              // Initialize
 
    // Call the subfunctions
-   ToFile.SetFileType(FILETYPE_ELF); // Set type of to file
-   MakeSegments();              // Make segment headers and code/data segments
-   MakeSymbolTable();           // Symbol table and string tables
-   MakeRelocationTables();      // Relocation tables
-   MakeBinaryFile();            // Putting sections together
-   *this << ToFile;             // Take over new file buffer
+   ToFile.SetFileType(FILETYPE_ELF);   // Set type of to file
+   MakeSegments();                     // Make segment headers and code/data segments
+   MakeSymbolTable();                  // Symbol table and string tables
+   MakeRelocationTables();             // Relocation tables
+   MakeBinaryFile();                   // Putting sections together
+   *this << ToFile;                    // Take over new file buffer
 }
 
-void CCOF2ELF::MakeSegments() {
+
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CCOF2ELF<ELFSTRUCTURES>::MakeSegments() {
    // Convert subfunction: Make segment headers and code/data segments
-   Elf32_Shdr NewSecHeader;     // New section header
-   int oldsec;                  // Section index in old file
-   int newsec;                  // Section index in new file
-   uint32 SecNameIndex;         // Section name index into shstrtab
-   char const * SecName;        // Name of new section
+   TELF_SectionHeader NewSecHeader;    // New section header
+   int oldsec;                         // Section index in old file
+   int newsec;                         // Section index in new file
+   uint32 SecNameIndex;                // Section name index into shstrtab
+   char const * SecName;               // Name of new section
+   const int WordSize = sizeof(NewFileHeader.e_entry) * 8; // word size 32 or 64 bits
 
    // Special segment names
    static const char * SpecialSegmentNames[] = {
@@ -91,7 +92,7 @@ void CCOF2ELF::MakeSegments() {
 
    // Put type, flags, etc. into special segments:
    NewSectionHeaders[symtab]  .sh_type  = SHT_SYMTAB;
-   NewSectionHeaders[symtab]  .sh_entsize = (WordSize == 32) ? sizeof(Elf32_Sym) : sizeof(Elf64_Sym);
+   NewSectionHeaders[symtab]  .sh_entsize = sizeof(TELF_Symbol);
    NewSectionHeaders[symtab]  .sh_link  = strtab;
    NewSectionHeaders[shstrtab].sh_type  = SHT_STRTAB;
    NewSectionHeaders[shstrtab].sh_flags = SHF_STRINGS;
@@ -112,13 +113,13 @@ void CCOF2ELF::MakeSegments() {
    }
 
    // Loop through source file sections
-   for (oldsec = 0; oldsec < NSections; oldsec++) {
+   for (oldsec = 0; oldsec < this->NSections; oldsec++) {
 
       // Pointer to old section header
-      SCOFF_SectionHeader * SectionHeader = &SectionHeaders[oldsec];
+      SCOFF_SectionHeader * SectionHeader = &this->SectionHeaders[oldsec];
 
       // Get section name
-      SecName = GetSectionName(SectionHeader->Name);
+      SecName = this->GetSectionName(SectionHeader->Name);
       if (strnicmp(SecName,"debug",5) == 0 || strnicmp(SecName+1,"debug",5) == 0) {
          // This is a debug section
          if (cmd.DebugInfo == CMDL_DEBUG_STRIP) {
@@ -174,12 +175,6 @@ void CCOF2ELF::MakeSegments() {
       // Initialize to zero
       memset(&NewSecHeader, 0, sizeof(NewSecHeader));
 
-      // Put name into section header string table
-      SecNameIndex = NewSections[shstrtab].PushString(SecName);
-
-      // Put name into new section header
-      NewSecHeader.sh_name = SecNameIndex;
-
       // Section type
       if (!(SectionHeader->Flags & PE_SCN_LNK_REMOVE)) {
          NewSecHeader.sh_type = SHT_PROGBITS;  // Program code or data
@@ -190,8 +185,25 @@ void CCOF2ELF::MakeSegments() {
       }
 
       // Section flags
-      if (SectionHeader->Flags & PE_SCN_MEM_WRITE) NewSecHeader.sh_flags |= SHF_WRITE;
-      if (SectionHeader->Flags & PE_SCN_MEM_EXECUTE) NewSecHeader.sh_flags |= SHF_EXECINSTR;
+      if (SectionHeader->Flags & PE_SCN_MEM_WRITE) {
+         NewSecHeader.sh_flags |= SHF_WRITE;
+      }
+      if (SectionHeader->Flags & PE_SCN_MEM_EXECUTE) {
+         NewSecHeader.sh_flags |= SHF_EXECINSTR;
+      }
+
+      // Check for special sections
+      if (strcmp(SecName, COFF_CONSTRUCTOR_NAME)==0) {
+         // Constructors segment
+         SecName = ELF_CONSTRUCTOR_NAME;
+         NewSecHeader.sh_flags = SHF_WRITE | SHF_ALLOC;
+      }
+
+      // Put name into section header string table
+      SecNameIndex = NewSections[shstrtab].PushString(SecName);
+
+      // Put name into new section header
+      NewSecHeader.sh_name = SecNameIndex;
 
       // Section virtual memory address
       NewSecHeader.sh_addr = SectionHeader->VirtualAddress;
@@ -201,7 +213,7 @@ void CCOF2ELF::MakeSegments() {
 
       // Section alignment
       if (SectionHeader->Flags & PE_SCN_ALIGN_MASK) {
-         NewSecHeader.sh_addralign = 1 << (((SectionHeader->Flags & PE_SCN_ALIGN_MASK) / PE_SCN_ALIGN_1) - 1);
+         NewSecHeader.sh_addralign = uint32(1 << (((SectionHeader->Flags & PE_SCN_ALIGN_MASK) / PE_SCN_ALIGN_1) - 1));
       }
 
       // Put section header into temporary buffer
@@ -247,23 +259,26 @@ void CCOF2ELF::MakeSegments() {
 }
 
 
-void CCOF2ELF::MakeSymbolTable() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CCOF2ELF<ELFSTRUCTURES>::MakeSymbolTable() {
    // Convert subfunction: Make symbol table and string tables
-   int isym;               // current symbol table entry
-   int numaux;             // Number of auxiliary entries in source record
-   int OldSectionIndex;    // Index into old section table. 1-based
-   int NewSectionIndex;    // Index into new section table. 0-based
+   int isym;                           // current symbol table entry
+   int numaux;                         // Number of auxiliary entries in source record
+   int OldSectionIndex;                // Index into old section table. 1-based
+   int NewSectionIndex;                // Index into new section table. 0-based
+   const int WordSize = sizeof(NewFileHeader.e_entry) * 8; // word size 32 or 64 bits
 
-   Elf32_Sym sym;          // Temporary symbol table record
-   const char * name1;     // Name of section or main record
+   TELF_Symbol sym;                    // Temporary symbol table record
+   const char * name1;                 // Name of section or main record
+
    // Pointer to old symbol table
    union {
-      SCOFF_SymTableEntry * p; // Symtab entry pointer
-      int8 * b;                // Used for increment
+      SCOFF_SymTableEntry * p;         // Symtab entry pointer
+      int8 * b;                        // Used for increment
    } OldSymtab;
 
    // Make the first record empty
-   NewSections[symtab].Push(0, (WordSize == 32) ? sizeof(Elf32_Sym) : sizeof(Elf64_Sym));
+   NewSections[symtab].Push(0, sizeof(TELF_Symbol));
 
    // Make first string table entries empty
    NewSections[strtab] .PushString("");
@@ -272,7 +287,7 @@ void CCOF2ELF::MakeSymbolTable() {
    // Loop twice through source symbol table to get local symbols first, global symbols last
    // Loop 1: Look for local symbols only
    OldSymtab.p = SymbolTable; // Pointer to source symbol table
-   for (isym = 0; isym < NumberOfSymbols; isym += numaux+1, OldSymtab.b += SIZE_SCOFF_SymTableEntry*(numaux+1)) {
+   for (isym = 0; isym < this->NumberOfSymbols; isym += numaux+1, OldSymtab.b += SIZE_SCOFF_SymTableEntry*(numaux+1)) {
 
       if (OldSymtab.b >= Buf() + DataSize) {
          err.submit(2040);
@@ -295,7 +310,7 @@ void CCOF2ELF::MakeSymbolTable() {
          //SCOFF_SymTableEntryAux * sa = (SCOFF_SymTableEntryAux *)(OldSymtab.b + SIZE_SCOFF_SymTableEntry);
 
          // Symbol name
-         name1 = GetSymbolName(OldSymtab.p->s.Name);
+         name1 = this->GetSymbolName(OldSymtab.p->s.Name);
 
          // Symbol value
          sym.st_value = OldSymtab.p->s.Value;
@@ -303,7 +318,7 @@ void CCOF2ELF::MakeSymbolTable() {
          // Get section
          OldSectionIndex = OldSymtab.p->s.SectionNumber;  // 1-based index into old section table
          NewSectionIndex = 0;                 // 0-based index into old section table
-         if (OldSectionIndex > 0 && OldSectionIndex <= NSections) {
+         if (OldSectionIndex > 0 && OldSectionIndex <= this->NSections) {
             // Subtract 1 from OldSectionIndex because NewSectIndex[] is zero-based while OldSectionIndex is 1-based
             // Get new section index from translation table
             NewSectionIndex = NewSectIndex[OldSectionIndex-1]; 
@@ -320,7 +335,7 @@ void CCOF2ELF::MakeSymbolTable() {
             if (numaux > 0 && numaux < 20) {
                // Get filename from subsequent Aux records.
                // Remove path from filename because the path makes no sense on a different platform.
-               char * filename = GetShortFileName(OldSymtab.p);
+               const char * filename = GetShortFileName(OldSymtab.p);
                // Put file name into string table and debug string table
                sym.st_name = NewSections[strtab].PushString(filename);
                NewSections[stabstr].PushString(filename);
@@ -368,16 +383,7 @@ void CCOF2ELF::MakeSymbolTable() {
          }
 
          // Put record into new symbol table
-         if (WordSize == 32) {
-            // Convert to 32-bit symbol record and put into symtab
-            Elf32_Sym sym32 = sym;
-            NewSections[symtab].Push(&sym32, sizeof(sym32));
-         }
-         else {
-            // Convert to 64-bit symbol record and put into symtab
-            Elf64_Sym sym64 = sym;
-            NewSections[symtab].Push(&sym64, sizeof(sym64));
-         }
+         NewSections[symtab].Push(&sym, sizeof(sym));
 
          // Insert into symbol translation table
          NewSymbolIndex[isym] = NewSections[symtab].GetLastIndex();
@@ -468,16 +474,7 @@ void CCOF2ELF::MakeSymbolTable() {
          }
 
          // Put record into new symbol table
-         if (WordSize == 32) {
-            // Convert to 32-bit symbol record and put into symtab
-            Elf32_Sym sym32 = sym;
-            NewSections[symtab].Push(&sym32, sizeof(sym32));
-         }
-         else {
-            // Convert to 64-bit symbol record and put into symtab
-            Elf64_Sym sym64 = sym;
-            NewSections[symtab].Push(&sym64, sizeof(sym64));
-         }
+         NewSections[symtab].Push(&sym, sizeof(sym));
 
          // Insert into symbol translation table
          NewSymbolIndex[isym] = NewSections[symtab].GetLastIndex();
@@ -486,13 +483,16 @@ void CCOF2ELF::MakeSymbolTable() {
    }  // End loop 2
 }
 
-void CCOF2ELF::MakeRelocationTables() {
-   // Convert subfunction: Relocation tables
-   int32 oldsec;     // Relocated section number in source file
-   int32 newsec;     // Relocated section number in destination file
-   int32 newsecr;    // Relocation table section number in destination file
-   Elf32_Shdr * NewRelTableSecHeader;  // Section header for new relocation table
 
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CCOF2ELF<ELFSTRUCTURES>::MakeRelocationTables() {
+   // Convert subfunction: Relocation tables
+   int32 oldsec;                                 // Relocated section number in source file
+   int32 newsec;                                 // Relocated section number in destination file
+   int32 newsecr;                                // Relocation table section number in destination file
+   TELF_SectionHeader * NewRelTableSecHeader;    // Section header for new relocation table
+   char TempText[32];                            // Temporary text buffer
+   const int WordSize = sizeof(NewFileHeader.e_entry) * 8; // word size 32 or 64 bits
 
    // Loop through source file sections
    for (oldsec = 0; oldsec < NSections; oldsec++) {
@@ -504,7 +504,7 @@ void CCOF2ELF::MakeRelocationTables() {
       }
 
       // Pointer to old section header
-      SCOFF_SectionHeader * SectionHeader = &SectionHeaders[oldsec];
+      SCOFF_SectionHeader * SectionHeader = &this->SectionHeaders[oldsec];
 
       if (SectionHeader->NRelocations > 0) {
          // This section has relocations
@@ -513,7 +513,7 @@ void CCOF2ELF::MakeRelocationTables() {
          newsecr = newsec + 1;
 
          // Check that we have allocated a relocation section
-         if (oldsec+1 < NSections && NewSectIndex[oldsec+1] == newsecr) err.submit(9000);
+         if (oldsec+1 < this->NSections && NewSectIndex[oldsec+1] == newsecr) err.submit(9000);
          if (newsecr >= NumSectionsNew) err.submit(9000);
 
          // New relocation table section header
@@ -522,7 +522,7 @@ void CCOF2ELF::MakeRelocationTables() {
          // Insert header info
          NewRelTableSecHeader->sh_type  = (WordSize == 32) ? SHT_REL : SHT_RELA;
          NewRelTableSecHeader->sh_flags = 0;
-         NewRelTableSecHeader->sh_addralign = (WordSize == 64) ? 8 : 4; // Don't know why
+         NewRelTableSecHeader->sh_addralign = WordSize / 8; // Alignment
          NewRelTableSecHeader->sh_link = symtab; // Point to symbol table
          NewRelTableSecHeader->sh_info = newsec; // Point to relocated section
          // Entry size:
@@ -540,7 +540,7 @@ void CCOF2ELF::MakeRelocationTables() {
          for (int i = 0; i < SectionHeader->NRelocations; i++, OldReloc.b += SIZE_SCOFF_Relocation) {
 
             // Make new relocation entry and set to zero
-            Elf64_Rela NewRelocEntry;
+            TELF_Relocation NewRelocEntry;
             memset(&NewRelocEntry, 0, sizeof(NewRelocEntry));
 
             // Section offset of relocated address
@@ -567,9 +567,24 @@ void CCOF2ELF::MakeRelocationTables() {
                case COFF32_RELOC_DIR32:   // 32-bit absolute virtual address
                   NewRelocEntry.r_type = R_386_32;  break;
 
-               case COFF32_RELOC_IMGREL:  // 32-bit image relative virtual address?
-                  err.submit(2039);       // Error message: not supported in ELF
-                  NewRelocEntry.r_type = R_386_32; // This will not work
+               case COFF32_RELOC_IMGREL:  // 32-bit image relative address
+                  // Image-relative relocation not supported in ELF
+                  if (cmd.OutputType == FILETYPE_MACHO_LE) {
+                     // Intermediate during conversion to MachO
+                     NewRelocEntry.r_type = R_UNSUPPORTED_IMAGEREL;
+                     break;
+                  }
+                  // Work-around unsupported image-relative relocation
+                  // Convert to absolute
+                  NewRelocEntry.r_type = R_386_32; // Absolute relocation
+                  if (cmd.ImageBase == 0) {
+                     // Default image base for 32-bit Linux
+                     cmd.ImageBase = 0x8048000; // 0x400000 ?
+                  }
+                  NewRelocEntry.r_addend -= cmd.ImageBase;
+                  // Warn that image base must be set to the specified value
+                  sprintf(TempText, "%X", cmd.ImageBase); // write value as hexadecimal
+                  err.submit(1301, TempText);  err.ClearError(1301);
                   break;
 
                case COFF32_RELOC_REL32:   // 32-bit self-relative
@@ -608,12 +623,27 @@ void CCOF2ELF::MakeRelocationTables() {
                   err.submit(2014);          // Error message
                   // Continue in next case and insert absolute address as token:
 
-               case COFF64_RELOC_ABS32:      // 32 bit absolute virtual address
-                  NewRelocEntry.r_type = R_X86_64_32;  break;
+               case COFF64_RELOC_ABS32:      // 32 bit absolute address
+                  NewRelocEntry.r_type = R_X86_64_32S;  break;
 
                case COFF64_RELOC_IMGREL:     // 32 bit image-relative
-                  err.submit(2039);          // Error message: not supported in ELF
-                  NewRelocEntry.r_type = R_X86_64_32; // This will not work
+                  // Image-relative relocation not supported in ELF
+                  if (cmd.OutputType == FILETYPE_MACHO_LE) {
+                     // Intermediate during conversion to MachO
+                     NewRelocEntry.r_type = R_UNSUPPORTED_IMAGEREL;
+                     break;
+                  }
+                  // Work-around unsupported image-relative relocation
+                  // Convert to absolute
+                  NewRelocEntry.r_type = R_X86_64_32S; // Absolute 32-bit relocation
+                  if (cmd.ImageBase == 0) {
+                     // Default image base for 64-bit Linux
+                     cmd.ImageBase = 0x400000;
+                  }
+                  NewRelocEntry.r_addend -= cmd.ImageBase;
+                  // Warn that image base must be set to the specified value
+                  sprintf(TempText, "%X", cmd.ImageBase); // write value as hexadecimal
+                  err.submit(1301, TempText);  err.ClearError(1301);
                   break;
 
                case COFF64_RELOC_REL32:      // 32 bit, RIP-relative
@@ -679,25 +709,22 @@ void CCOF2ELF::MakeRelocationTables() {
                   NewRelocEntry.r_addend = 0;
                }
 
-               // Convert to 32-bit relocation record
-               Elf32_Rel NewRelocEntry32;
-               NewRelocEntry32.r_offset = uint32(NewRelocEntry.r_offset);
-               NewRelocEntry32.r_type = NewRelocEntry.r_type;
-               NewRelocEntry32.r_sym = NewRelocEntry.r_sym;
+               // Save 32-bit relocation record Elf32_Rel, not Elf32_Rela
                if (NewRelocEntry.r_addend) err.submit(9000);
-               NewSections[newsecr].Push(&NewRelocEntry32, sizeof(NewRelocEntry32));
+               NewSections[newsecr].Push(&NewRelocEntry, sizeof(Elf32_Rel));
             }
             else {
                // 64 bit
+               /*
                if (*paddend != 0) {
                   // Use explicit addend in 64 bit ELF (SHT_RELA)
+                  // Explicit addend may cause link error if it appears to point outside section
                   NewRelocEntry.r_addend += *paddend;
                   *paddend = 0;
-               }
+               }*/
 
-               // Convert to 64-bit relocation record
-               Elf64_Rela NewRelocEntry64 = NewRelocEntry; // Must use Rela in 64-bit ELF?
-               NewSections[newsecr].Push(&NewRelocEntry64, sizeof(NewRelocEntry64));
+               // Save 64-bit relocation record. Must be Elf64_Rela
+               NewSections[newsecr].Push(&NewRelocEntry, sizeof(Elf64_Rela));
             }
          }
       }
@@ -705,7 +732,8 @@ void CCOF2ELF::MakeRelocationTables() {
 }
 
 
-void CCOF2ELF::MakeBinaryFile() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CCOF2ELF<ELFSTRUCTURES>::MakeBinaryFile() {
    // Convert subfunction: Make section headers and file header,
    // and combine everything into a single memory buffer.
    int32  newsec;              // Section index
@@ -717,7 +745,7 @@ void CCOF2ELF::MakeBinaryFile() {
    ToFile.SetFileType(FILETYPE_ELF);
    
    // Make space for file header in ToFile, but don't fill data into it yet
-   ToFile.Push(0, (WordSize == 32) ? sizeof(Elf32_Ehdr) : sizeof(Elf64_Ehdr));
+   ToFile.Push(0, sizeof(TELF_Header));
 
    // Loop through new section buffers
    for (newsec = 0; newsec < NumSectionsNew; newsec++) {
@@ -743,18 +771,11 @@ void CCOF2ELF::MakeBinaryFile() {
    for (newsec = 0; newsec < NumSectionsNew; newsec++) {
 
       // Put section header into ToFile
-      if (WordSize == 32) {
-         ToFile.Push(&NewSectionHeaders[newsec], sizeof(Elf32_Shdr));
-      }
-      else {
-         // Convert to Elf64_Shdr
-         Elf64_Shdr SectionHeader64 = NewSectionHeaders[newsec];
-         ToFile.Push(&SectionHeader64, sizeof(Elf64_Shdr));
-      }
+      ToFile.Push(&NewSectionHeaders[newsec], sizeof(TELF_SectionHeader));
    }
 
    // Make file header
-   Elf32_Ehdr FileHeader;
+   TELF_Header FileHeader;
    memset(&FileHeader, 0, sizeof(FileHeader)); // Initialize to 0
 
    // Put file type magic number in
@@ -782,10 +803,10 @@ void CCOF2ELF::MakeBinaryFile() {
    FileHeader.e_shoff = SectionHeaderOffset;
 
    // File header size
-   FileHeader.e_ehsize = (WordSize == 32) ? sizeof(Elf32_Ehdr) : sizeof(Elf64_Ehdr);
+   FileHeader.e_ehsize = sizeof(TELF_Header);
 
    // Section header size
-   FileHeader.e_shentsize = (WordSize == 32) ? sizeof(Elf32_Shdr) : sizeof(Elf64_Shdr);
+   FileHeader.e_shentsize = sizeof(TELF_SectionHeader);
 
    // Number of section headers
    FileHeader.e_shnum = (uint16)NumSectionsNew;
@@ -794,12 +815,10 @@ void CCOF2ELF::MakeBinaryFile() {
    FileHeader.e_shstrndx = (uint16)shstrtab;
 
    // Put file header into beginning of ToFile where we made space for it
-   if (WordSize == 32) {
-      memcpy(ToFile.Buf(), &FileHeader, sizeof(Elf32_Ehdr));
-   }
-   else {
-      // Convert to 64 bit file header
-      Elf64_Ehdr FileHeader64 = FileHeader;
-      memcpy(ToFile.Buf(), &FileHeader64, sizeof(Elf64_Ehdr));
-   }
+   memcpy(ToFile.Buf(), &FileHeader, sizeof(FileHeader));
 }
+
+
+// Make template instances for 32 and 64 bits
+template class CCOF2ELF<ELF32STRUCTURES>;
+template class CCOF2ELF<ELF64STRUCTURES>;

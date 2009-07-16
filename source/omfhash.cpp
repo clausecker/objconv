@@ -8,7 +8,7 @@
 * This module contains code for searching and making hash tables for OMF
 * libraries.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"

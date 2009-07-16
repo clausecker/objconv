@@ -12,7 +12,7 @@
 * dynamic memory allocation and file read/write. See containers.h for
 * further description.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -172,7 +172,7 @@ CFileBuffer::CFileBuffer() : CMemoryBuffer() {
    // Default constructor
    FileName = 0;
    OutputFileName = 0;
-   FileType = WordSize = 0;
+   FileType = WordSize = Executable = 0;
 }
 
 CFileBuffer::CFileBuffer(char const * filename) : CMemoryBuffer() {  
@@ -285,6 +285,7 @@ int CFileBuffer::GetFileType() {
    else if (strncmp(Buf(),ELFMAG,4) == 0) {
       // ELF file
       FileType = FILETYPE_ELF;
+      Executable = Get<Elf32_Ehdr>(0).e_type != ET_REL;
       switch (Buf()[EI_CLASS]) {
          case ELFCLASS32:
             WordSize = 32; break;
@@ -296,11 +297,13 @@ int CFileBuffer::GetFileType() {
       // Mach-O 32 little endian
       FileType = FILETYPE_MACHO_LE;
       WordSize = 32;
+      Executable = Get<MAC_header_32>(0).filetype != MAC_OBJECT;
    }
    else if (Get<uint32>(0) == MAC_MAGIC_64) {
       // Mach-O 64 little endian
       FileType = FILETYPE_MACHO_LE;
       WordSize = 64;
+      Executable = Get<MAC_header_64>(0).filetype != MAC_OBJECT;
    }
    else if (Get<uint32>(0) == MAC_CIGAM_32) {
       // Mach-O 32 big endian
@@ -346,11 +349,13 @@ int CFileBuffer::GetFileType() {
       // COFF/PE 32
       FileType = FILETYPE_COFF;
       WordSize = 32;
+      Executable = (Get<SCOFF_FileHeader>(0).Flags & PE_F_EXEC) != 0;
    }
    else if (Get<uint16>(0) == PE_MACHINE_X8664) {
       // COFF64/PE32+
       FileType = FILETYPE_COFF;
       WordSize = 64;
+      Executable = (Get<SCOFF_FileHeader>(0).Flags & PE_F_EXEC) != 0;
    }
    else if (Get<uint8>(0) == OMF_THEADR) {
       // OMF 16 or 32
@@ -366,6 +371,7 @@ int CFileBuffer::GetFileType() {
       // DOS file or file with DOS stub
       FileType = FILETYPE_DOS;
       WordSize = 16;
+      Executable = 1;
       uint32 Signature = Get<uint32>(0x3C);
       if (Signature + 8 < DataSize) {
          if (Get<uint16>(Signature) == 0x454E) {
@@ -390,7 +396,7 @@ int CFileBuffer::GetFileType() {
       && stricmp(FileName + (uint32)strlen(FileName) - 4, ".com") == 0) {
       // DOS .com file recognized only from its extension
       FileType = FILETYPE_DOS;
-      WordSize = 16;
+      WordSize = 16;  Executable = 1;
    }
    else {
       // Unknown file type
@@ -437,7 +443,11 @@ void CFileBuffer::CheckOutputFileName() {
          // '.' not found. Append '.' to name
          i = (int)strlen(name); if (i > MAXFILENAMELENGTH-4) i = MAXFILENAMELENGTH-4;
       }
-      if (cmd.OutputType == FILETYPE_COFF || cmd.OutputType == FILETYPE_OMF) {
+      // Get default extension
+      if (cmd.OutputType == FILETYPE_ASM) {
+         strcpy(name+i, ".asm"); // Assembly file
+      }
+      else if (cmd.OutputType == FILETYPE_COFF || cmd.OutputType == FILETYPE_OMF) {
          if ((FileType & (FILETYPE_LIBRARY | FILETYPE_OMFLIBRARY)) || (cmd.LibraryOptions & CMDL_LIBRARY_ADDMEMBER)) {
             strcpy(name+i, ".lib"); // Windows function library
          }
@@ -472,6 +482,7 @@ void operator >> (CFileBuffer & a, CFileBuffer & b) {
    b.DataSize   = a.GetDataSize();          // Size of data, offset to vacant space
    b.BufferSize = a.GetBufferSize();        // Size of allocated buffer
    b.NumEntries = a.GetNumEntries();        // Number of objects pushed
+   b.Executable = a.Executable;             // File is executable
    if (a.WordSize) b.WordSize = a.WordSize; // Segment word size (16, 32, 64)
    if (a.FileName) b.FileName = a.FileName; // Name of input file
    if (a.OutputFileName) b.OutputFileName = a.OutputFileName;// Name of output file
@@ -534,7 +545,8 @@ void CFileBuffer::GetOMFWordSize() {
 // Constructor
 CTextFileBuffer::CTextFileBuffer() {
    column = 0;
-   LineType = 0;
+   // Use UNIX linefeeds only if GASM output
+   LineType = (cmd.SubType == SUBTYPE_GASM) ? 1 : 0;
 }
 
 void CTextFileBuffer::Put(const char * text) {
@@ -579,9 +591,15 @@ void CTextFileBuffer::PutDecimal(int32 x, int IsSigned) {
 
 void CTextFileBuffer::PutHex(uint8 x, int MasmForm) {
    // Write hexadecimal 8 bit number to buffer
-   // If MasmForm = 1 then the function will put a 0 before the number if the
-   // first hexadecimal digit i A-F, and put an H after the number
+   // If MasmForm >= 1 then the function will write the number in a
+   // way that can be read by the assembler, e.g. 0FFH or 0xFF
    char text[16];
+   if (MasmForm && cmd.SubType == SUBTYPE_GASM) {
+      // Needs 0x prefix
+      sprintf(text, "0x%02X", x);
+      Put(text);
+      return;
+   }
    if (MasmForm && x >= 0xA0) {
       Put("0");                                  // Make sure it doesn't begin with a letter
    }
@@ -592,41 +610,81 @@ void CTextFileBuffer::PutHex(uint8 x, int MasmForm) {
 
 void CTextFileBuffer::PutHex(uint16 x, int MasmForm) {
    // Write hexadecimal 16 bit number to buffer
-   // If MasmForm = 1 then the function will put a 0 before the number if the
-   // first hexadecimal digit i A-F, and put an H after the number
+   // If MasmForm >= 1 then the function will write the number in a
+   // way that can be read by the assembler, e.g. 0FFH or 0xFF
+   // If MasmForm == 2 then leading zeroes are stripped
    char text[16];
-   if (MasmForm && x >= 0xA000) {
-      Put("0");                                  // Make sure it doesn't begin with a letter
+   if (MasmForm && cmd.SubType == SUBTYPE_GASM) {
+      // Needs 0x prefix
+      sprintf(text, MasmForm==1 ? "0x%04X" : "0x%X", x);
+      Put(text);
+      return;
    }
-   sprintf(text, "%04X", x);
+   sprintf(text, (MasmForm < 2) ? "%04X" : "%X", x);
+   // Check if leading zero needed
+   if (MasmForm && text[0] > '9') {
+      Put("0");                                  // Leading zero needed
+   }
    Put(text);
    if (MasmForm) Put("H");
 }
 
 void CTextFileBuffer::PutHex(uint32 x, int MasmForm) {
    // Write hexadecimal 32 bit number to buffer
-   // If MasmForm = 1 then the function will put a 0 before the number if the
-   // first hexadecimal digit i A-F, and put an H after the number
+   // If MasmForm >= 1 then the function will write the number in a
+   // way that can be read by the assembler, e.g. 0FFH or 0xFF
+   // If MasmForm == 2 then leading zeroes are stripped
    char text[16];
-   if (MasmForm && x >= 0xA0000000) {
-      Put("0");                                  // Make sure it doesn't begin with a letter
+   if (MasmForm && cmd.SubType == SUBTYPE_GASM) {
+      // Needs 0x prefix
+      sprintf(text, MasmForm==1 ? "0x%08X" : "0x%X", x);
+      Put(text);
+      return;
    }
-   sprintf(text, "%08X", x);
+
+   sprintf(text, (MasmForm < 2) ? "%08X" : "%X", x);
+   // Check if leading zero needed
+   if (MasmForm && text[0] > '9') {
+      Put("0");                                  // Leading zero needed
+   }
    Put(text);
    if (MasmForm) Put("H");
 }
 
 void CTextFileBuffer::PutHex(uint64 x, int MasmForm) {
    // Write unsigned hexadecimal 64 bit number to buffer
-   // If MasmForm = 1 then the function will put a 0 before the number if the
-   // first hexadecimal digit i A-F, and put an H after the number
+   // If MasmForm >= 1 then the function will write the number in a
+   // way that can be read by the assembler, e.g. 0FFH or 0xFF
+   // If MasmForm == 2 then leading zeroes are stripped
    char text[32];
-   if (MasmForm && HighDWord(x) >= 0xA0000000) {
-      Put("0");                                  // Make sure it doesn't begin with a letter
+   if (MasmForm < 2) {  // Print all digits
+      sprintf(text, "%08X%08X", HighDWord(x), uint32(x));
    }
-   sprintf(text, "%08X%08X", HighDWord(x), uint32(x));
-   Put(text);
-   if (MasmForm) Put("H");
+   else { // Skip leading zeroes
+      if (HighDWord(x)) {
+         sprintf(text, "%X%08X", HighDWord(x), uint32(x));
+      }
+      else {
+         sprintf(text, "%X", uint32(x));
+      }
+   }
+   if (MasmForm) {
+      if (cmd.SubType == SUBTYPE_GASM) {
+         // Needs 0x prefix
+         Put("0x");
+         Put(text);
+      }
+      else {
+         // use 0FFH form
+         if (text[0] > '9')  Put("0");           // Leading zero needed
+         Put(text);
+         Put("H");
+      }
+   }
+   else {
+      // write hexadecimal number only
+      Put(text);
+   }
 }
 
 void CTextFileBuffer::PutFloat(float x) {

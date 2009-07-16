@@ -1,44 +1,58 @@
 /****************************  maindef.h   **********************************
 * Author:        Agner Fog
 * Date created:  2006-08-26
-* Last modified: 2006-08-26
+* Last modified: 2009-07-16
 * Project:       objconv
 * Module:        maindef.h
 * Description:
 * Header file for type definitions and other main definitions.
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef MAINDEF_H
 #define MAINDEF_H
 
 // Program version
-#define OBJCONV_VERSION         0.95
+#define OBJCONV_VERSION         2.09
 
 
 // Integer type definitions with platform-independent sizes:
+#if defined(__GNUC__)
+  // Compilers supporting C99 or C++0x have inttypes.h defining these integer types
+  // This is the preferred solution:
+  #include <inttypes.h>
+  //typedef int8_t         int8;       // Gnu compiler can't convert int8_t to char
+  typedef char             int8;       // 8 bit  signed integer
+  typedef uint8_t          uint8;      // 8 bit  unsigned integer
+  typedef int16_t          int16;      // 16 bit signed integer
+  typedef uint16_t         uint16;     // 16 bit unsigned integer
+  typedef int32_t          int32;      // 32 bit signed integer
+  typedef uint32_t         uint32;     // 32 bit unsigned integer
+  typedef int64_t          int64;      // 64 bit signed integer
+  typedef uint64_t         uint64;     // 64 bit unsigned integer
+
+#else
+
 typedef char               int8;       // 8 bit  signed integer
 typedef unsigned char      uint8;      // 8 bit  unsigned integer
 typedef short int          int16;      // 16 bit signed integer
 typedef unsigned short int uint16;     // 16 bit unsigned integer
-
-// Definition of 32 bit integers depends on platform
-#if defined(_WIN16) || defined(__MSDOS__) || defined(_MSDOS) // 16 bit systems
-typedef long int           int32;      // 32 bit signed integer
-typedef unsigned long int  uint32;     // 32 bit unsigned integer
-#else
 typedef int                int32;      // 32 bit signed integer
 typedef unsigned int       uint32;     // 32 bit unsigned integer
 
 // Definition of 64 bit integers depends on platform
-#if defined(__WINDOWS__) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+#if defined(_MSC_VER)
+// Microsofts typenames:
 typedef __int64            int64;      // 64 bit signed integer
 typedef unsigned __int64   uint64;     // 64 bit unsigned integer
+
 #else
+// This works with most compilers:
 typedef long long          int64;      // 64 bit signed integer
 typedef unsigned long long uint64;     // 64 bit unsigned integer
 #endif
 #endif
+
 
 // Get high part of a 64-bit integer
 static inline uint32 HighDWord (uint64 x) {
@@ -71,7 +85,7 @@ static inline uint32 HighDWord (uint64 x) {
 #define FILETYPE_WIN_UNKNOWN    0x29         // Unknown subtype, Windows
 #define FILETYPE_ASM           0x100         // Disassembly output
 #define FILETYPE_LIBRARY      0x1000         // UNIX-style library/archive
-#define FILETYPE_OMFLIBRARY   0x2000         // OMF-style library
+#define FILETYPE_OMFLIBRARY   0x2000         // OMF-style  library
 
 
 // Define constants for symbol scope
@@ -80,12 +94,16 @@ static inline uint32 HighDWord (uint64 x) {
 #define S_EXTERNAL  2                        // External symbol. Defined in another module
 
 
+// Macro to calculate the size of an array
+#define TableSize(x) (sizeof(x)/sizeof(x[0]))
+
+
 // Structures and functions used for lookup tables:
 
 // Structure of integers and char *, used for tables of text strings
 struct SIntTxt {
    int a;
-   char * b;
+   const char * b;
 };
 
 // Translate integer value to text string by looking up in table of SIntTxt.
@@ -99,10 +117,15 @@ static inline char const * LookupText(SIntTxt const * p, int n, int x) {
    sprintf(utext, "unknown(0x%X)", x);
    return utext;
 }
+
 // Macro to get length of text list and call LookupText
 #define Lookup(list,x)  LookupText(list, sizeof(list)/sizeof(list[0]), x)
 
+
 // Function to convert powers of 2 to index
 int FloorLog2(uint32 x);
+
+// Convert 32 bit time stamp to string
+const char * timestring(uint32 t);
 
 #endif // #ifndef MAINDEF_H

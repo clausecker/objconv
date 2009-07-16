@@ -8,7 +8,7 @@
 * Header file defining classes for reading and writing UNIX and OMF style 
 * libraries.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #ifndef LIBRARY_H
@@ -38,11 +38,12 @@ public:
    void Go();                          // Do whatever the command line says
    void Dump();                        // Print contents of library
    static char *TruncateMemberName(char const*); // Remove path and truncate object file name to 15 characters
-   char * GetModuleName(uint32 Index); // Get name of module from index or page index
+   const char * GetModuleName(uint32 Index); // Get name of module from index or page index
 protected:
    // Properties for UNIX input libraries only
    uint32 LongNames;                   // Offset to long names member
    uint32 LongNamesSize;               // Size of long names member
+   uint32 AlignBy;                     // Member alignment
 
    // Properties for OMF input libraries only
    uint32 PageSize;                    // Alignment of members
@@ -54,9 +55,9 @@ protected:
    void DumpOMF();                     // Print contents of OMF style library
    void CheckOMFHash(CMemoryBuffer &stringbuf, CSList<SStringEntry> &index);// Check if OMF library hash table has correct entries for all symbol names
    void StartExtracting();             // Initialize before ExtractMember()
-   char * ExtractMember(CFileBuffer*); // Extract next library member from input library
-   char * ExtractMemberUNIX(CFileBuffer*); // Extract member of UNIX style library
-   char * ExtractMemberOMF(CFileBuffer*);  // Extract member of OMF style library
+   const char * ExtractMember(CFileBuffer*); // Extract next library member from input library
+   const char * ExtractMemberUNIX(CFileBuffer*); // Extract member of UNIX style library
+   const char * ExtractMemberOMF(CFileBuffer*);  // Extract member of OMF style library
    uint32 NextHeader(uint32 Offset);   // Loop through library headers
    CConverter MemberBuffer;            // Buffer containing single library member
    uint32 CurrentOffset;               // Offset to current member

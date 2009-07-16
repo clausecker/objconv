@@ -1,13 +1,13 @@
 /****************************  disasm.h   **********************************
 * Author:        Agner Fog
 * Date created:  2007-02-21
-* Last modified: 2007-02-25
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        disasm.h
 * Description:
 * Header file for disassembler
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef DISASM_H
 #define DISASM_H
@@ -21,16 +21,25 @@
 // Structure for defining x86 opcode maps
 struct SOpcodeDef {
    const char * Name;                  // opcode name
-   uint16 InstructionSet;              // mmx, sse, 3dnow, x64, etc.
-   uint16 AllowedPrefixes;             // prefixes allowed for this opcode
+   uint32 InstructionSet;              // mmx, sse, 3dnow, x64, etc.
+   uint32 AllowedPrefixes;             // prefixes allowed for this opcode
    uint16 InstructionFormat;           // opcode type, number of operands
    uint16 Destination;                 // type and size of destination operand
-   uint16 Source;                      // type and size of source operand(s)
-   uint8  TableLink;                   // this entry is a link to another map
-   uint8  Options;                     // miscellaneous options
+   uint16 Source1;                     // type and size of 1. source operand
+   uint16 Source2;                     // type and size of 2. source operand
+   uint16 Source3;                     // type and size of 3. source operand
+   uint16 Source4;                     // type and size of 4. source operand (not used, for future use)
+   uint16 TableLink;                   // this entry is a link to another map
+   uint16 Options;                     // miscellaneous options
 };
 
-/* Values for each field in SOpcodeDef:
+/****************     Constants for opcode definition     **********************
+I have deliberately not assigned names to these constants because this would
+make the tables in opcodes.cpp wery broad with many constant names OR'ed together.
+It would be almost impossible to align the columns in a readable way.
+Sorry that you have to look up the constants here.
+
+The following tables define the possible values for each field in SOpcodeDef:
 
 Name:
 -----
@@ -39,51 +48,70 @@ Opcode mnemonic
 InstructionSet:
 (Some values can be OR'ed):
 ---------------------------
-0:      8086
-1:      80186
-2:      80286
-3:      80386
-4:      80486, cpuid
-5:      Pentium
-6:      Pentium Pro, cmov, fcomi
-7:      MMX
-8:      Pentium II
-0x11:   SSE
-0x12:   SSE2
-0x13:   SSE3
-0x14:   Suppl. SSE3
-0x15:   SSE4.1
-0x16:   SSE4.2
-0x100:  8087
-0x101:  80387
-0x800:  Privileged instruction
-0x1000: 3DNow
-0x1001: 3DNow extension
-0x4000: Only available in 64 bit mode
-0x8000: Not  available in 64 bit mode
+0:       8086
+1:       80186
+2:       80286
+3:       80386
+4:       80486, cpuid
+5:       Pentium
+6:       Pentium Pro, cmov, fcomi
+7:       MMX
+8:       Pentium II
+0x11:    SSE
+0x12:    SSE2
+0x13:    SSE3
+0x14:    Suppl. SSE3
+0x15:    SSE4.1
+0x16:    SSE4.2
+0x17:    AES
+0x18:    CLMUL
+0x19:    AVX
+0x1A:    FMA
+0x100:   8087
+0x101:   80387
+0x800:   Privileged instruction
+0x1001:  AMD 3DNow
+0x1002:  AMD 3DNow extension
+0x1004:  AMD SSE4a
+0x1005:  AMD XOP
+0x1006:  AMD FMA4
+0x1007:  AMD CVT16
+0x2001;  VIA
+
+0x4000:  Only available in 64 bit mode
+0x8000:  Not  available in 64 bit mode
+0x10000: Proposed instruction code, preliminary specification
+0x20000: Proposed instruction code never implemented, preliminary specification later changed
 
 AllowedPrefixes:
 (Values can be OR'ed):
 ----------------------
-0:      No prefix allowed other than possibly segment and address size prefixes if there is a mod/reg/rm byte
-1:      Address size prefix allowed, even if no mod/reg/rm byte
-2:      This is a stack operation. Address size prefix will truncate the stack pointer. Make warning if address size prefix or operand size prefix
-4:      Segment prefix allowed, even if no mod/reg/rm byte
-8:      Branch prediction hint prefix allowed (on Pentium 4)
-0x10:   LOCK prefix allowed
-0x20:   REP prefix allowed
-0x40:   REPE/REPNE prefix allowed
-0x80:   This is a jump operation. 66 prefix will truncate EIP. Make warning if 66 prefix in 32 bit mode. 66 prefix not allowed in 64 bit mode.
-0x100:  66 prefix determines integer operand size
-0x200:  66 prefix allowed for other purpose. Typical meanings are:
-        * indicates packed integer xmm vs. mmx,
-        * indicates packed double precision xmm (pd) vs. packed single (ps)
-0x400:  F3 prefix allowed for other purpose. Typical = scalar single precision xmm (ss)
-0x800:  F2 prefix allowed for other purpose. Typical = scalar double precision xmm (sd)
-0xE00:  none/66/F2/F3 prefix indicate ps/pd/sd/ss xmm
-0x1000: REX.W prefix determines integer operand size
-0x2000: REX.W prefix allowed but unnecessary
-0x8000: Instruction not allowed without prefix
+0:       No prefix allowed other than possibly segment and address size prefixes if there is a mod/reg/rm byte
+1:       Address size prefix allowed, even if no mod/reg/rm byte
+2:       This is a stack operation. Address size prefix will truncate the stack pointer. Make warning if address size prefix or operand size prefix
+4:       Segment prefix allowed, even if no mod/reg/rm byte
+8:       Branch prediction hint prefix allowed (on Pentium 4)
+0x10:    LOCK prefix allowed
+0x20:    REP prefix allowed
+0x40:    REPE/REPNE prefix allowed
+0x80:    This is a jump operation. 66 prefix will truncate EIP. Make warning if 66 prefix in 32 bit mode. 66 prefix not allowed in 64 bit mode.
+0x100:   66 prefix determines integer operand size
+0x200:   66 prefix allowed for other purpose. Typical meanings are:
+         * indicates packed integer xmm vs. mmx,
+         * indicates packed double precision xmm (pd) vs. packed single (ps)
+0x400:   F3 prefix allowed for other purpose. Typical = scalar single precision xmm (ss)
+0x800:   F2 prefix allowed for other purpose. Typical = scalar double precision xmm (sd)
+0xE00:   none/66/F2/F3 prefix indicate ps/pd/sd/ss xmm
+0x1000:  REX.W prefix determines integer operand size or swaps operands or other purpose
+0x2000:  REX.W prefix allowed but unnecessary
+0x4000:  REX.W prefix swaps last two operands
+0x8000:  Instruction not allowed without 66/F2/F3 prefix as specified by previous bits
+0x10000: VEX or XOP prefix allowed
+0x20000: VEX or XOP prefix required
+0x40000: VEX.L prefix allowed
+0x80000: VEX.vvvv prefix allowed
+0x100000:VEX.L prefix required
+0x200000:VEX.L prefix allowed only if pp bits < 2
 
 InstructionFormat:
 (Values can be OR'ed):
@@ -96,7 +124,14 @@ InstructionFormat:
 0x11:   Has mod/reg/rm byte and one register/memory operand
 0x12:   Has mod/reg/rm byte, a register destination operand and a register/memory source operand
 0x13:   Has mod/reg/rm byte, a register/memory destination operand and a register source operand
-0x20:   Has 2 bytes immediate operand (ret i)
+0x14:   Has mod/reg/rm byte and AMD DREX byte. One destination and two source operands and possibly an immediate byte operand (AMD SSE5 instructions never implemened)
+0x15:   Has mod/reg/rm byte and AMD DREX byte. One destination and three source operands. One of the source operands is equal to the destination operand (AMD SSE5 instructions never implemened)
+0x18:   Has VEX prefix and 2 operands. Dest = VEX.v, src = rm, opcode extension in r bits. Src omitted if no VEX prefix.
+0x19:   Has VEX prefix and 3 operands. Dest = r,  src1 = VEX.v, src2 = rm. Src1 omitted if no VEX prefix. May swap src1 and src2 if VEX.W = 0
+0x1A:   Has VEX prefix and 3 operands. Dest = rm, src1 = VEX.v, src2 = r
+0x1C:   Has VEX prefix and 4 operands. Dest = r,  src1 = VEX.v, src2 = rm, src3 = bits 4-7 of immediate byte. May swap src2 and src3 if VEX.W
+0x1D:   Has VEX prefix and 4 operands. Dest = r,  src1 = bits 4-7 of immediate byte, src2 = rm, src3 = VEX.v. May swap src2 and src3 if VEX.W
+0x20:   Has 2 bytes immediate operand (ret i) or 1 + 1 bytes (insrtq)
 0x40:   Has 1 byte immediate operand or short jump
 0x60:   Has 2 + 1 = 3 bytes immediate operand (enter)
 0x80:   Has 2 or 4 bytes immediate operand or near jump
@@ -128,34 +163,35 @@ the values for these two operands are OR'ed (e.g. imul eax,ebx,9; shrd eax,ebx,c
 0x0B:   16, 32 or 64 bit near indirect pointer (jump)
 0x0C:   16, 32 or 64 bit near indirect pointer (call)
 0x0D:   16+16, 32+16 or 64+16 bits far indirect pointer (jump or call)
-0x10:   packed mmx, unknown type
-0x11:   packed  8 bit integer mmx
-0x12:   packed 16 bit integer mmx
-0x13:   packed 32 bit integer mmx
-0x14:   packed 64 bit integer mmx
-0x20    packed integer xmm, unknown size or 128 bits
-0x21:   packed  8 bit integer xmm
-0x22:   packed 16 bit integer xmm
-0x23:   packed 32 bit integer xmm
-0x24:   packed 64 bit integer xmm
-0x28:   packed inter xmm, unaligned
-0x30:   packed integer mmx or xmm, depending on 66 prefix
-0x31:   packed  8 bit integer mmx or xmm
-0x32:   packed 16 bit integer mmx or xmm
-0x33:   packed 32 bit integer mmx or xmm
-0x34:   packed 64 bit integer mmx or xmm
+
+0x11:   8  bit constant, unsigned
+0x12:   16 bit constant, unsigned
+0x13:   32 bit constant, unsigned
+0x18:   16 or 32 bit constant, unsigned
+0x19:   16, 32 or 64 bit constant, unsigned
+0x21:   8  bit constant, signed
+0x22:   16 bit constant, signed
+0x23:   32 bit constant, signed
+0x28:   16 or 32 bit constant, signed
+0x29:   16, 32 or 64 bit constant, signed
+0x31:   8  bit constant, hexadecimal
+0x32:   16 bit constant, hexadecimal
+0x33:   32 bit constant, hexadecimal
+0x34:   64 bit constant, hexadecimal
+0x38:   16 or 32 bit constant, hexadecimal
+0x39:   16, 32 or 64 bit constant, hexadecimal
+
 0x40:   float x87, unknown size or register only
 0x43:   32 bit float x87, single precision
 0x44:   64 bit float x87, double precision
 0x45:   80 bit float x87, long double precision
 0x48:   float SSE, unknown size
-0x4B:   32 bit float SSE,  scalar single precision (ss)
-0x4C:   64 bit float SSE2, scalar double precision (sd)
-0x5B:   packed float single precision 64 bit or 3DNow
-0x68:   packed float SSE, unknown size
-0x6B:   packed float single precision SSE  (ps)
-0x6C:   packed float double precision SSE2 (pd)
-0x6F:   XMM float. Size depends on prefix: none = ps, 66 = pd, F2 = sd, F3 = ss
+0x4B:   32 bit float SSE,  single precision (ss) or packed (ps)
+0x4C:   64 bit float SSE2, double precision (sd) or packed (pd)
+0x4F:   XMM float. Size depends on prefix: none = ps, 66 = pd, F2 = sd, F3 = ss
+0x50:   Full vector, aligned
+0x51:   Full vector, unaligned
+
 0x81:   Short jump destination, 8 bits
 0x82:   Near jump destination, 16 or 32 bits, depending on operand size
 0x83:   Near call destination, 16 or 32 bits, depending on operand size
@@ -167,67 +203,87 @@ the values for these two operands are OR'ed (e.g. imul eax,ebx,9; shrd eax,ebx,c
 0x94:   test register (obsolete or undocumented)
 0xa1:   al
 0xa2:   ax
+0xa3:   eax
+0xa4:   rax
 0xa8:   ax or eax
 0xa9:   ax, eax or rax
+0xae:   xmm0
 0xaf:   st(0)
 0xb1:   1
 0xb2:   dx
+0xb3:   cl
 0xc0:   [bx], [ebx] or [rbx]
 0xc1:   [si], [esi] or [rsi]
 0xc2:   es:[di], es:[edi] or [rdi]
 
-0x000:  Must be a register operand
-0x100:  Must be a memory operand
-0x200:  Can be register or memory operand
+// The following values can be added to specify vectors
+0x100:  Vector MMX or XMM, depending on 66 prefix
+0x200:  Vector XMM or YMM, depending on VEX.L prefix
+0x300:  Vector MMX (8  bytes)
+0x400:  Vector XMM (16 bytes)
+0x500:  Vector YMM (32 bytes)
 
-// The following operands can be third operand:
-0x800:  cl
-0x1000: unsigned immediate operand, possibly in addition to another source operand
-0x2000: signed immediate operand, possibly in addition to another source operand
-0x3000: signed or unsigned immediate operand, signed if smaller than destination
-0x4000: show operand as hexadecimal
+// The following values can be added to specify operand type
+0x1000: Must be register, memory operand not allowed
+0x2000: Must be memory, register operand not allowed
 
 // The following bit values apply to CDisassembler::s.Operands[] only:
-0x10000:    Register operand indicated by reg bits of mod/reg/rm byte
-0x20000:    Register or memory operand indicated by mod and rm bits of mod/reg/rm byte or last bits of opcode
-0x40000:    Direct memory operand without mod/reg/rm byte
-0x80000:    Has relocation
+0x10000:    Direct memory operand without mod/reg/rm byte
+0x20000:    Register operand indicated by last bits of opcode and B bit
+0x30000:    Register or memory operand indicated by mod and rm bits of mod/reg/rm byte and B,X bits
+0x40000:    Register operand indicated by reg bits of mod/reg/rm byte and R bit
+0x50000:    Register operand indicated by dest bits of DREX byte
+0x60000:    Register operand indicated by VEX.vvvv bits
+0x70000:    Register operand indicated by bits 4-7 of immediate operand
+0x80000:    (Register operand indicated by bits 0-3 of immediate operand. unused, reserved for future use)
+0x100000:   Immediate operand using immediate field or first part of it
+0x200000:   Immediate operand using second part of immediate field
 0x1000000:  Is code
 0x2000000:  Is supposed to be code, but dubious
 0x4000000:  Is data
 
-// The following bit value applies only to symbol types originating from object file
+// The following bit values applies only to symbol types originating from object file
+0x40000000: Gnu indirect function (CPU dispatcher)
 0x80000000: Symbol is a segment (in COFF file symbol table)
 
 TableLink:
 ----------
-Used for linking to another opcode table when more than one opcode begins with this byte.
-When TableLink is nonzero then InstructionSet is an index into OpcodeTables pointing to
-another table.
+Used for linking to another opcode table when more than one opcode begins 
+with the same bytes or when different specifications are needed in different
+cases. When TableLink is nonzero then InstructionSet is an index into 
+OpcodeTables pointing to a subtable. The subtable is indexed according to
+the criterion defined by TableLink.
 
 0:      No link to other table
-1:      Use following byte as index into next table
-2:      Use reg field of mod/reg/rm byte as index into next table
-3:      Use mod < 3 (memory operand) vs. mod == 3 (register operand) as index into next table
+1:      Use following byte as index into next table (256 entries)
+2:      Use reg field of mod/reg/rm byte as index into next table (8 entries)
+3:      Use mod < 3 vs. mod == 3 as index (0: memory operand, 1: register operand)
 4:      Use mod and reg fields of mod/reg/rm byte as index into next table,
         first 8 entries indexed by reg for mod < 3, next 8 entries indexed by reg for mod = 3.
-5:      Use rm bits of mod/reg/rm byte as index into next table
-6:      Use immediate byte after any operands as index into next table
-7:      Use mode as index into next table (16, 32, 64 bits)
-8:      Use operand size as index into next table (16, 32, 64 bits)
-9:      Use prefixes as index into next table (none, 66, F2, F3)
-0x0A:   Use address size as index into next table (16, 32, 64 bits)
-0x10:   Use assembly language dialect as index into next table
+5:      Use rm bits of mod/reg/rm byte as index into next table (8 entries)
+6:      Use immediate byte after any operands as index into next table (256 entries)
+7:      Use mode as index into next table (0: 16 bits, 1: 32 bits, 2: 64 bits)
+8:      Use operand size as index into next table (0: 16 bits, 1: 32 bits, 2: 64 bits)
+9:      Use prefixes as index into next table (0: none, 1: 66, 2: F2, 3: F3)
+0x0A:   Use address size as index into next table (0: 16 bits, 1: 32 bits, 2: 64 bits)
+0x0B:   Use VEX prefix and VEX.L bit as index into next table (0: VEX absent, 1: VEX.L=0, 2: VEX.L=1)
+0x0C:   Use VEX.W bit as index into next table (0: VEX.W=0, 1: VEX.W=1)
+0x10:   Use assembly language dialect as index into next table (0: MASM, 1: NASM/YASM, 2: GAS)
 
 Options:
 (Values can be OR'ed):
 ----------------------
-1:      Append suffix for operand size or type to opcode name.
+1:      Append suffix for operand size or type to opcode name
+2:      Prepend 'v' to opcode name if VEX prefix present
 4:      Does not change destination register
 8:      Can change registers other than explicit destination register (includes call etc.)
 0x10:   Unconditional jump. Next instruction will not be executed unless there is a jump to it.
+0x20:   Code prefixes explicitly. Assembler cannot code prefixes on this instruction
 0x40:   Instruction may be used as NOP or filler
 0x80:   Shorter version of instruction exists for certain operand values
+0x100:  Aligned. Memory operand must be aligned, even if VEX prefixed
+0x200:  Unaligned. Unaligned memory operand always allowed.
+0x400:  Opcode name differs if 64 bits
 
 */
 
@@ -238,18 +294,20 @@ struct SOpcodeProp {
    SOpcodeDef const * OpcodeDef;                 // Points to entry in opcode map
    uint8  Prefixes[8];                           // Stores the last prefix encountered in each category
    uint8  Conflicts[8];                          // Counts prefix conflicts as different prefixes in the same category
-   uint32 Warnings;                              // Warnings about conditions that could be intentional
+   uint32 Warnings1;                             // Warnings about conditions that could be intentional and suboptimal code
+   uint32 Warnings2;                             // Warnings about possible misinterpretation
    uint32 Errors;                                // Errors that will prevent execution or are unlikely to be intentional
    uint32 AddressSize;                           // Address size: 16, 32 or 64
    uint32 OperandSize;                           // Operand size: 16, 32 or 64
    uint32 Mod;                                   // mod bits of mod/reg/rm byte
    uint32 Reg;                                   // reg bits of mod/reg/rm byte
    uint32 RM;                                    // r/m bits of mod/reg/rm byte
-   uint32 MFlags;                                // Memory operand type: 1=has memory operand, 2=has mod/reg/rm byte, 4=has SIB byte, 0x100=is rip-relative
+   uint32 MFlags;                                // Memory operand type: 1=has memory operand, 2=has mod/reg/rm byte, 4=has SIB byte, 8=has VEX or DREX byte, 0x100=is rip-relative
    uint32 BaseReg;                               // Base  register + 1. (0 if none)
    uint32 IndexReg;                              // Index register + 1. (0 if none)
    uint32 Scale;                                 // Scale factor = 2^Scale
-   uint32 Operands[3];                           // Operand types for destination, source, immediate
+   uint32 DVREX;                                 // ~VEX.vvvv or AMD DREX byte
+   uint32 Operands[5];                           // Operand types for destination, source, immediate
    uint32 OpcodeStart1;                          // Index to first opcode byte, after prefixes
    uint32 OpcodeStart2;                          // Index to last opcode byte, after 0F, 0F 38, etc., before mod/reg/rm byte and operands
    uint32 AddressField;                          // Beginning of address/displacement field
@@ -258,7 +316,8 @@ struct SOpcodeProp {
    uint32 ImmediateField;                        // Beginning of immediate operand or jump address field
    uint32 ImmediateFieldSize;                    // Size of immediate operand or jump address field
    uint32 ImmediateRelocation;                   // Relocation pointing to immediate operand or jump address field
-   void    Reset() {                             // Set everything to zero
+   const char * OpComment;                       // Additional comment for opcode
+   void   Reset() {                              // Set everything to zero
       memset(this, 0, sizeof(*this));}
 };
 // The meaning of each bit in s.Warnings and s.Errors is given in 
@@ -271,8 +330,16 @@ struct SOpcodeProp {
 // 3: Repeat prefix (F2, F3)
 // 4: Operand size prefix (66, REX.W)
 // 5: Operand type prefix (66, F2, F3)
-// 6: (Unused)
-// 7: Rex prefix (40 - 4F)
+// 6: VEX prefix: bit 5: VEX.L (vector length), bit 0-4: VEX.mmmmm
+// 7: Rex prefix (40 - 4F), VEX.W,R,X,B, DREX.W,R,X,B
+//    bit 0: B = extension of mod/rm or base or opcode
+//    bit 1: X = extension of index register
+//    bit 2: R = extension of reg bits
+//    bit 3: W = 64 bit operand size, or swap operands or other use of VEX.W
+//    bit 4: 2-bytes VEX prefix
+//    bit 5: 3-bytes VEX prefix
+//    bit 6: REX prefix
+//    bit 7: XOP prefix or DREX byte (AMD only)
 // Note that the 66 and REX.W prefixes belong to two categories. The interpretation
 // is determined by AllowedPrefixes in SOpcodeDef
 
@@ -312,6 +379,7 @@ struct SARelocation {
    // 8 = segment relative, 0x10 = relative to arbitrary ref. point, 
    // 0x21 = direct, has already been relocated to image base (executable files only)
    // 0x41 = direct, make entry in procedure linkage table. Ignore addend (executable files only)
+   // 0x81 = direct to Gnu indirect function PLT entry
    // 0x100 = segment address/descriptor, 0x200 = segment of symbol, 
    // 0x400 = segment:offset far
    // 0x1001 = reference to GOT entry relative to GOT. 0x1002 = self-relative reference to GOT or GOT-entry
@@ -368,11 +436,11 @@ public:
    uint32 Old2NewIndex(uint32 OldIndex);         // Translate old symbol index to new index
    SASymbol & operator [](uint32 NewIndex) {     // Access symbol by new index
       return List[NewIndex];}
-   char * HasName(uint32 symo);                  // Ask if symbol has a name, input = old index, output = name or 0
-   char * GetName(uint32 symi);                  // Get symbol name by new index. (Assign a name if none)
-   char * GetNameO(uint32 symo);                 // Get symbol name by old index. (Assign a name if none)
-   char * GetDLLName(uint32 symi);               // Get import DLL name
-   void   AssignName(uint32 symi, char *name); // Give symbol a specific name
+   const char * HasName(uint32 symo);            // Ask if symbol has a name, input = old index, output = name or 0
+   const char * GetName(uint32 symi);            // Get symbol name by new index. (Assign a name if none)
+   const char * GetNameO(uint32 symo);           // Get symbol name by old index. (Assign a name if none)
+   const char * GetDLLName(uint32 symi);         // Get import DLL name
+   void   AssignName(uint32 symi, const char *name); // Give symbol a specific name
    uint32 GetLimit() {return OldNum;}            // Get highest old symbol number + 1
    uint32 GetNumEntries() {return List.GetNumEntries();}// Get highest new symbol number + 1
 protected:
@@ -449,6 +517,7 @@ public:
       int32 MemberSegment);                      // Group member. Repeat for multiple members. 0 if none.
    static void CountInstructions();              // Count total number of instructions defined in opcodes.cpp
    const char * CommentSeparator;                // "; " or "# " Start of comment string
+   const char * HereOperator;                    // "$" or "." indicating current position
    CTextFileBuffer   OutFile;                    // Output file
 protected:
    CSymbolTable Symbols;                         // Table of symbols
@@ -463,6 +532,8 @@ protected:
    // Code parser: The following members are used for parsing 
    // an opcode and identifying its components
    uint8 * Buffer;                               // Point to start of binary data
+   SOpcodeProp s;                                // Properties of current opcode
+   SATracer t;                                   // Trace of register contents
    uint32  Pass;                                 // 1 = pass 1, 2-3 = pass 1 repeated, 0x10 = pass 2, 0x100 = repetition requested
    uint32  SectionEnd;                           // End of current section
    uint32  WordSize;                             // Segment word size: 16, 32, 64
@@ -482,17 +553,19 @@ protected:
    uint32  FlagPrevious;                         // 1: previous instruction was a NOP. 
                                                  // 2: previous instruction was unconditional jump. 6: instruction was ud2
                                                  // 0x100: previous data aligned by 16
-   uint16  InstructionSetMax;                    // Highest instruction set encountered
-   uint16  InstructionSetOR;                     // Bitwise or of all instruction sets encountered
+                                                 // 0x200: previous data aligned by 32
+   uint8   InstructionSetMax;                    // Highest instruction set encountered
+   uint8   InstructionSetAMDMAX;                 // Highest AMD-specific instruction set encountered
+   uint16  InstructionSetOR;                     // Bitwise OR of all instruction sets encountered
    uint16  Opcodei;                              // Map number and index in opcodes.cpp
    uint16  OpcodeOptions;                        // Option flags for opcode
    uint16  PreviousOpcodei;                      // Opcode for previous instruction
    uint16  PreviousOpcodeOptions;                // Option flags for previous instruction
    uint32  CountErrors;                          // Number of errors since last label
+   uint32  Syntax;                               // Assembly syntax dialect: 1: MASM/TASM, 2: NASM/YASM, 4: GAS
    uint32  MasmOptions;                          // Options needed for MASM: 1: dotname, 2: fs used, 4: gs used
                                                  // 0x100: 16 bit segments, 0x200: 32 bit segments, 0x400: 64 bit segments
-   SOpcodeProp s;                                // Properties of current opcode
-   SATracer t;                                   // Trace of register contents
+   uint32  NamesChanged;                         // Symbol names containing invalid characters changed
    int32   Assumes[6];                           // Assumed value of segment register es, cs, ss, ds, fs, gs. See CDisassembler::WriteSectionName for values
    void    Pass1();                              // Pass 1: Find symbols types and unnamed symbols
    void    Pass2();                              // Pass 2: Write output file
@@ -518,7 +591,7 @@ protected:
    void    CheckRelocationTarget(uint32 IRel, uint32 TargetType, uint32 TargetSize);// Update relocation record and its target
    void    CheckJumpTarget(uint32 symi);         // Extend range of current function to jump target, if needed
    void    FollowJumpTable(uint32 symi, uint32 RelType);// Check jump/call table and its targets
-   uint32  MakeMissingRelocation(int32 Section, uint32 Offset, uint32 RelType, uint32 TargetType, uint32 TargetScope, uint32 SourceSize = 0); // Make a relocation and its target symbol from inline address
+   uint32  MakeMissingRelocation(int32 Section, uint32 Offset, uint32 RelType, uint32 TargetType, uint32 TargetScope, uint32 SourceSize = 0, uint32 RefPoint = 0); // Make a relocation and its target symbol from inline address
    void    CheckImportSymbol(uint32 symi);       // Check for indirect jump to import table entry
    void    CheckForFunctionBegin();              // Check if function begins at current position
    void    CheckForFunctionEnd();                // Check if function ends at current position
@@ -529,28 +602,61 @@ protected:
    void    FixRelocationTargetAddresses();       // Find missing relocation target addresses
    int     TranslateAbsAddress(int64 Addr, int32 &Sect, uint32 &Offset); // Translate absolute virtual address to section and offset
    void    WriteFileBegin();                     // Write begin of file
+   void    WriteFileBeginMASM();                 // Write MASM-specific file init
+   void    WriteFileBeginYASM();                 // Write YASM-specific file init
+   void    WriteFileBeginGASM();                 // Write  GAS-specific file init
    void    WriteFileEnd();                       // Write end of file
    void    WriteSegmentBegin();                  // Write begin of segment
+   void    WriteSegmentBeginMASM();              // Write begin of segment, MASM syntax
+   void    WriteSegmentBeginYASM();              // Write begin of segment, YASM syntax
+   void    WriteSegmentBeginGASM();              // Write begin of segment, GAS  syntax
    void    WriteSegmentEnd();                    // Write end of segment
-   void    WritePublicsAndExternals();           // Write public and external symbol definitions
+   void    WritePublicsAndExternalsMASM();       // Write public and external symbol definitions, MASM syntax
+   void    WritePublicsAndExternalsYASMGASM();   // Write public and external symbol definitions, YASM and GAS syntax
    void    WriteFunctionBegin();                 // Write begin of function
+   void    WriteFunctionBeginMASM(uint32 symi, uint32 scope);// Write begin of function, MASM syntax
+   void    WriteFunctionBeginYASM(uint32 symi, uint32 scope);// Write begin of function, YASM syntax
+   void    WriteFunctionBeginGASM(uint32 symi, uint32 scope);// Write begin of function, GAS  syntax
    void    WriteFunctionEnd();                   // Write end of function
+   void    WriteFunctionEndMASM(uint32 symi);    // Write end of function, MASM syntax
+   void    WriteFunctionEndYASM(uint32 symi);    // Write end of function, YASM syntax
+   void    WriteFunctionEndGASM(uint32 symi);    // Write end of function, GAS  syntax
    void    WriteCodeLabel(uint32 symi);          // Write private or public code label
+   void    WriteCodeLabelMASM(uint32 symi, uint32 scope);// Write private or public code label, MASM syntax
+   void    WriteCodeLabelYASM(uint32 symi, uint32 scope);// Write private or public code label, MASM syntax
+   void    WriteCodeLabelGASM(uint32 symi, uint32 scope);// Write private or public code label, MASM syntax
    int     WriteFillers();                       // Check if code is a series of NOPs or other fillers. If so then write it as such
+   void    WriteAlign(uint32 a);                 // Write alignment directive
    void    WriteErrorsAndWarnings();             // Write errors and warnings, if any
    void    WriteAssume();                        // Write assume directive for segment register
    void    WriteInstruction();                   // Write instruction and operands
    void    WriteCodeComment();                   // Write hex listing of instruction as comment after instruction
    void    WriteStringInstruction();             // Write string instruction or xlat instruction
-   void    WriteRegOperand(uint32 Type);         // Write register operand from reg bits or lower 3 bits of opcode byte to OutFile
+   void    WriteShortRegOperand(uint32 Type);    // Write register operand from lower 3 bits of opcode byte to OutFile
+   void    WriteRegOperand(uint32 Type);         // Write register operand from reg bits to OutFile
    void    WriteRMOperand(uint32 Type);          // Write memory or register operand from mod/rm bits of mod/reg/rm byte and possibly SIB byte to OutFile
+   void    WriteDREXOperand(uint32 Type);        // Write register operand from dest bits of DREX byte
+   void    WriteVEXOperand(uint32 Type, int i);  // Write register operand from VEX.vvvv bits or immediate bits
    void    WriteImmediateOperand(uint32 Type);   // Write immediate operand or direct jump/call address
-   void    WriteOtherOperand(uint32 Type);       // Write other type of operand   
+   void    WriteOtherOperand(uint32 Type);       // Write other type of operand
    void    WriteRegisterName(uint32 Value, uint32 Type); // Write name of register to OutFile
    void    WriteSectionName(int32 SegIndex);     // Write section name from section index
    void    WriteSymbolName(uint32 symi);         // Write symbol name
    void    WriteRelocationTarget(uint32 irel, uint32 Context, int64 Addend);// Write cross reference
+   void    WriteOperandType(uint32 type);        // Write type override before operand, e.g. "dword ptr"
+   void    WriteOperandTypeMASM(uint32 type);    // Write type override before operand, e.g. "dword ptr", MASM syntax
+   void    WriteOperandTypeYASM(uint32 type);    // Write type override before operand, e.g. "dword", YASM syntax
+   void    WriteOperandTypeGASM(uint32 type);    // Write type override before operand, e.g. "dword ptr", GAS syntax
    void    WriteDataItems();                     // Write data items
+   void    WriteDataLabelMASM(const char * name, uint32 sym, int line); // Write label before data item, MASM syntax
+   void    WriteDataLabelYASM(const char * name, uint32 sym, int line); // Write label before data item, YASM syntax
+   void    WriteDataLabelGASM(const char * name, uint32 sym, int line); // Write label before data item, GAS  syntax
+   void    WriteUninitDataItemsMASM(uint32 size, uint32 count);// Write uninitialized (BSS) data, MASM syntax
+   void    WriteUninitDataItemsYASM(uint32 size, uint32 count);// Write uninitialized (BSS) data, YASM syntax
+   void    WriteUninitDataItemsGASM(uint32 size, uint32 count);// Write uninitialized (BSS) data, GAS  syntax
+   void    WriteDataDirectiveMASM(uint32 size);  // Write DB, etc., MASM syntax
+   void    WriteDataDirectiveYASM(uint32 size);  // Write DB, etc., MASM syntax
+   void    WriteDataDirectiveGASM(uint32 size);  // Write DB, etc., MASM syntax
    void    WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 Pos, uint32 irel);// Write comment after data item
    uint32  GetDataItemSize(uint32 Type);         // Get size of data item with specified type
    uint32  GetDataElementSize(uint32 Type);      // Get size of vector element in data item with specified type
@@ -561,8 +667,14 @@ protected:
 };
 
 
-// Declare all tables in opcodes.cpp:
+// Declare tables in opcodes.cpp:
 extern SOpcodeDef OpcodeMap0[256];               // First opcode map
+
+extern SOpcodeDef const * OpcodeStartPage[];     // Entries to opcode maps, indexed by VEX.mm bits if any
+extern SOpcodeDef const * OpcodeStartPageXOP[];  // Entries to opcode maps, indexed by XOP.mm bits
+
+extern const uint32 NumOpcodeStartPage;          // Number of entries in OpcodeStartPage
+extern const uint32 NumOpcodeStartPageXOP;       // Number of entries in OpcodeStartPageXOP
 
 extern const SOpcodeDef * const OpcodeTables[];  // Pointers to all opcode tables
 

@@ -7,7 +7,7 @@
 * Description:
 * Header file for container classes and dynamic memory allocation
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 /*****************************************************************************
@@ -132,6 +132,7 @@ public:
    char const * OutputFileName;                  // Output file name
    int WordSize;                                 // Segment word size (16, 32, 64)
    int FileType;                                 // Object file type
+   int Executable;                               // File is executable
 protected:
    void GetOMFWordSize();                        // Determine word size for OMF file
    void CheckOutputFileName();                   // Make output file name or check that requested name is valid

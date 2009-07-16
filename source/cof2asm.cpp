@@ -7,18 +7,13 @@
 * Description:
 * Module for disassembling PE/COFF file
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
 CCOF2ASM::CCOF2ASM () {
    // Constructor
 }
-
-CCOF2ASM::~CCOF2ASM () {
-   // Destructor
-}
-
 
 void CCOF2ASM::Convert() {
    // Do the conversion
@@ -337,8 +332,8 @@ void CCOF2ASM::MakeImportList() {
    uint32 EntrySize = Is64bit ? 8 : 4;           // Size of address table entries
 
    uint32 NameOffset;                            // Offset to name
-   char * SymbolName;                            // Name of symbol
-   char * DLLName;                               // Name of DLL containing symbol
+   const char * SymbolName;                      // Name of symbol
+   const char * DLLName;                         // Name of DLL containing symbol
    char NameBuffer[64];                          // Buffer for creating name of ordinal symbols
    uint32 SectionOffset;                         // Section-relative address of current entry
    uint32 HintNameOffset;                        // Section-relative address of hint/name table
@@ -473,7 +468,7 @@ void CCOF2ASM::MakeExportList() {
    uint32 Address;                               // Image-relative address of symbol
    uint32 NameOffset;                            // Section-relative address of name
    uint32 FirstName = 0;                         // Image-relative address of first name table entry
-   char * Name = 0;                              // Name of symbol
+   const char * Name = 0;                        // Name of symbol
    char NameBuffer[64];                          // Buffer for making name
 
    // Loop through export tables

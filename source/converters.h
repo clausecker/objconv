@@ -1,13 +1,13 @@
 /****************************  converters.h   ********************************
 * Author:        Agner Fog
 * Date created:  2006-07-15
-* Last modified: 2007-02-25
+* Last modified: 2008-05-25
 * Project:       objconv
 * Module:        converters.h
 * Description:
 * Header file for file conversion classes.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 /*******************************   Classes   ********************************
@@ -71,10 +71,11 @@ protected:
    void OMF2COF();                     // Convert OMF file to PE/COFF
    void COF2ASM();                     // Disassemble PE/COFF file
    void ELF2ASM();                     // Disassemble ELF file
+   void MAC2ELF();                     // Convert Mach-O file to ELF file
+   void MAC2MAC();                     // Make changes in Mach-O file
    void MAC2ASM();                     // Disassemble Mach-O file
    void OMF2ASM();                     // Disassemble OMF file
 };
-
 
 // Class for interpreting and dumping PE/COFF files
 class CCOFF : public CFileBuffer {
@@ -87,8 +88,8 @@ public:
    static void PrintSegmentCharacteristics(uint32 flags); // Print segment characteristics
    char const * GetSymbolName(int8* Symbol);     // Get symbol name from 8 byte entry
    char const * GetSectionName(int8* Symbol);    // Get section name from 8 byte entry
-   char * GetFileName(SCOFF_SymTableEntry *);    // Get file name from records in symbol table
-   char * GetShortFileName(SCOFF_SymTableEntry*);// Same as above. Strips path before filename
+   const char * GetFileName(SCOFF_SymTableEntry *);    // Get file name from records in symbol table
+   const char * GetShortFileName(SCOFF_SymTableEntry*);// Same as above. Strips path before filename
    char const * GetStorageClassName(uint8 sc);   // Get storage class name
    void PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m); // Make list of public names
    int  GetImageDir(uint32 n, SCOFF_ImageDirAddress * dir); // Find address of image directory for executable files
@@ -117,7 +118,7 @@ public:
    void Dump(int options);                       // Dump file
    void PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m); // Make list of public names
 protected:
-   char * SymbolName(uint32 index);              // Get name of symbol
+   const char * SymbolName(uint32 index);        // Get name of symbol
    TFileHeader FileHeader;                       // Copy of file header
    char * SecStringTable;                        // Section header string table
    uint32 SecStringTableLen;                     // Length of section header string table
@@ -126,6 +127,7 @@ protected:
    CArrayBuf<TSectionHeader> SectionHeaders;     // Copy of section headers
    uint32 SymbolTableOffset;                     // Offset to symbol table
    uint32 SymbolTableEntrySize;                  // Entry size of symbol table
+   uint32 SymbolTableEntries;                    // Number of symbols
    uint32 SymbolStringTableOffset;               // Offset to symbol string table
    uint32 SymbolStringTableSize;                 // Size of symbol string table
 };
@@ -147,18 +149,21 @@ protected:
    CSList<uint32> SymbolNameOffset;              // Offset into NameBuffer of external symbol names
    CSList<uint32> GroupNameOffset;               // Offset into NameBuffer of group names
    char * GetLocalName(uint32 i);                // Get segment name by name index
-   char * GetSegmentName(uint32 i);              // Get segment name by segment index
-   char * GetSymbolName(uint32 i);               // Get external symbol name
-   char * GetGroupName(uint32 i);                // Get group name by index
+   uint32 GetLocalNameO(uint32 i);               // Get segment name by converting name index offset into NameBuffer
+   const char * GetSegmentName(uint32 i);        // Get segment name by segment index
+   const char * GetSymbolName(uint32 i);         // Get external symbol name
+   const char * GetGroupName(uint32 i);          // Get group name by index
    static const char * GetRecordTypeName(uint32 i);// Get OMF record type name
    void DumpRecordTypes();                       // Dump summary of records
    void DumpNames();                             // Dump local names records
    void DumpSymbols();                           // Dump public and external names records
    void DumpSegments();                          // Dump segment records
    void DumpRelocations();                       // Dump fixup records
+   void DumpComments();                          // Dump coment records
 };
 
-// Class for interpreting and dumping Mach-O files
+// Class for interpreting and dumping Mach-O files. Has templates for 32 and 64 bit version
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
 class CMACHO : public CFileBuffer {
 public:
    CMACHO();                                     // Default constructor
@@ -166,10 +171,11 @@ public:
    void Dump(int options);                       // Dump file
    void PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m); // Make list of public names
 protected:
-   MAC_header FileHeader;                        // Copy of file header
+   TMAC_header FileHeader;                       // Copy of file header
+   uint64 ImageBase;                             // Image base for executable file
    uint32 SegmentOffset;                         // File offset of segment
    uint32 SegmentSize;                           // Size of segment
-   uint32 SectionHeaderOffset;                   // File offset of segment headers
+   uint32 SectionHeaderOffset;                   // File offset of section headers
    uint32 NumSections;                           // Number of sections
    uint32 SymTabOffset;                          // File offset of symbol table
    uint32 SymTabNumber;                          // Number of entries in symbol table
@@ -177,10 +183,10 @@ protected:
    uint32 StringTabSize;                         // Size of string table
    uint32 ilocalsym;	                            // index to local symbols
    uint32 nlocalsym;	                            // number of local symbols 
-   uint32 iextdefsym;	                         // index to externally defined symbols
-   uint32 nextdefsym;	                         // number of externally defined symbols 
-   uint32 iundefsym;	                            // index to undefined symbols
-   uint32 nundefsym;	                            // number of undefined symbols
+   uint32 iextdefsym;	                         // index to public symbols
+   uint32 nextdefsym;	                         // number of public symbols 
+   uint32 iundefsym;	                            // index to external symbols
+   uint32 nundefsym;	                            // number of external symbols
    uint32 IndirectSymTabOffset;                  // file offset to the indirect symbol table
    uint32 IndirectSymTabNumber;                  // number of indirect symbol table entries
 };
@@ -193,11 +199,11 @@ public:
 };
 
 
-// class CCOF2ELF handles conversion from PE/COFF file to ELF file
+// class CCOF2ELF handles conversion from PE/COFF file to ELF file. Has templates for 32 and 64 bit version
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
 class CCOF2ELF : public CCOFF {
 public:
    CCOF2ELF();                                    // Constructor
-   ~CCOF2ELF();                                   // Destructor
    void Convert();                                // Do the conversion
 protected:
    void MakeSegments();                           // Convert subfunction: Segments
@@ -211,11 +217,11 @@ protected:
    int NumSectionsNew;                            // Number of sections generated for 'to' file
    int MaxSectionsNew;                            // Number of section buffers allocated for 'to' file
    CArrayBuf<CMemoryBuffer> NewSections;          // Buffers for building each section
-   CArrayBuf<Elf32_Shdr> NewSectionHeaders;       // Buffer for temporary section headers
+   CArrayBuf<TELF_SectionHeader> NewSectionHeaders;// Buffer for temporary section headers
    CArrayBuf<int> NewSectIndex;                   // Buffers for array of new section indices
    CArrayBuf<int> NewSymbolIndex;                 // Buffers for array of new symbol indices
    CFileBuffer ToFile;                            // File buffer for ELF file
-   Elf32_Ehdr NewFileHeader;                      // New file header
+   TELF_Header NewFileHeader;                     // New file header
 };
 
 
@@ -223,7 +229,6 @@ protected:
 class CCOF2OMF : public CCOFF {
 public:
    CCOF2OMF();                                    // Constructor
-   ~CCOF2OMF();                                   // Destructor
    void Convert();                                // Do the conversion
 protected:
    void MakeSegmentList();                        // Make temporary segment conversion list
@@ -252,7 +257,6 @@ protected:
 class COMF2COF : public COMF {
 public:
    COMF2COF();                                    // Constructor
-   ~COMF2COF();                                   // Destructor
    void Convert();                                // Do the conversion
 protected:
    // Convert subfunctions:
@@ -279,11 +283,10 @@ protected:
 
 
 // class CELF2COF handles conversion from ELF file to PE/COFF file. Has templates for 32 and 64 bit version
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-class CELF2COF : public CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation> {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+class CELF2COF : public CELF<ELFSTRUCTURES> {
 public:
    CELF2COF();                                   // Constructor
-   ~CELF2COF();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    void MakeFileHeader();                        // Convert subfunction: File header
@@ -305,26 +308,35 @@ protected:
 };
 
 
-// class CELF2MAC handles conversion from ELF-32 file to Mach-O file
-class CELF2MAC : public CELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> {
+// class CELF2MAC handles conversion from ELF file to Mach-O file
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation,
+          class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+class CELF2MAC : public CELF<ELFSTRUCTURES> {
 public:
    CELF2MAC();                         // Constructor
-   ~CELF2MAC();                        // Destructor
    void Convert();                     // Do the conversion
 protected:
    void MakeFileHeader();              // Convert subfunction: File header
    void MakeSectionsIndex();           // Convert subfunction: Make section index translation table
    void MakeSections();                // Convert subfunction: Make sections and relocation tables
    void MakeSymbolTable();             // Convert subfunction: Symbol table and string tables
+   void FindUnusedSymbols();           // Convert subfunction: Check if symbols used, remove unused symbols
    void MakeBinaryFile();              // Convert subfunction: Putting sections together
+   // Translate relocations, seperate function for 32 and 64 bits:
+   void Elf2MacRelocations(Elf32_Shdr &, MAC_section_32 &, uint32 NewRawDataOffset, uint32 oldsec);
+   void Elf2MacRelocations(Elf64_Shdr &, MAC_section_64 &, uint32 NewRawDataOffset, uint32 oldsec);
+   int  GetImagebaseSymbol();          // Symbol table index of __mh_execute_header
    CFileBuffer   ToFile;               // File buffer for new Mach-O file
    CMemoryBuffer NewRawData;           // Buffer for building new raw data area
    CMemoryBuffer NewRelocationTab;     // Buffer for new relocation tables
    CMemoryBuffer NewStringTable;       // Buffer for building new string table
-   MacSymbolTableBuilder NewSymTab[3]; // New symbol tables for local, public, external symbols
+   CMemoryBuffer UnnamedSymbolsTable;  // Buffer for assigning names to unnamed symbols
    CArrayBuf<int> NewSectIndex;        // Array of new section indices
-   CArrayBuf<int> NewSectOffset;       // Array of new section offsets
+   CArrayBuf<MInt> NewSectOffset;      // Array of new section offsets
    CArrayBuf<int> OldSymbolScope;      // Table of symbol bindings: 0 = local, 1 = public, 2 = external
+   CArrayBuf<int> OldSymbolUsed;       // Check if symbol is used
+   MacSymbolTableBuilder<TMAC_nlist, MInt> NewSymTab[3]; // New symbol tables for local, public, external symbols
+   uint32 NumSymbols[4];               // Accumulated number of entries in each NewSymTab[]
    uint32 NewSectHeadOffset;           // File offset to first section header
    uint32 NewSymtabOffset;             // File offset to symtab command
    int NumSectionsNew;                 // Number of sections in new file
@@ -333,12 +345,47 @@ protected:
    uint32 CommandOffset;               // Offset to first load command = segment header
 };
 
+// class MAC2ELF handles conversion from Mach-O file to ELF file
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt,
+          class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+class CMAC2ELF : public CMACHO<MACSTRUCTURES> {
+public:
+   CMAC2ELF();                         // Constructor
+   void Convert();                     // Do the conversion
+protected:
+   void MakeSegments();                           // Convert subfunction: Segments
+   void MakeSymbolTable();                        // Convert subfunction: Symbol table and string tables
+   void MakeRelocationTables(MAC_header_32&);     // Convert subfunction: Relocation tables, 32-bit version
+   void MakeRelocationTables(MAC_header_64&);     // Convert subfunction: Relocation tables, 64-bit version
+   void MakeImportTables();                       // Convert subfunction: Fill import tables
+   void MakeBinaryFile();                         // Convert subfunction: Putting sections together
+   void TranslateAddress(MInt addr, uint32 & section, uint32 & offset); // Translate address to section + offset
+   uint32 MakeGOTEntry(int symbol);               // Make entry in fake GOT for symbol
+   void MakeGOT();                                // Make fake Global Offset Table
+   int symtab;                                    // Symbol table section number
+   int shstrtab;                                  // Section name string table section number
+   int strtab;                                    // Object name string table section number
+   int stabstr;                                   // Debug string table section number
+   uint32 NumSectionsNew;                         // Number of sections generated for 'to' file
+   uint32 MaxSectionsNew;                         // Number of section buffers allocated for 'to' file
+   uint32 HasGOT;                                 // Contains references to global offset table
+   int FakeGOTSection;                            // Fake GOT section number
+   int FakeGOTSymbol;                             // Symbol index for fake GOT
+   TELF_Header NewFileHeader;                     // New file header
+   CArrayBuf<CMemoryBuffer> NewSections;          // Buffers for building each section
+   CArrayBuf<TELF_SectionHeader> NewSectionHeaders;// Array of temporary section headers
+   CArrayBuf<int> NewSectIndex;                   // Array of new section indices
+   CArrayBuf<int> NewSymbolIndex;                 // Array of new symbol indices
+   CArrayBuf<int> SectionSymbols;                 // Array of new symbol indices for sections
+   CFileBuffer ToFile;                            // File buffer for ELF file
+   CSList<int> GOTSymbols;                        // List of symbols needing GOT entry
+};
+
 
 // class CCOF2COF handles symbol changes in a PE/COFF file
 class CCOF2COF : public CCOFF {
 public:
    CCOF2COF();                                   // Constructor
-   ~CCOF2COF();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    void MakeSymbolTable();                       // Convert subfunction: Symbol table and string tables
@@ -350,11 +397,10 @@ protected:
 
 
 // class CELF2ELF handles symbol changes in ELF file. Has templates for 32 and 64 bit version
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-class CELF2ELF : public CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation> {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+class CELF2ELF : public CELF<ELFSTRUCTURES> {
 public:
    CELF2ELF();                                   // Constructor
-   ~CELF2ELF();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    void MakeSymbolTable();                       // Convert subfunction: Symbol table and string tables
@@ -371,11 +417,43 @@ protected:
 };
 
 
+// class CMAC2MAC handles symbol changes in Mach-O file. Has templates for 32 and 64 bit version
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+class CMAC2MAC : public CMACHO<MACSTRUCTURES> {
+public:
+   CMAC2MAC();                                   // Constructor
+   void Convert();                               // Do the conversion
+protected:
+   void MakeSymbolTable();                       // Convert subfunction: Symbol table and string tables
+   void ChangeSegments();                        // Convert subfunction: Change segment names if needed
+   void ChangeSections(uint32 HeaderOffset, uint32 Num);// Convert subfunction: Change section names and relocation records if needed
+   void ChangeImportTable(uint32 FileOffset, uint32 Num);// Convert subfunction: Change symbol indices in import table if needed
+   void MakeBinaryFile();                        // Convert subfunction: Putting sections together
+   int  NewSymbolIndex(int OldIndex);            // Convert subfunction: Translate old to new symbol index
+   uint32 NewFileOffset(uint32 OldOffset);       // Convert subfunction: Translate old to new file offset
+   MacSymbolTableBuilder<TMAC_nlist, MInt> NewSymbols[3];// Buffers for building new symbol tables: local, public, external
+   CMemoryBuffer NewSymbolTable;                 // Buffer for building new symbol table
+   CMemoryBuffer NewStringTable;                 // Buffer for building new string table
+   CFileBuffer ToFile;                           // File buffer for modified PE file
+   uint32 NumOldSymbols;                         // Size of NewSymbolIndex table
+   uint32 NewIlocalsym;	                         // index to local symbols
+   uint32 NewNlocalsym;	                         // number of local symbols 
+   uint32 NewIextdefsym;	                      // index to public symbols
+   uint32 NewNextdefsym;	                      // number of public symbols 
+   uint32 NewIundefsym;	                         // index to external symbols
+   uint32 NewNundefsym;	                         // number of external symbols
+   uint32 NewSymtabOffset;                       // Offset to new symbol table
+   uint32 NewStringtabOffset;                    // Offset to new string table
+   uint32 NewStringtabEnd;                       // Offset to end of new string table
+   uint32 OldTablesEnd;                          // End of old symbol table and string table
+   int32  SizeDifference;                        // Size of new file minus size of old file
+};
+
+
 // class CCOF2ASM handles disassembly of PE/COFF file
 class CCOF2ASM : public CCOFF {
 public:
    CCOF2ASM();                                   // Constructor
-   ~CCOF2ASM();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    CDisassembler Disasm;                         // Disassembler
@@ -388,11 +466,10 @@ protected:
 };
 
 // class CELF2ASM handles disassembly of ELF file
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-class CELF2ASM : public CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation> {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+class CELF2ASM : public CELF<ELFSTRUCTURES> {
 public:
    CELF2ASM();                                   // Constructor
-   ~CELF2ASM();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    CDisassembler Disasm;                         // Disassembler
@@ -411,10 +488,10 @@ protected:
 };
 
 // class CMAC2ASM handles disassembly of Mach-O file
-class CMAC2ASM : public CMACHO {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+class CMAC2ASM : public CMACHO<MACSTRUCTURES> {
 public:
    CMAC2ASM();                                   // Constructor
-   ~CMAC2ASM();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    void MakeSectionList();                       // Make Sections list in Disasm
@@ -424,14 +501,13 @@ protected:
    CDisassembler Disasm;                         // Disassembler
    CMemoryBuffer StringBuffer;                   // Buffer for making section names
    CSList<MAC_SECT_WITH_RELOC> RelocationQueue;  // List of relocation tables
-   CSList<MAC_section*> ImportSections;          // List of sections needing extra symbols: import tables, literals, etc.
+   CSList<TMAC_section*> ImportSections;          // List of sections needing extra symbols: import tables, literals, etc.
 };
 
 // class COMF2ASM handles disassembly of OMF object files
 class COMF2ASM : public COMF {
 public:
    COMF2ASM();                                   // Constructor
-   ~COMF2ASM();                                  // Destructor
    void Convert();                               // Do the conversion
 protected:
    void CountSegments();                         // Make temporary Segments table
@@ -447,6 +523,7 @@ protected:
    CSList<uint32> PubdefTranslation;             // Translate old public symbol number to disasm symbol table index
    CMemoryBuffer SegmentData;                    // Binary segment data
    int32 NumSegments;                            // Number of segments
+   int32 FirstComDatSection;                     // First COMDAT section. All sections before this are SEGDEF segments
 };
 
 #endif // #ifndef CONVERTERS_H

@@ -1,13 +1,13 @@
 /****************************  elf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2007-04-22
-* Last modified: 2007-04-22
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        elf2asm.cpp
 * Description:
 * Module for disassembling ELF
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -15,18 +15,14 @@
 
 
 // Constructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::CELF2ASM() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+CELF2ASM<ELFSTRUCTURES>::CELF2ASM() {
 }
 
-// Destructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::~CELF2ASM () {
-}
 
 // FindImageBase()
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::FindImageBase() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::FindImageBase() {
    // Find image base if executable file
 
    // Check if executable
@@ -63,8 +59,8 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::FindImageBase(
 
 
 // Convert
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::Convert() {
    // Do the conversion
 
    // Find image base and executable type
@@ -93,8 +89,8 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
 }
 
 // MakeSectionList
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionList() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeSectionList() {
    // Make Sections list and Relocations list in Disasm
 
    // Allocate array for translating oroginal section numbers to new index
@@ -103,7 +99,7 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionLis
 
    for (uint32 sc = 0; sc < this->NSections; sc++) {
       // Get copy of 32-bit header or converted 64-bit header
-      TSectionHeader sheader = this->SectionHeaders[sc];
+      TELF_SectionHeader sheader = this->SectionHeaders[sc];
       int entrysize = (uint32)(sheader.sh_entsize);
       uint32 namei = sheader.sh_name;
       if (namei >= this->SecStringTableLen) {err.submit(2112); break;}
@@ -154,8 +150,8 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionLis
 }
 
 // MakeSymbolList
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeSymbolList() {
    // Make Symbols list in Disasm
 
    // Allocate array for translate symbol indices for multiple symbol tables in
@@ -165,7 +161,7 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
 
    for (uint32 sc = 0; sc < this->NSections; sc++) {
       // Get copy of 32-bit header or converted 64-bit header
-      TSectionHeader sheader = this->SectionHeaders[sc];
+      TELF_SectionHeader sheader = this->SectionHeaders[sc];
       int entrysize = (uint32)(sheader.sh_entsize);
 
       if (sheader.sh_type==SHT_SYMTAB || sheader.sh_type==SHT_DYNSYM) {
@@ -182,7 +178,7 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
          uint32 symtabsize = (uint32)(sheader.sh_size);
          int8 * symtab = this->Buf() + uint32(sheader.sh_offset);
          int8 * symtabend = symtab + symtabsize;
-         if (entrysize < sizeof(TSymbol)) {err.submit(2033); entrysize = sizeof(TSymbol);}
+         if (entrysize < sizeof(TELF_Symbol)) {err.submit(2033); entrysize = sizeof(TELF_Symbol);}
 
          // Loop through symbol table
          uint32 symi1;                           // Symbol number in this table
@@ -194,7 +190,7 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
             symi2 = SymbolTableOffset[sc] + symi1;
             
             // Copy 32 bit symbol table entry or convert 64 bit entry
-            TSymbol sym = *(TSymbol*)symtab;
+            TELF_Symbol sym = *(TELF_Symbol*)symtab;
 
             // Parameters
             uint32 Offset = uint32(sym.st_value);
@@ -259,6 +255,10 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
                // Function
                Type = 0x83;
             }
+            else if (sym.st_type == STT_GNU_IFUNC) {
+               // Gnu indirect function
+               Type = 0x40000083;
+            }
             else if (sym.st_type == STT_OBJECT) {
                // Probably a data object
                switch (Size) {
@@ -291,10 +291,16 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
             }
             else if (sym.st_type == STT_NOTYPE) {
                Type = 0;
+            }
+            else if (sym.st_type == STT_FILE) {
+               // file name. ignore
+               continue;
             }            
             else {
-               // Other type. Ignore
-               continue;
+               // unknown type. warning
+               err.submit(1062, Name);
+               Type = 0;
+               //continue;
             }
 
             if (Scope != 0x20) {
@@ -329,8 +335,8 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolList
 }
 
 // MakeRelocations
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocations() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeRelocations() {
    // Make relocations for object and executable files
 
    int32 Section;                                // Source section new index
@@ -338,7 +344,7 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocation
    // Loop through sections
    for (uint32 sc = 0; sc < this->NSections; sc++) {
       // Get copy of 32-bit header or converted 64-bit header
-      TSectionHeader sheader = this->SectionHeaders[sc];
+      TELF_SectionHeader sheader = this->SectionHeaders[sc];
       int entrysize = (uint32)(sheader.sh_entsize);
 
       if (sheader.sh_type == SHT_REL || sheader.sh_type == SHT_RELA) {
@@ -346,14 +352,14 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocation
          int8 * reltab = this->Buf() + uint32(sheader.sh_offset);
          int8 * reltabend = reltab + uint32(sheader.sh_size);
          int expectedentrysize = sheader.sh_type == SHT_RELA ? 
-            sizeof(TRelocation) :              // Elf32_Rela, Elf64_Rela
-            sizeof(TRelocation) - this->WordSize/8;  // Elf32_Rel,  Elf64_Rel
+            sizeof(TELF_Relocation) :              // Elf32_Rela, Elf64_Rela
+            sizeof(TELF_Relocation) - this->WordSize/8;  // Elf32_Rel,  Elf64_Rel
          if (entrysize < expectedentrysize) {err.submit(2033); entrysize = expectedentrysize;}
 
          // Loop through entries
          for (; reltab < reltabend; reltab += entrysize) {
             // Copy relocation table entry with or without addend
-            TRelocation rel;  rel.r_addend = 0;
+            TELF_Relocation rel;  rel.r_addend = 0;
             memcpy(&rel, reltab, entrysize);
 
             // Get section-relative or absolute address
@@ -405,6 +411,10 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocation
                   // Self-relative offset to GOT
                   Type = 0x1002;  Size = 4;
                   break;
+               case R_386_IRELATIVE:
+                  // Reference to Gnu indirect function
+                  Type = 0x81;  Size = 4;
+                  break;
                case R_386_GLOB_DAT: 
                case R_386_GOT32:
                case R_386_GOTOFF:
@@ -454,6 +464,10 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocation
                   // Self relative 32 bit signed offset to GOT entry
                   Type = 0x1002;  Size = 4;
                   break;
+               case R_X86_64_IRELATIVE:
+                  // Reference to Gnu indirect function
+                  Type = 0x81;  Size = 4;
+                  break;
                case R_X86_64_GLOB_DAT:  // Create GOT entry
                case R_X86_64_GOT32:
                   Type = 0x1001;  Size = 4;
@@ -486,24 +500,24 @@ void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeRelocation
 
 
 // MakeImportList
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeImportList() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeImportList() {
    // Make imported symbols for executable files
 }
 
 // MakeExportList
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeExportList() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeExportList() {
    // Make exported symbols for executable files
 }
 
 // MakeListLabels
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ASM<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeListLabels() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ASM<ELFSTRUCTURES>::MakeListLabels() {
    // Attach names to all image directories
 }
 
 
 // Make template instances for 32 and 64 bits
-template class CELF2ASM<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela>;
-template class CELF2ASM<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela>;
+template class CELF2ASM<ELF32STRUCTURES>;
+template class CELF2ASM<ELF64STRUCTURES>;

@@ -1,7 +1,7 @@
 /****************************    elf.cpp    *********************************
 * Author:        Agner Fog
 * Date created:  2006-07-18
-* Last modified: 2006-07-18
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        elf.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Class CELF is used for reading, interpreting and dumping ELF files.
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -94,7 +94,8 @@ SIntTxt ELFSymbolTypeNames[] = {
    {STT_FUNC,    "Function"},
    {STT_SECTION, "Section"},
    {STT_FILE,    "File"},
-   {STT_COMMON,  "Common"}
+   {STT_COMMON,  "Common"},
+   {STT_GNU_IFUNC, "Indirect function/dispatcher"}
 };
 
 // Relocation type names x86 32 bit
@@ -107,9 +108,10 @@ SIntTxt ELF32RelocationNames[] = {
    {R_386_COPY,         "Copy symbol at runtime"},
    {R_386_GLOB_DAT,     "Create GOT entry"},
    {R_386_JMP_SLOT,     "Create PLT entry"},
-   {R_386_RELATIVE,     "Image relative ?"},
+   {R_386_RELATIVE,     "Adjust by image base"},
    {R_386_GOTOFF,       "32 bit offset to GOT"},
-   {R_386_GOTPC,        "32 bit PC relative offset to GOT"}
+   {R_386_GOTPC,        "32 bit PC relative offset to GOT"},
+   {R_386_IRELATIVE,    "32 bit ref. to indirect function PLT"}
 };
 
 // Relocation type names x86 64 bit
@@ -129,7 +131,8 @@ SIntTxt ELF64RelocationNames[] = {
    {R_X86_64_16,        "Direct 16 bit zero extended"},
    {R_X86_64_PC16,      "16 bit sign extended pc relative"},
    {R_X86_64_8,         "Direct 8 bit sign extended"},
-   {R_X86_64_PC8,       "8 bit sign extended pc relative"}
+   {R_X86_64_PC8,       "8 bit sign extended pc relative"},
+   {R_X86_64_IRELATIVE, "32 bit ref. to indirect function PLT"}
 };
 
 
@@ -208,75 +211,24 @@ SIntTxt ELFMachineNames[] = {
    {EM_ALPHA,       "Alpha"}
 };
 
-/********  32/64 bit header conversion constructors: ******************
-* ELF files use different structures for 32-bit and 64-bit versions.
-* The conversion between 32 and 64 bit versions is possible as long
-* as the file size is less than * 4 GB. 
-* The overloaded constructors below define the conversions
-* between the different structure types.
-***********************************************************************/
-
-Elf64_Ehdr::Elf64_Ehdr(Elf32_Ehdr & x) {
-  // Constructor to convert from Elf32_Ehdr
-  memcpy(e_ident, x.e_ident, sizeof(e_ident));
-  e_type      = x.e_type;
-  e_machine   = x.e_machine;
-  e_version   = x.e_version;
-  e_entry     = x.e_entry;
-  e_phoff     = x.e_phoff;
-  e_shoff     = x.e_shoff;
-  e_flags     = x.e_flags;
-  e_ehsize    = x.e_ehsize;
-  e_phentsize = x.e_phentsize;
-  e_phnum     = x.e_phnum;
-  e_shentsize = x.e_shentsize;
-  e_shnum     = x.e_shnum;
-  e_shstrndx  = x.e_shstrndx;
-};
-
-Elf64_Shdr::Elf64_Shdr(Elf32_Shdr & x) {
-   // Constructor to convert from Elf32_Shdr
-  sh_name      = x.sh_name;
-  sh_type      = x.sh_type;
-  sh_flags     = x.sh_flags;
-  sh_addr      = x.sh_addr;
-  sh_offset    = x.sh_offset;
-  sh_size      = x.sh_size;
-  sh_link      = x.sh_link;
-  sh_info      = x.sh_info;
-  sh_addralign = x.sh_addralign;
-  sh_entsize   = x.sh_entsize;
-};
-
-Elf64_Sym::Elf64_Sym(Elf32_Sym & x) {
-   // Constructor to convert from Elf32_Sym
-   st_name  = x.st_name;
-   st_type  = x.st_type;
-   st_bind  = x.st_bind;
-   st_other = x.st_other;
-   st_shndx = x.st_shndx;
-   st_value = x.st_value;
-   st_size  = x.st_size;
-}
-
 
 // Class CELF members:
 // Constructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::CELF() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+CELF<ELFSTRUCTURES>::CELF() {
    memset(this, 0, sizeof(*this));
 }
 
 // ParseFile
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ParseFile(){
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF<ELFSTRUCTURES>::ParseFile(){
    // Load and parse file buffer
    uint32 i;
-   FileHeader = *(TFileHeader*)Buf();   // Copy file header
+   FileHeader = *(TELF_Header*)Buf();   // Copy file header
    NSections = FileHeader.e_shnum;
    SectionHeaders.SetNum(NSections);    // Allocate space for section headers
    SectionHeaders.SetZero();
-   uint32 Symtabi;                      // Index to symbol table
+   uint32 Symtabi = 0;                  // Index to symbol table
 
    // Find section headers
    SectionHeaderSize = FileHeader.e_shentsize;
@@ -284,7 +236,7 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ParseFile(){
    uint32 SectionOffset = uint32(FileHeader.e_shoff);
 
    for (i = 0; i < NSections; i++) {
-      SectionHeaders[i] = Get<TSectionHeader>(SectionOffset);
+      SectionHeaders[i] = Get<TELF_SectionHeader>(SectionOffset);
       SectionOffset += SectionHeaderSize;
 
       if (SectionHeaders[i].sh_type == SHT_SYMTAB) {
@@ -301,6 +253,8 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ParseFile(){
       // Save offset to symbol table
       SymbolTableOffset = (uint32)(SectionHeaders[Symtabi].sh_offset);
       SymbolTableEntrySize = (uint32)(SectionHeaders[Symtabi].sh_entsize); // Entry size of symbol table
+      if (SymbolTableEntrySize == 0) {err.submit(2034); return;} // Avoid division by zero
+      SymbolTableEntries = uint32(SectionHeaders[Symtabi].sh_size) / SymbolTableEntrySize;
       // Find associated string table
       uint32 Stringtabi = SectionHeaders[Symtabi].sh_link;
       if (Stringtabi < NSections) {
@@ -315,8 +269,8 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ParseFile(){
 
 
 // Dump
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Dump(int options) {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF<ELFSTRUCTURES>::Dump(int options) {
    if (options & DUMP_FILEHDR) {
       // File header
       printf("\nDump of ELF file %s", FileName);
@@ -343,7 +297,7 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Dump(int options) 
       printf("\n\nSection headers:");
       for (uint32 sc = 0; sc < NSections; sc++) {
          // Get copy of 32-bit header or converted 64-bit header
-         TSectionHeader sheader = SectionHeaders[sc];
+         TELF_SectionHeader sheader = SectionHeaders[sc];
          int entrysize = (uint32)(sheader.sh_entsize);
          uint32 namei = sheader.sh_name;
          if (namei >= SecStringTableLen) {err.submit(2112); break;}
@@ -416,26 +370,37 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Dump(int options) 
             uint32 symtabsize = (uint32)(sheader.sh_size);
             int8 * symtab = Buf() + uint32(sheader.sh_offset);
             int8 * symtabend = symtab + symtabsize;
-            if (entrysize < sizeof(TSymbol)) {err.submit(2033); entrysize = sizeof(TSymbol);}
+            if (entrysize < sizeof(TELF_Symbol)) {err.submit(2033); entrysize = sizeof(TELF_Symbol);}
 
             printf("\n  Symbols:");
             // Loop through symbol table
             int symi;  // Symbol number
             for (symi = 0; symtab < symtabend; symtab += entrysize, symi++) {
                // Copy 32 bit symbol table entry or convert 64 bit entry
-               TSymbol sym = *(TSymbol*)symtab;
+               TELF_Symbol sym = *(TELF_Symbol*)symtab;
                int type = sym.st_type;
                int binding = sym.st_bind;
                if (*(strtab + sym.st_name)) {
                   printf("\n  %2i Name: %s,", symi, strtab + sym.st_name);}
                else {
                   printf("\n  %2i Unnamed,", symi);}
-               if (sym.st_value || type == STT_OBJECT || type == STT_FUNC) 
+               if (sym.st_value || type == STT_OBJECT || type == STT_FUNC || type == STT_GNU_IFUNC || int16(sym.st_shndx) < 0) 
                   printf(" Value: 0x%X", uint32(sym.st_value));
                if (sym.st_size)  printf(" Size: %i", uint32(sym.st_size));
                if (sym.st_other) printf(" Other: 0x%X", sym.st_other);
-               if (int16(sym.st_shndx) > 0) printf(" Section: %i", sym.st_shndx);
-               if (int16(sym.st_shndx) < 0) printf(" Section: 0x%X", sym.st_shndx);
+               if (int16(sym.st_shndx) >= 0) printf(" Section: %i", sym.st_shndx);
+               else { // Special segment values
+                  switch (int16(sym.st_shndx)) {
+                  case SHN_ABS:
+                     printf(" Absolute,"); break;
+                  case SHN_COMMON:
+                     printf(" Common,"); break;
+                  case SHN_XINDEX:
+                     printf(" Index in extra table,"); break;
+                  default:
+                     printf(" Section: 0x%X", sym.st_shndx);
+                  }
+               }
                if (sym.st_type || sym.st_bind) {
                   printf(" Type: %s, Binding: %s", 
                      Lookup(ELFSymbolTypeNames, type),
@@ -448,28 +413,28 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Dump(int options) 
             int8 * reltab = Buf() + uint32(sheader.sh_offset);
             int8 * reltabend = reltab + uint32(sheader.sh_size);
             int expectedentrysize = sheader.sh_type == SHT_RELA ? 
-               sizeof(TRelocation) :              // Elf32_Rela, Elf64_Rela
-               sizeof(TRelocation) - WordSize/8;  // Elf32_Rel,  Elf64_Rel
+               sizeof(TELF_Relocation) :              // Elf32_Rela, Elf64_Rela
+               sizeof(TELF_Relocation) - WordSize/8;  // Elf32_Rel,  Elf64_Rel
             if (entrysize < expectedentrysize) {err.submit(2033); entrysize = expectedentrysize;}
 
             // Loop through entries
             for (; reltab < reltabend; reltab += entrysize) {
                // Copy relocation table entry with or without addend
-               TRelocation rel;  rel.r_addend = 0;
+               TELF_Relocation rel;  rel.r_addend = 0;
                memcpy(&rel, reltab, entrysize);
                printf ("\n  Offset: 0x%X, Symbol: %i, Name: %s\n   Type: %s", 
                   uint32(rel.r_offset), rel.r_sym, SymbolName(rel.r_sym),
                   (WordSize == 32) ?
                   Lookup (ELF32RelocationNames, rel.r_type) :
                   Lookup (ELF64RelocationNames, rel.r_type));
-               if (rel.r_addend) printf (", Addend: %i", uint32(rel.r_addend));
+               if (rel.r_addend) printf (", Addend: 0x%X", uint32(rel.r_addend));
 
                // Find inline addend
-               TSectionHeader relsheader = SectionHeaders[sheader.sh_info];
+               TELF_SectionHeader relsheader = SectionHeaders[sheader.sh_info];
                uint32 relsoffset = uint32(relsheader.sh_offset);
                if (relsoffset+rel.r_offset < GetDataSize()) {
                   int32 * piaddend = (int32*)(Buf()+relsoffset+rel.r_offset);
-                  if (* piaddend) printf (", Inline addend: %i", * piaddend);
+                  if (* piaddend) printf (", Inline addend: 0x%X", * piaddend);
                }
             }
          }
@@ -479,8 +444,8 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Dump(int options) 
 
 
 // PublicNames
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m) {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF<ELFSTRUCTURES>::PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m) {
    // Make list of public names
    // Interpret header:
    ParseFile();
@@ -488,7 +453,7 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::PublicNames(CMemor
    // Loop through section headers
    for (uint32 sc = 0; sc < NSections; sc++) {
       // Get copy of 32-bit header or converted 64-bit header
-      TSectionHeader sheader = SectionHeaders[sc];
+      TELF_SectionHeader sheader = SectionHeaders[sc];
       uint32 entrysize = uint32(sheader.sh_entsize);
 
       if (sheader.sh_type==SHT_SYMTAB || sheader.sh_type==SHT_DYNSYM) {
@@ -502,12 +467,12 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::PublicNames(CMemor
          uint32 symtabsize = uint32(sheader.sh_size);
          int8 * symtab = Buf() + uint32(sheader.sh_offset);
          int8 * symtabend = symtab + symtabsize;
-         if (entrysize < sizeof(TSymbol)) {err.submit(2033); entrysize = sizeof(TSymbol);}
+         if (entrysize < sizeof(TELF_Symbol)) {err.submit(2033); entrysize = sizeof(TELF_Symbol);}
 
          // Loop through symbol table
          for (int symi = 0; symtab < symtabend; symtab += entrysize, symi++) {
             // Copy 32 bit symbol table entry or convert 64 bit entry
-            TSymbol sym = *(TSymbol*)symtab;
+            TELF_Symbol sym = *(TELF_Symbol*)symtab;
             int type = sym.st_type;
             int binding = sym.st_bind;
             if (int16(sym.st_shndx) > 0 
@@ -527,16 +492,16 @@ void CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::PublicNames(CMemor
 }
 
 // SymbolName
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-char * CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::SymbolName(uint32 index) {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+const char * CELF<ELFSTRUCTURES>::SymbolName(uint32 index) {
    // Get name of symbol. (ParseFile() must be called first)
-   char * symname = "?";  // Symbol name
+   const char * symname = "?";  // Symbol name
    uint32 symi;           // Symbol index
    uint32 stri;           // String index
    if (SymbolTableOffset) {
       symi = SymbolTableOffset + index * SymbolTableEntrySize;
       if (symi < GetDataSize()) {
-         stri = Get<TSymbol>(symi).st_name;
+         stri = Get<TELF_Symbol>(symi).st_name;
          if (stri < SymbolStringTableSize) {
             symname = Buf() + SymbolStringTableOffset + stri;
          }
@@ -547,5 +512,5 @@ char * CELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::SymbolName(uint3
 
 
 // Make template instances for 32 and 64 bits
-template class CELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela>;
-template class CELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela>;
+template class CELF<ELF32STRUCTURES>;
+template class CELF<ELF64STRUCTURES>;

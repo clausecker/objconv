@@ -1,19 +1,71 @@
 /****************************  cmdline.cpp  **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-25
-* Last modified: 2007-04-24
+* Last modified: 2009-07-16
 * Project:       objconv
 * Module:        cmdline.cpp
 * Description:
 * This module is for interpretation of command line options
+* Also contains symbol change function
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
 
-CCommandLineInterpreter cmd;                  // Instantiate command line interpreter
+// List of recognized output file type options
+static SIntTxt TypeOptionNames[] = {
+   {CMDL_OUTPUT_ELF,   "elf"},
+   {CMDL_OUTPUT_PE,    "pe"},
+   {CMDL_OUTPUT_PE,    "cof"},
+   {CMDL_OUTPUT_PE,    "coff"},
+   {CMDL_OUTPUT_PE,    "win"},
+   {CMDL_OUTPUT_OMF,   "omf"},
+   {CMDL_OUTPUT_MACHO, "mac"},
+   {CMDL_OUTPUT_MACHO, "mach"},
+   {CMDL_OUTPUT_MACHO, "macho"},
+   {CMDL_OUTPUT_MACHO, "mach-o"},
+   {CMDL_OUTPUT_MASM,  "asm"},
+   {CMDL_OUTPUT_MASM,  "masm"},
+   {CMDL_OUTPUT_MASM,  "tasm"},
+   {CMDL_OUTPUT_MASM,  "nasm"},
+   {CMDL_OUTPUT_MASM,  "yasm"},
+   {CMDL_OUTPUT_MASM,  "gasm"},
+   {CMDL_OUTPUT_MASM,  "gas"}
+};
 
+// List of subtype names
+static SIntTxt SubtypeNames[] = {
+   {SUBTYPE_MASM,  "asm"},
+   {SUBTYPE_MASM,  "masm"},
+   {SUBTYPE_MASM,  "tasm"},
+   {SUBTYPE_YASM,  "nasm"},
+   {SUBTYPE_YASM,  "yasm"},
+   {SUBTYPE_GASM,  "gasm"},
+   {SUBTYPE_GASM,  "gas"}
+};
+
+// List of standard names that are always translated
+const uint32 MaxType = FILETYPE_MACHO_LE;
+
+// Standard names in 32-bit mode
+const char * StandardNames32[][MaxType+1] = {
+//  0,    COFF,          OMF,           ELF,                MACHO
+   {0,"___ImageBase","___ImageBase","__executable_start","__mh_execute_header"}
+};
+
+// Standard names in 64-bit mode
+// COFF removes an underscore in 32-bit. There is no 64-bit OMF 
+const char * StandardNames64[][MaxType+1] = {
+//  0,    COFF,       OMF,         ELF,                MACHO
+   {0,"__ImageBase",  "",    "__executable_start","__mh_execute_header"}
+};
+
+const int NumStandardNames = sizeof(StandardNames32) / sizeof(StandardNames32[0]);
+
+
+// Command line interpreter
+CCommandLineInterpreter cmd;                  // Instantiate command line interpreter
 
 CCommandLineInterpreter::CCommandLineInterpreter() {
    // Default constructor
@@ -208,6 +260,7 @@ void CCommandLineInterpreter::InterpretCommandOption(char * string) {
    switch(string[0]) {
    case 'f': case 'F':   // output file format
       if (string[1] == 'd') {
+         // -fd == deprecated dump option
          InterpretDumpOption(string+2);  break;
       }
       InterpretOutputTypeOption(string+1);  break;
@@ -215,8 +268,10 @@ void CCommandLineInterpreter::InterpretCommandOption(char * string) {
    case 'v': case 'V':   // verbose/silent
       InterpretVerboseOption(string+1);  break;
 
-   case 'd': case 'D':   // Debug info option
-      InterpretDebugInfoOption(string+1);  break;
+   case 'd': case 'D':   // dump option
+      InterpretDumpOption(string+1);  break;
+      // Debug info option
+      //InterpretDebugInfoOption(string+1);  break;
 
    case 'x': case 'X':   // Exception handler info option
       InterpretExceptionInfoOption(string+1);  break;
@@ -232,8 +287,21 @@ void CCommandLineInterpreter::InterpretCommandOption(char * string) {
    case 'a': case 'A':   // Symbol name alias option
       InterpretSymbolNameChangeOption(string);  break;
 
+   case 'i': case 'I':   // Imagebase
+      if ((string[1] | 0x20) == 'm') {
+         InterpretImagebaseOption(string);
+      }
+      break;
+
    case 'l': case 'L':   // Library option
       InterpretLibraryOption(string);  break;
+
+   case 'c':  // Count instruction codes supported
+      // This is an easter egg: You can only get it if you know it's there
+      if (strncmp(string,"countinstructions", 17) == 0) {
+         CDisassembler::CountInstructions();
+         exit(0);
+      }
 
    default:    // Unknown option
       err.submit(1002, string);
@@ -392,30 +460,8 @@ void CCommandLineInterpreter::AddObjectToLibrary(char * filename, char * membern
 void CCommandLineInterpreter::InterpretOutputTypeOption(char * string) {
    // Interpret output file format option from command line
 
-   // List of recognized output type options
-   static SIntTxt TypeOptionNames[] = {
-      {CMDL_OUTPUT_ELF,   "elf"},
-      {CMDL_OUTPUT_PE,    "pe"},
-      {CMDL_OUTPUT_PE,    "cof"},
-      {CMDL_OUTPUT_PE,    "coff"},
-      {CMDL_OUTPUT_PE,    "win"},
-      {CMDL_OUTPUT_OMF,   "omf"},
-      {CMDL_OUTPUT_MACHO, "mac"},
-      {CMDL_OUTPUT_MACHO, "mach"},
-      {CMDL_OUTPUT_MACHO, "macho"},
-      {CMDL_OUTPUT_MACHO, "mach-o"},
-      {CMDL_OUTPUT_MASM,  "asm"},
-      {CMDL_OUTPUT_MASM,  "masm"},
-      {CMDL_OUTPUT_MASM,  "disasm"},
-      {CMDL_OUTPUT_MASM,  "nasm"},
-      {CMDL_OUTPUT_MASM,  "yasm"},
-      {CMDL_OUTPUT_MASM,  "gasm"}
-   };
-
-   int const TypeOptionNamesLength = sizeof(TypeOptionNames)/sizeof(TypeOptionNames[0]);
-
    int opt;
-   for (opt = 0; opt < TypeOptionNamesLength; opt++) {
+   for (opt = 0; opt < TableSize(TypeOptionNames); opt++) {
       int len = (int)strlen(TypeOptionNames[opt].b);
       if (strncmp(string, TypeOptionNames[opt].b, len) == 0) {
          // Match found
@@ -442,7 +488,20 @@ void CCommandLineInterpreter::InterpretOutputTypeOption(char * string) {
          break;   // Finished searching
       }
    }
-   if (opt >= TypeOptionNamesLength) err.submit(2004, string-1);
+
+   // Check if found
+   if (opt >= TableSize(TypeOptionNames)) err.submit(2004, string-1);
+
+   if (OutputType == CMDL_OUTPUT_MASM) {
+      // Get subtype
+      for (opt = 0; opt < TableSize(SubtypeNames); opt++) {
+         int len = (int)strlen(SubtypeNames[opt].b);
+         if (strncmp(string, SubtypeNames[opt].b, len) == 0) {
+            // Match found
+            SubType = SubtypeNames[opt].a;  break;
+         }
+      }
+   }
 }
 
 
@@ -459,18 +518,20 @@ void CCommandLineInterpreter::InterpretDumpOption(char * string) {
    char * s1 = string;
    while (*s1) {
       switch (*(s1++)) {
-      case 'f': case 'F':
+      case 'f': case 'F':  // dump file header
          DumpOptions |= DUMP_FILEHDR;  break;
-      case 'h': case 'H':
+      case 'h': case 'H':  // dump section headers
          DumpOptions |= DUMP_SECTHDR;  break;
-      case 's': case 'S':
+      case 's': case 'S':  // dump symbol table
          DumpOptions |= DUMP_SYMTAB;  break;
-      case 'r': case 'R':
+      case 'r': case 'R':  // dump relocations
          DumpOptions |= DUMP_RELTAB;  break;
-      case 'n': case 'N':
+      case 'n': case 'N':  // dump string table
          DumpOptions |= DUMP_STRINGTB;  break;
+      case 'c': case 'C':  // dump comment records (currently only for OMF)
+         DumpOptions |= DUMP_COMMENT;  break;         
       default:
-         err.submit(2004, string-2);  // Unknown option
+         err.submit(2004, string-1);  // Unknown option
       }
    }
    if (DumpOptions == 0) DumpOptions = DUMP_FILEHDR;
@@ -555,7 +616,6 @@ void CCommandLineInterpreter::InterpretErrorOption(char * string) {
    }
 }
 
-
 void CCommandLineInterpreter::InterpretSymbolNameChangeOption(char * string) {
    // Interpret various options for changing symbol names
    SSymbolChange sym = {0,0,0,0};   // Symbol change record
@@ -628,6 +688,17 @@ void CCommandLineInterpreter::InterpretSymbolNameChangeOption(char * string) {
       SymbolList.Push(&sym, sizeof(sym));  SymbolChangeEntries++;
       break;
 
+   case 'p': case 'P':  // prefix replace option
+      if (name1 == 0 || *name1 == 0) {
+         err.submit(2008, string); return;
+      }
+      if (name2 == 0) name2 = (char*)"";
+      sym.Name1 = name1;
+      sym.Name2 = name2;
+      sym.Action  = SYMA_CHANGE_PREFIX;
+      SymbolList.Push(&sym, sizeof(sym));  SymbolChangeEntries++;
+      break;
+
    case 'w': case 'W':  // Weaken symbol
       if (name1 == 0 || *name1 == 0 || name2) {
          err.submit(2009, string); return;
@@ -648,6 +719,56 @@ void CCommandLineInterpreter::InterpretSymbolNameChangeOption(char * string) {
 
    default:
       err.submit(2004, string);  // Unknown option
+   }
+}
+
+void CCommandLineInterpreter::InterpretImagebaseOption(char * string) {
+   // Interpret image base option
+   char * p = strchr(string, '=');
+   if ((strnicmp(string, "imagebase", 9) && strnicmp(string, "image_base", 10)) || !p) {
+      // Unknown option
+      err.submit(1002, string);
+      return;
+   }
+   if (ImageBase) err.submit(2330); // Imagebase specified more than once
+
+   p++;  // point to number following '='
+   // Loop through string to interpret hexadecimal number
+   while (*p) {
+      char letter = *p | 0x20; // lower case letter
+      if (*p >= '0' && *p <= '9') {
+         // 0 - 9 hexadecimal digit
+         ImageBase = (ImageBase << 4) + *p - '0';
+      }
+      else if (letter >= 'a' && letter <= 'f') {
+         // A - F hexadecimal digit
+         ImageBase = (ImageBase << 4) + letter - 'a' + 10;
+      }
+      else if (letter == 'h') {
+         // Hexadecimal number may end with 'H'
+         break;
+      }
+      else if (letter == 'x' || letter == ' ') {
+         // Hexadecimal number may begin with 0x
+         if (ImageBase) {
+            // 'x' preceded by number other than 0
+            err.submit(1002, string); break;
+         }
+      }
+      else {
+         // Any other character not allowed
+         err.submit(1002, string); break;
+      }
+      // next character
+      p++;
+   }
+   if (ImageBase & 0xFFF) {
+      // Must be divisible by page size
+      err.submit(2331, string);
+   }
+   if ((int32)ImageBase <= 0) {
+      // Cannot be zero or > 2^31
+      err.submit(2332, string);
    }
 }
 
@@ -716,7 +837,37 @@ int CCommandLineInterpreter::SymbolIsInList(char const * name) {
 
 int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** newname, int symtype) {
    // Check if symbol has to be changed
-   int action, isym, nsym = SymbolList.GetNumEntries();
+   int action, i, isym;
+   int nsym = SymbolList.GetNumEntries();
+
+   // Convert standard names if type conversion
+   if (cmd.InputType != cmd.OutputType 
+   && uint32(cmd.InputType) <= MaxType && uint32(cmd.OutputType) <= MaxType) {
+      if (DesiredWordSize == 32) {
+         // Look for standard names to translate, 32-bit
+         for (i = 0; i < NumStandardNames; i++) {
+            if (strcmp(oldname, StandardNames32[i][cmd.InputType]) == 0) {
+               // Match found
+               *newname = StandardNames32[i][cmd.OutputType];
+               CountSymbolNameChanges++;
+               return SYMA_CHANGE_NAME; // Change name of symbol
+            }
+         }
+      }
+      else {
+         // Look for standard names to translate, 64-bit
+         for (i = 0; i < NumStandardNames; i++) {
+            if (strcmp(oldname, StandardNames64[i][cmd.InputType]) == 0) {
+               // Match found
+               *newname = StandardNames64[i][cmd.OutputType];
+               CountSymbolNameChanges++;
+               return SYMA_CHANGE_NAME; // Change name of symbol
+            }
+         }
+      }
+   }
+
+   // See if there are other conversions to do
    if (Underscore == 0 && SegmentDot == 0 && nsym == 0) return SYMA_NOCHANGE;  // Nothing to do
    if (oldname == 0 || *oldname == 0) return SYMA_NOCHANGE;                    // No name
 
@@ -726,6 +877,7 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
    // search for name in list of names specified by user on command line
    for (isym = 0, psym = List; isym < nsym; isym++, psym++) {
       if (strcmp(oldname, psym->Name1) == 0) break;  // Matching name found
+      if (psym->Action == SYMA_CHANGE_PREFIX && strncmp(oldname, psym->Name1, strlen(psym->Name1))==0) break; // matching prefix found
    }
    if (isym < nsym) {
       // A matching name was found.
@@ -733,7 +885,7 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
       // Whatever action is specified here is overriding any general option
       // Statistics counting
       switch (action) {
-      case SYMA_MAKE_WEAK:
+      case SYMA_MAKE_WEAK: // Make public symbol weak
          if (symtype == SYMT_PUBLIC) {
             CountSymbolsWeakened++;  psym->Done++;
          }
@@ -742,7 +894,7 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
             action = SYMA_NOCHANGE;
          }
          break;
-      case SYMA_MAKE_LOCAL:
+      case SYMA_MAKE_LOCAL: // Hide public or external symbol
          if (symtype == SYMT_PUBLIC || symtype == SYMT_EXTERNAL) {
             CountSymbolsMadeLocal++;  psym->Done++;
             if (symtype == SYMT_EXTERNAL) err.submit(1023, oldname);
@@ -752,15 +904,33 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
             action = SYMA_NOCHANGE;
          }
          break;
-      case SYMA_CHANGE_NAME:
+      case SYMA_CHANGE_NAME: // Change name of symbol or segment or library member
          CountSymbolNameChanges++;  psym->Done++;  
          break;
-      case SYMA_CHANGE_ALIAS:
+      case SYMA_CHANGE_ALIAS: // Make alias for public symbol
          if (symtype == SYMT_PUBLIC) {
             CountSymbolNameAliases++;  psym->Done++;
          }
          else { // only public symbols can have aliases
             err.submit(1022, oldname); // cannot make alias
+            action = SYMA_NOCHANGE;
+         }
+         break;
+      case SYMA_CHANGE_PREFIX: // Change beginning of symbol name
+         if (symtype == SYMT_PUBLIC || symtype == SYMT_EXTERNAL || symtype == SYMT_LOCAL || symtype == SYMT_SECTION) {
+            if (strlen(oldname) - strlen(psym->Name1) + strlen(psym->Name2) >= MAXSYMBOLLENGTH) {
+               err.submit(2202, oldname);  // Name too long
+               action = SYMA_NOCHANGE;  break;
+            }
+            strcpy(NameBuffer, psym->Name2);
+            strcpy(NameBuffer + strlen(psym->Name2), oldname + strlen(psym->Name1));
+            action = SYMA_CHANGE_NAME;
+            *newname = NameBuffer;
+            CountSymbolNameChanges++;  psym->Done++;
+            return action;
+         }
+         else { // only symbols and segments can change prefix
+            err.submit(1024, oldname);
             action = SYMA_NOCHANGE;
          }
          break;
@@ -817,6 +987,10 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
          }
          if (SegmentDot == CMDL_SECTIONDOT_DOT2U && oldname[0] == '.') {
             // replace '.' by '_'
+            // Note: Microsoft and Intel compilers have . on standard names
+            // and _ on nonstandard names in COFF files
+            // Borland requires _ on all segment names in OMF files
+            /* 
             // Standard section names that should not be changed
             static char const * StandardSectionNames[] = {
                ".text", ".data", ".bss", ".comment", ".lib"
@@ -826,7 +1000,7 @@ int CCommandLineInterpreter::SymbolChange(char const * oldname, char const ** ne
                   // Standard name. Don't change
                   return SYMA_NOCHANGE;
                }
-            }
+            }*/
             strncpy(NameBuffer, oldname, MAXSYMBOLLENGTH-1);
             NameBuffer[MAXSYMBOLLENGTH-1] = 0;  // Terminate string
             NameBuffer[0] = '_';
@@ -933,7 +1107,7 @@ void CCommandLineInterpreter::ReportStatistics() {
          printf ("\n%3i Changes in leading characters on section names", CountSectionDotConversions);
       }
       if (CountSymbolNameChanges) {
-         printf ("\n%3i Symbol names changed at specific request", CountSymbolNameChanges);
+         printf ("\n%3i Symbol names changed", CountSymbolNameChanges);
       }
       if (CountSymbolNameAliases) {
          printf ("\n%3i Public symbol names aliased", CountSymbolNameAliases);
@@ -954,30 +1128,29 @@ void CCommandLineInterpreter::ReportStatistics() {
 void CCommandLineInterpreter::Help() {
    // Print help message
    printf("\nObject file converter version %.2f for x86 and x86-64 platforms.", OBJCONV_VERSION);
-   printf("\nCopyright (c) 2007 by Agner Fog. Gnu General Public License.");
+   printf("\nCopyright (c) 2008 by Agner Fog. Gnu General Public License.");
    printf("\n\nUsage: objconv options inputfile [outputfile]");
    printf("\n\nOptions:");
    printf("\n-fXXX[SS]  Output file format XXX, word size SS. Supported formats:");
    printf("\n           PE, COFF, ELF, OMF, MACHO\n");
-   printf("\n-fasm      Disassemble file\n");
-   printf("\n-fdXXX     No output file. Dump contents to console.");
+   printf("\n-fasm      Disassemble file (-fmasm, -fnasm, -fyasm, -fgasm)\n");
+   printf("\n-dXXX      Dump file contents to console.");
    printf("\n           Values of XXX (can be combined):");
    printf("\n           f: File header, h: section Headers, s: Symbol table,");
    printf("\n           r: Relocation table, n: string table.\n");
-   printf("\n-ds        Strip Debug info.");    // default if input and output are different formats
-   printf("\n-dp        Preserve Debug info, even if it is incompatible.");
+   //printf("\n-ds        Strip Debug info.");    // default if input and output are different formats
+   //printf("\n-dp        Preserve Debug info, even if it is incompatible.");
    printf("\n-xs        Strip exception handling info and other incompatible info.");  // default if input and output are different formats. Hides unused symbols
    printf("\n-xp        Preserve exception handling info and other incompatible info.\n");
   
    printf("\n-nu        change symbol Name Underscores to the default for the target format.");
    printf("\n-nu-       remove Underscores from symbol Names.");
    printf("\n-nu+       add Underscores to symbol Names.");
-   printf("\n-au-       remove Underscores from symbol names and keep old name as Alias.");
-   printf("\n-au+       add Underscores to symbol names and keep old name as Alias.");
-   printf("\n-nd        replace Dot/underscore in nonstandard section names.");
+   printf("\n-nd        replace Dot/underscore in section names.");
    printf("\n-nr:N1:N2  Replace symbol Name N1 with N2.");
    printf("\n-ar:N1:N2  make Alias N2 for existing public name N1.");
-   printf("\n-nw:N1     make public symbol Name N1 Weak (ELF target only).");
+   printf("\n-np:N1:N2  Replace symbol Prefix N1 with N2.");
+   printf("\n-nw:N1     make public symbol Name N1 Weak (ELF and MAC64 only).");
    printf("\n-nl:N1     make public symbol Name N1 Local (invisible).\n");
 
    printf("\n-lx        eXtract all members from Library.");

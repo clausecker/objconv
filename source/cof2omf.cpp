@@ -7,17 +7,13 @@
 * Description:
 * Module for converting 32 bit PE/COFF file to OMF file
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
 CCOF2OMF::CCOF2OMF () {
    // Constructor
    memset(this, 0, sizeof(*this));
-}
-
-CCOF2OMF::~CCOF2OMF () {
-   // Destructor
 }
 
 

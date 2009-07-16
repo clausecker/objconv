@@ -7,6 +7,7 @@
 * Description:
 * Header file for command line interpreter cmdline.cpp
 *
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef CMDLINE_H
 #define CMDLINE_H
@@ -21,7 +22,12 @@
 #define CMDL_OUTPUT_PE     FILETYPE_COFF     // MS-COFF/PE file
 #define CMDL_OUTPUT_OMF    FILETYPE_OMF      // OMF file
 #define CMDL_OUTPUT_MACHO  FILETYPE_MACHO_LE // Mach-O file, little endian
-#define CMDL_OUTPUT_MASM   FILETYPE_ASM       // Disassembly, MASM syntax
+#define CMDL_OUTPUT_MASM   FILETYPE_ASM      // Disassembly
+
+// Constants for subtypes
+#define SUBTYPE_MASM                 0       // Disassembly MASM/TASM
+#define SUBTYPE_YASM                 1       // Disassembly NASM/YASM
+#define SUBTYPE_GASM                 2       // Disassembly GAS(Intel)
 
 // Constants for verbose or silent console output
 #define CMDL_VERBOSE_NO              0     // Silent. No console output if no errors or warnings
@@ -35,6 +41,7 @@
 #define DUMP_SYMTAB             0x0010     // Dump symbol table
 #define DUMP_RELTAB             0x0020     // Dump relocation table
 #define DUMP_STRINGTB           0x0040     // Dump string table
+#define DUMP_COMMENT            0x0080     // Dump comment records
 
 // Constants for stripping or converting debug information from file
 #define CMDL_DEBUG_DEFAULT           0     // Remove if output is different format
@@ -78,7 +85,7 @@
 
 // Constants for symbol type as input to CCommandLineInterpreter::SymbolChange()
 #define SYMT_OTHER                   0     // File name or unknown symbol type
-#define SYMT_SECTION                 1     // Section name
+#define SYMT_SECTION                 1     // Segment or section name
 #define SYMT_LOCAL                   2     // Local symbol (not imported or exported)
 #define SYMT_PUBLIC                  3     // Public or weak symbol (exported)
 #define SYMT_EXTERNAL                4     // External symbol (imported)
@@ -90,6 +97,7 @@
 #define SYMA_MAKE_WEAK               1     // Make symbol weak
 #define SYMA_MAKE_LOCAL              2     // Make symbol local
 #define SYMA_CHANGE_NAME             4     // Change name of symbol
+#define SYMA_CHANGE_PREFIX           8     // Change beginning of symbol name
 #define SYMA_CHANGE_ALIAS         0x14     // Make alias and keep old name
 #define SYMA_ADD_MEMBER         0x1001     // Add member to library
 #define SYMA_DELETE_MEMBER      0x1002     // Remove member from library
@@ -123,6 +131,7 @@ public:
    char * OutputFile;                        // Output file name
    int    InputType;                         // Input file type (detected from file)
    int    OutputType;                        // Output type (file type or dump)
+   int    SubType;                           // Subtype of output type. Assembly language dialect
    int    MemberType;                        // File type of library members
    int    DesiredWordSize;                   // Desired word size for output file
    uint32 Verbose;                           // How much diagnostics to print on screen
@@ -133,6 +142,7 @@ public:
    uint32 SegmentDot;                        // Change underscore/dot in beginning of segment names
    uint32 LibraryOptions;                    // Options for manipulating library
    uint32 FileOptions;                       // Options for input and output files
+   uint32 ImageBase;                         // Specified image base
    int    ShowHelp;                          // Help screen printed
 protected:
    int  libmode;                             // -lib option has been encountered
@@ -148,6 +158,7 @@ protected:
    void InterpretErrorOption(char *);        // Interpret error option from command line
    void InterpretSymbolNameChangeOption(char *);  // Interpret various options for changing symbol names
    void InterpretLibraryOption(char *);      // Interpret options for manipulating library/archive files
+   void InterpretImagebaseOption(char *);    // Interpret image base option
    void AddObjectToLibrary(char * filename, char * membername); // Add object file to library
    void Help();                              // Print help message
    CArrayBuf<CFileBuffer> ResponseFiles;     // Array of up to 10 response file buffers

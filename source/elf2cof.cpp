@@ -1,13 +1,13 @@
 /****************************  elf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2006-08-19
-* Last modified: 2006-08-19
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        elf2cof.cpp
 * Description:
 * Module for converting ELF file to PE/COFF file
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -15,27 +15,19 @@
 
 
 // Constructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::CELF2COF() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+CELF2COF<ELFSTRUCTURES>::CELF2COF() {
    // Reset all
    memset(this, 0, sizeof(*this));
 }
 
 
-// Destructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::~CELF2COF () {
-}
-
-
 // Convert(): Do the conversion
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::Convert() {
 
    // Some compilers require this-> for accessing members of template base class,
    // according to the so-called two-phase lookup rule.
-   //this->GetFileType();                // Determine file type and word size
-   //this->ParseFile();                  // Initialize PE interpreter
 
    // Allocate variable size buffers
    NewSectIndex.SetNum(this->NSections);// Allocate section translation table
@@ -54,8 +46,8 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
 
 
 // MakeFileHeader(): Convert subfunction to make file header
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeFileHeader() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::MakeFileHeader() {
    
    // Make PE file header
    NewFileHeader.Machine = (this->WordSize == 32) ? PE_MACHINE_I386 : PE_MACHINE_X8664;
@@ -74,8 +66,8 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeFileHeader
 
 
 // MakeSectionsIndex(): Make sections index translation table
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionsIndex() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::MakeSectionsIndex() {
    // We must make this table before the segments, because it is needed for the
    // symbol table, and we must make the symbol table before the relocation table,
    // and we must make the relocation table together with the sections.
@@ -87,7 +79,7 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionsIn
    for (oldsec = 0; oldsec < this->NSections; oldsec++) {
 
       // Get section name
-      char * sname = "";
+      const char * sname = "";
       uint32 namei = this->SectionHeaders[oldsec].sh_name;
       if (namei >= this->SecStringTableLen) err.submit(2112);
       else sname = this->SecStringTable + namei;
@@ -132,14 +124,14 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSectionsIn
 
 
 // MakeSections(): Convert subfunction to make sections and relocation tables
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSections() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::MakeSections() {
    uint32 oldsec;                   // Section number in old file
    uint32 relsec;                   // Relocation section in old file
    SCOFF_SectionHeader NewHeader;   // New section header
-   TSectionHeader OldHeader;        // Old section header
-   TSectionHeader OldRelHeader;     // Old relocation section header
-   TRelocation OldRelocation;       // Old relocation table entry
+   TELF_SectionHeader OldHeader;        // Old section header
+   TELF_SectionHeader OldRelHeader;     // Old relocation section header
+   TELF_Relocation OldRelocation;       // Old relocation table entry
    SCOFF_Relocation NewRelocation;  // New relocation table entry
 
    // Loop through old sections
@@ -155,10 +147,17 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSections()
          memset(&NewHeader, 0, sizeof(NewHeader));
 
          // Section name
-         char * sname = "";
+         const char * sname = "";
          uint32 namei = OldHeader.sh_name;
          if (namei >= this->SecStringTableLen) err.submit(2112);
          else sname = this->SecStringTable + namei;
+
+         // Check for special names
+         if (strcmp(sname, ELF_CONSTRUCTOR_NAME)==0) {
+            // This is the constructors segment
+            sname = COFF_CONSTRUCTOR_NAME;
+            OldHeader.sh_flags &= ~ SHF_WRITE;
+         }
 
          // Store name in section header
          COFF_PutNameInSectionHeader(NewHeader, sname, NewStringTable);
@@ -206,8 +205,8 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSections()
                // Get entry size
                int entrysize = uint32(OldRelHeader.sh_entsize);
                int expectedentrysize = (OldRelHeader.sh_type == SHT_RELA) ? 
-                  sizeof(TRelocation) :                    // Elf32_Rela, Elf64_Rela
-                  sizeof(TRelocation) - this->WordSize/8;  // Elf32_Rel,  Elf64_Rel
+                  sizeof(TELF_Relocation) :                    // Elf32_Rela, Elf64_Rela
+                  sizeof(TELF_Relocation) - this->WordSize/8;  // Elf32_Rel,  Elf64_Rel
                if (entrysize < expectedentrysize) {err.submit(2033); entrysize = expectedentrysize;}
 
                // File pointer for new relocations
@@ -250,6 +249,9 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSections()
                      case R_386_NONE:    // Ignored
                         NewRelocation.Type = COFF32_RELOC_ABS;  break;
 
+                     case R_386_IRELATIVE:
+                        err.submit(1063); // Warning: Gnu indirect function cannot be converted
+                        // continue in next case?:
                      case R_386_32:      // 32-bit absolute virtual address
                         NewRelocation.Type = COFF32_RELOC_DIR32;  
                         *piaddend += uint32(OldRelocation.r_addend);  
@@ -295,6 +297,9 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSections()
                         *(int64*)piaddend += OldRelocation.r_addend;  
                         break;
 
+                     case R_X86_64_IRELATIVE:
+                        err.submit(1063); // Warning: Gnu indirect function cannot be converted
+                        // continue in next case?:
                      case R_X86_64_32:      // 32 bit absolute virtual address
                         NewRelocation.Type = COFF64_RELOC_ABS32;  
                         *piaddend += uint32(OldRelocation.r_addend);  
@@ -379,20 +384,21 @@ static int SymbolOverflow(uint32 x) {  // Overloaded 32 bit version
 
 
 // MakeSymbolTable(): Convert subfunction to make symbol table and string tables
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTable() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::MakeSymbolTable() {
    uint32 oldsec;                      // Section number in old file
-   TSectionHeader OldHeader;           // Old section header
+   TELF_SectionHeader OldHeader;           // Old section header
    int FoundSymTab = 0;                // Found symbol table
    int8 * strtab;                      // Old symbol string table
    int8 * symtab;                      // Old symbol table
    uint32 symtabsize;                  // Size of old symbol table
+   uint32 stringtabsize;               // Size of old string table
    int8 * symtabend;                   // End of old symbol table
    int entrysize;                      // Size of each entry in old symbol table
    uint32 OldSymI;                     // Symbol index in old symbol table
    uint32 NewSymI = 0;                 // Symbol index in new symbol table
-   char * symname = 0;                 // Symbol name
-   TSymbol OldSym;                     // Old symbol table record
+   const char * symname = 0;           // Symbol name
+   TELF_Symbol OldSym;                     // Old symbol table record
    SCOFF_SymTableEntry NewSym;         // New symbol table record
    SCOFF_SymTableEntry AuxSym;         // Auxiliary symbol table entry
    uint32 numaux;                      // Number of auxiliary records for new entry
@@ -414,10 +420,12 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
          // Find associated string table
          if (OldHeader.sh_link >= this->NSections) {err.submit(2035); OldHeader.sh_link = 0;}
          strtab = this->Buf() + uint32(this->SectionHeaders[OldHeader.sh_link].sh_offset);
+         stringtabsize = uint32(this->SectionHeaders[OldHeader.sh_link].sh_size);
+            
 
          // Find old symbol table
          entrysize = uint32(OldHeader.sh_entsize);
-         if (entrysize < sizeof(TSymbol)) {err.submit(2033); entrysize = sizeof(TSymbol);}
+         if (entrysize < sizeof(TELF_Symbol)) {err.submit(2033); entrysize = sizeof(TELF_Symbol);}
 
          symtab = this->Buf() + uint32(OldHeader.sh_offset);
          symtabsize = uint32(OldHeader.sh_size);
@@ -427,7 +435,7 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
          for (OldSymI = 0; symtab < symtabend; symtab += entrysize, OldSymI++) {
 
             // Copy old symbol table entry
-            OldSym = *(TSymbol*)symtab;
+            OldSym = *(TELF_Symbol*)symtab;
 
             // Reset new symbol table entry
             memset(&NewSym, 0, sizeof(NewSym));
@@ -442,12 +450,15 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
             int binding = OldSym.st_bind;
 
             // Get symbol name
-            if (OldSym.st_name < symtabsize) {
+            if (OldSym.st_name < stringtabsize) {
                symname = strtab + OldSym.st_name;
                if (symname && *symname && type != STT_FILE) {
                   // Symbol has a name that we want to store
                   COFF_PutNameInSymbolTable(NewSym, symname, NewStringTable);
                }
+            }
+            else { // points outside string table
+               err.submit(2112); continue;
             }
 
             // Value
@@ -480,7 +491,7 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
                NewSym.s.StorageClass = COFF_CLASS_EXTERNAL; break;
 
             case STB_WEAK:
-               err.submit(2200); // Weak public symbol not supported
+               err.submit(1051, symname); // Weak public symbol not supported
                NewSym.s.StorageClass = COFF_CLASS_WEAK_EXTERNAL; break;
 
             default: 
@@ -497,6 +508,9 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
                }
                break;
 
+            case STT_GNU_IFUNC:
+               err.submit(1063); // Warning: Gnu indirect function cannot be converted
+               // continue in next case:
             case STT_FUNC:
                // Function
                NewSym.s.Type = COFF_TYPE_FUNCTION;  
@@ -511,7 +525,7 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
                NewSym.s.StorageClass = COFF_CLASS_FILE;
                NewSym.s.SectionNumber = COFF_SECTION_DEBUG;
                // Remove path from file name
-               char * shortname = symname;
+               const char * shortname = symname;
                uint32 len = (uint32)strlen(symname);
                if (len > 1) {
                   // Scan backwards for last '/'
@@ -546,7 +560,7 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
                NewSym.s.NumAuxSymbols = (uint8)(numaux = 1);
 
                // Find corresponding section header
-               TSectionHeader * OldSecHdr = 0;
+               TELF_SectionHeader * OldSecHdr = 0;
                if (OldSym.st_shndx < this->NSections) {
                   OldSecHdr = &(this->SectionHeaders[OldSym.st_shndx]);
 
@@ -605,8 +619,8 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
 
 
 // HideUnusedSymbols(): Hide unused symbols if stripping debug info or exception info
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::HideUnusedSymbols() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::HideUnusedSymbols() {
 
    if (cmd.DebugInfo != CMDL_DEBUG_STRIP && cmd.ExeptionInfo != CMDL_EXCEPTION_STRIP) {
       // No sections removed. Do nothing
@@ -645,8 +659,8 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::HideUnusedSymb
 }
 
 // MakeBinaryFile(): Convert subfunction to put all sections together
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeBinaryFile() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2COF<ELFSTRUCTURES>::MakeBinaryFile() {
 
    // Insert string table size
    //NewStringTable.Get<uint32>(0) = NewStringTable.GetDataSize();
@@ -674,5 +688,5 @@ void CELF2COF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeBinaryFile
 
 
 // Make template instances for 32 and 64 bits
-template class CELF2COF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela>;
-template class CELF2COF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela>;
+template class CELF2COF<ELF32STRUCTURES>;
+template class CELF2COF<ELF64STRUCTURES>;

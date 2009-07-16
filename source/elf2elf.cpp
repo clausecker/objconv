@@ -7,7 +7,7 @@
 * Description:
 * Module for changing symbol names in ELF file
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -15,21 +15,16 @@
 
 
 // Constructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::CELF2ELF() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+CELF2ELF<ELFSTRUCTURES>::CELF2ELF() {
    // Initialize everything
    memset(this, 0, sizeof(*this));
 }
 
-// Destructor
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::~CELF2ELF() {
-}
-
 
 // Convert()
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ELF<ELFSTRUCTURES>::Convert() {
    // Some compilers require this-> for accessing members of template base class,
    // according to the so-called two-phase lookup rule.
    MakeSymbolTable();               // Remake symbol tables and string tables
@@ -40,8 +35,8 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::Convert() {
 
 
 // MakeSymbolTable()
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTable() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ELF<ELFSTRUCTURES>::MakeSymbolTable() {
    uint32 SectionNumber;      // Section number
    char * SectionName;        // Section name
    uint32 SecNamei;           // Section name index
@@ -53,15 +48,15 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
    int SymbolType;            // Symbol type for cmd.SymbolChange
    int action;                // Symbol change action
    int binding;               // Symbol binding
-   TSymbol sym;               // Symbol table entry
-   TSymbol AliasEntry;        // Symbol table alias entry
+   TELF_Symbol sym;               // Symbol table entry
+   TELF_Symbol AliasEntry;        // Symbol table alias entry
    uint32 symnamei;           // New symbol name index
    CMemoryBuffer TempGlobalSymbolTable; // Temporary storage of public and external symbols
 
    // Find symbol table and string tables
    for (SectionNumber = 0; SectionNumber < this->NSections; SectionNumber++) {
       // Get copy of 32-bit header or converted 64-bit header
-      TSectionHeader sheader = this->SectionHeaders[SectionNumber];
+      TELF_SectionHeader sheader = this->SectionHeaders[SectionNumber];
       switch (sheader.sh_type) {
       case SHT_SYMTAB:
          isymtab[0] = SectionNumber;                // Symbol table found
@@ -75,7 +70,8 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
 
       case SHT_STRTAB:
          SecNamei = sheader.sh_name;
-         if (SecNamei >= this->SecStringTableLen) err.submit(2112);
+         if (SecNamei >= this->SecStringTableLen) 
+            err.submit(2112);
          SectionName = this->SecStringTable + SecNamei;
          if (SectionNumber == this->FileHeader.e_shstrndx || !strcmp(SectionName,".shstrtab")) {
             istrtab[2] = SectionNumber;           // Section header string table found
@@ -99,16 +95,16 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
          
          // Symbol table header
          uint32 SymTabHeaderOffset = uint32(this->FileHeader.e_shoff + isymtab[isymt] * this->SectionHeaderSize);
-         //TSectionHeader SymTabHeader = this->Get<TSectionHeader>(SymTabHeaderOffset);
+         //TELF_SectionHeader SymTabHeader = this->Get<TELF_SectionHeader>(SymTabHeaderOffset);
          // Some compilers fail with the double template here. Avoid the template:
-         TSectionHeader SymTabHeader = *(TSectionHeader*)(this->Buf() + SymTabHeaderOffset);
+         TELF_SectionHeader SymTabHeader = *(TELF_SectionHeader*)(this->Buf() + SymTabHeaderOffset);
 
          // Find symbol table
          uint32 symtabsize = (uint32)(SymTabHeader.sh_size);
          int8 * symtab = this->Buf() + SymTabHeader.sh_offset;
          int8 * symtabend = symtab + symtabsize;
          int entrysize = (int)(SymTabHeader.sh_entsize);
-         if (entrysize <= 0) entrysize = sizeof(TSymbol);
+         if (entrysize <= 0) entrysize = sizeof(TELF_Symbol);
 
          // Find string table
          char * StringTable = this->Buf() + this->SectionHeaders[istrtab[isymt]].sh_offset;
@@ -127,7 +123,7 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
          for (OldSymi = 0; symtab < symtabend; symtab += entrysize, OldSymi++) {
 
             // Symbol table entry
-            sym = *(TSymbol*)symtab;
+            sym = *(TELF_Symbol*)symtab;
 
             // Symbol name
             if (sym.st_name < StringTableLen) {
@@ -261,17 +257,17 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeSymbolTabl
 
 
 // ChangeSections()
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ChangeSections() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ELF<ELFSTRUCTURES>::ChangeSections() {
    // Convert subfunction: Change section names if needed and adjust all relocation tables
    uint32 SectionNumber;        // Section number
    const char * name1;          // Section name
    const char * name2;          // Changed section name
    int action;                  // Name change action
-   TSectionHeader * sheaderp;   // Pointer to section header
+   TELF_SectionHeader * sheaderp;   // Pointer to section header
    uint32 SectionHeaderOffset;  // File offset to section header
    uint32 namei;                // Section name index into string table
-   TRelocation * relocp;        // Pointer to relocation entry
+   TELF_Relocation * relocp;        // Pointer to relocation entry
    uint32 oldsymi, newsymi;     // Relocation symbol index
 
    // Initialize section header string table .shstrtab. First entry = 0
@@ -282,7 +278,7 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ChangeSections
    for (SectionNumber = 0; SectionNumber < this->NSections; SectionNumber++, SectionHeaderOffset += this->FileHeader.e_shentsize) {
 
       // Get section header
-      sheaderp = (TSectionHeader*)(this->Buf() + SectionHeaderOffset);
+      sheaderp = (TELF_SectionHeader*)(this->Buf() + SectionHeaderOffset);
 
       // Section name
       namei = sheaderp->sh_name;
@@ -308,11 +304,11 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ChangeSections
          int8 * reltab = this->Buf() + sheaderp->sh_offset;
          int8 * reltabend = reltab + sheaderp->sh_size;
          int entrysize = (int)(sheaderp->sh_entsize);
-         if (entrysize <= 0) entrysize = sizeof(TRelocation);
+         if (entrysize <= 0) entrysize = sizeof(TELF_Relocation);
 
          // Loop through entries
          for (; reltab < reltabend; reltab += entrysize) {
-            relocp = (TRelocation*)reltab;
+            relocp = (TELF_Relocation*)reltab;
 
             oldsymi = relocp->r_sym;
 
@@ -331,32 +327,32 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::ChangeSections
 
 
 // MakeBinaryFile()
-template <class TFileHeader, class TSectionHeader, class TSymbol, class TRelocation>
-void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeBinaryFile() {
+template <class TELF_Header, class TELF_SectionHeader, class TELF_Symbol, class TELF_Relocation>
+void CELF2ELF<ELFSTRUCTURES>::MakeBinaryFile() {
 
    uint32 SectionNumber;               // Section number
    CMemoryBuffer NewSectionHeaders;    // Temporary storage of section headers
 
    // Copy file header
-   ToFile.Push(this->Buf(), sizeof(TFileHeader));
+   ToFile.Push(this->Buf(), sizeof(TELF_Header));
 
    // Copy program header if any
    if (this->FileHeader.e_phnum) {
       ToFile.Push(this->Buf() + this->FileHeader.e_phoff, this->FileHeader.e_phentsize * this->FileHeader.e_phnum);
-      ((TFileHeader*)ToFile.Buf())->e_phoff = sizeof(TFileHeader);
+      ((TELF_Header*)ToFile.Buf())->e_phoff = sizeof(TELF_Header);
    }
 
    // Copy section data
    uint32 SectionHeaderOffset = uint32(this->FileHeader.e_shoff);
-   TSectionHeader sheader;                     // Section header
+   TELF_SectionHeader sheader;                     // Section header
 
    // Loop through sections
    for (SectionNumber = 0; SectionNumber < this->NSections; SectionNumber++, SectionHeaderOffset += this->FileHeader.e_shentsize) {
 
       // Get section header
-      //sheader = this->Get<TSectionHeader>(SectionHeaderOffset);
+      //sheader = this->Get<TELF_SectionHeader>(SectionHeaderOffset);
       // Some compilers fail with the double template here. Avoid the template:
-      sheader = *(TSectionHeader*)(this->Buf() + SectionHeaderOffset);
+      sheader = *(TELF_SectionHeader*)(this->Buf() + SectionHeaderOffset);
 
       // Check for null section
       if (SectionNumber == 0 && sheader.sh_type != 0) {
@@ -411,13 +407,13 @@ void CELF2ELF<TFileHeader, TSectionHeader, TSymbol, TRelocation>::MakeBinaryFile
    uint32 SectionHeadersOffset = ToFile.Push(NewSectionHeaders.Buf(), NewSectionHeaders.GetDataSize());
 
    // Update file header
-   ((TFileHeader*)ToFile.Buf())->e_shoff = SectionHeadersOffset;
-   ((TFileHeader*)ToFile.Buf())->e_shentsize = sizeof(TSectionHeader);
-   ((TFileHeader*)ToFile.Buf())->e_shnum = NewSectionHeaders.GetNumEntries();
-   ((TFileHeader*)ToFile.Buf())->e_shstrndx = istrtab[2];
+   ((TELF_Header*)ToFile.Buf())->e_shoff = SectionHeadersOffset;
+   ((TELF_Header*)ToFile.Buf())->e_shentsize = sizeof(TELF_SectionHeader);
+   ((TELF_Header*)ToFile.Buf())->e_shnum = NewSectionHeaders.GetNumEntries();
+   ((TELF_Header*)ToFile.Buf())->e_shstrndx = istrtab[2];
 }
 
 
 // Make template instances for 32 and 64 bits
-template class CELF2ELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela>;
-template class CELF2ELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela>;
+template class CELF2ELF<ELF32STRUCTURES>;
+template class CELF2ELF<ELF64STRUCTURES>;

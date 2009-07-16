@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2007-06-01
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -52,15 +52,20 @@ SIntTxt AsmErrorTexts[] = {
    {0x20,      "Prefix after REX prefix not allowed"},
    {0x40,      "This instruction is not allowed in 64 bit mode"},
    {0x80,      "Instruction out of phase with next label"},
-   {0x200,     "Attempt to use R13 as base register without displacement"},
+   {0x100,     "Attempt to use R13 as base register without displacement"},
+   {0x200,     "Register 8 - 15 only allowed in 64 bit mode (Ignored)."},
+   {0x400,     "REX prefix not allowed on instruction with DREX byte"},
+   {0x800,     "VEX has X bit but no SIB byte (Probably ignored)"},
    {0x1000,    "Relocation source does not match address or operand field"},
    {0x2000,    "Overlapping relocations"},
    {0x4000,    "This is unlikely to be code"}, // Consecutive bytes of 0 found
+   {0x8000,    "VEX.L bit not allowed here"},
+   {0x10000,   "VEX.mmmm bits out of range"},
    {0x80000,   "Internal error in opcode table in opcodes.cpp"}
 };
 
-// Define warning texts. 
-SIntTxt AsmWarningTexts[] = {
+// Warning texts 1: Warnings about conditions that could be intentional and suboptimal code
+SIntTxt AsmWarningTexts1[] = {
    {1,          "Immediate operand could be made smaller by sign extension"},
    {2,          "Immediate operand could be made smaller by zero extension"},
    {4,          "Zero displacement could be omitted"},
@@ -71,26 +76,36 @@ SIntTxt AsmWarningTexts[] = {
    {0x80,       "Address size prefix should be avoided"},
    {0x100,      "Same prefix occurs more than once"},
    {0x200,      "Prefix valid but unnecessary"},
-   {0x400,      "Prefix has no meaning in this context"},
+   {0x400,      "Prefix bit or byte has no meaning in this context"},
    {0x800,      "Contradicting prefixes"},
    {0x1000,     "Required prefix missing"},
    {0x2000,     "Address has scale factor but no index register"},
    {0x4000,     "Address is not rip-relative"},
    {0x8000,     "Absolute memory address without relocation"},
-   {0x10000,    "Wrong relocation type for this operand"},
+   {0x10000,    "Unusual relocation type for this operand"},
    {0x20000,    "Instruction pointer truncated by operand size prefix"},
    {0x40000,    "Stack pointer truncated by address size prefix"},
    {0x80000,    "Jump or call to data segment not allowed"},
    {0x100000,   "Undocumented opcode"},
    {0x200000,   "Unknown opcode reserved for future extensions"},
-   {0x400000,   "Memory operand is misaligned"},
-   {0x800000,   "XMM operand is misaligned. Must be aligned by 16!"},
+   {0x400000,   "Memory operand is misaligned. Performance penalty"},
+   {0x800000,   "Alignment fault. Memory operand must be aligned"},
    {0x1000000,  "Multi-byte NOP. Replace with ALIGN"},
    {0x2000000,  "Bogus length-changing prefix causes delay on Intel processors here"},
    {0x4000000,  "Non-default size for stack operation"},
    {0x8000000,  "Function does not end with ret or jmp"},
-   {0x10000000, "Inaccessible code"}
+   {0x10000000, "Inaccessible code"},
+   {0x20000000, "Full 64-bit address"},
+   {0x40000000, "VEX prefix bits not allowed here"}
 };
+
+// Warning texts 2: Warnings about possible misinterpretation; serious warnings
+SIntTxt AsmWarningTexts2[] = {
+   {1,          "Label out of phase with instruction. Possibly spurious"},
+   {2,          "Planned future instruction, according to preliminary specification"},
+   {4,          "This instruction has been planned but never implemented because plans were changed. Will not work"},
+};
+
 
 // Indication of relocation types in comments:
 SIntTxt RelocationTypeNames[] = {
@@ -101,6 +116,7 @@ SIntTxt RelocationTypeNames[] = {
    {0x010,  "(refpoint)" },            // Relative to arbitrary point (position-independent code in Mach-O)
    {0x021,  "(d)" },                   // Direct (adjust by image base)
    {0x041,  "(d)" },                   // Direct (make procecure linkage table entry)
+   {0x081,  "(indirect)" },            // Gnu indirect function dispatcher (make procecure linkage table entry?)
    {0x100,  "(seg)" },                 // Segment address or descriptor
    {0x200,  "(sseg)" },                // Segment of symbol
    {0x400,  "(far)" },                 // Far segment:offset address
@@ -109,6 +125,18 @@ SIntTxt RelocationTypeNames[] = {
    {0x2002, "(PLT r)" }                // self-relative to PLT entry
 };
 
+// Instruction set names
+const char * InstructionSetNames[] = {
+   "8086", "80186", "80286", "80386",               // 0 - 3
+   "80486", "Pentium", "Pentium Pro", "MMX",        // 4 - 7
+   "Pentium II", "", "", "",                        // 8 - B
+   "", "", "", "",                                  // C - F
+   "", "SSE", "SSE2", "SSE3",                       // 10 - 13
+   "Supplementary SSE3", "SSE4.1", "SSE4.2", "AES", // 14 - 17
+   "CLMUL", "AVX", "FMA3", "??"                     // 18 - 1B
+   };
+
+const int InstructionSetNamesLen = TableSize(InstructionSetNames);
 
 
 /**************************  class CDisassembler  *****************************
@@ -116,6 +144,15 @@ Most member functions of CDisassembler are defined in disasm1.cpp
 
 Only the functions that produce output are defined here:
 ******************************************************************************/
+
+void CDisassembler::WriteShortRegOperand(uint32 Type) {
+   // Write register operand from lower 3 bits of opcode byte to OutFile
+   uint32 rnum = Get<uint8>(s.OpcodeStart2) & 7;
+   // Check REX.B prefix
+   if (s.Prefixes[7] & 1) rnum |= 8;             // Add 8 if REX.B prefix
+   // Write register name
+   WriteRegisterName(rnum, Type);
+}
 
 void CDisassembler::WriteRegOperand(uint32 Type) {
    // Write register operand from reg bits
@@ -127,8 +164,8 @@ void CDisassembler::WriteRegOperand(uint32 Type) {
 
 void CDisassembler::WriteRMOperand(uint32 Type) {
    // Write memory or register operand from mod/rm bits of mod/reg/rm byte 
-   // and possibly SIB byte or direct memory operand to OutFile;
-   // or register operand from last bits of opcode
+   // and possibly SIB byte or direct memory operand to OutFile.
+   // Also used for writing direct memory operand
 
    if ((Type & 0xFF) == 0) {
       // No explicit operand
@@ -137,18 +174,11 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
 
    uint32 Components = 0;                        // Count number of addends inside []
    int64  Addend = 0;                            // Inline displacement or addend
-
-   // Check if mod/reg/rm byte 
-   if ((s.OpcodeDef->InstructionFormat & 0x1F) == 3) {
-      // No memory operand. Register operand indicated by last bits of opcode
-      uint32 rnum = Get<uint8>(s.OpcodeStart2) & 7;
-      // Check REX.B prefix
-      if (s.Prefixes[7] & 1) rnum |= 8;           // Add 8 if REX.B prefix
-      // Write register name
-      WriteRegisterName(rnum, Type);
-      return;
-   }
-
+   int AddressingMode = 0;                       // 0: 16- or 32 bit addressing mode
+                                                 // 1: 64-bit pointer
+                                                 // 2: 32-bit absolute in 64-bit mode
+                                                 // 4: 64-bit rip-relative
+                                                 // 8: 64-bit absolute
    // Check if register or memory
    if (s.Mod == 3) {
       // Register operand
@@ -175,63 +205,32 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
       Addend = Get<int64>(s.AddressField);
       break;
    }
-
-   // Remove bits that define precision on mmx and xmm operands
-   if (Type >= 0x10 && Type < 0x40) Type &= ~7;
+   // Get AddressingMode
+   if (s.AddressSize > 32) {
+      if (s.MFlags & 0x100) {
+         AddressingMode = 4;                     // 64-bit rip-relative
+      }
+      else if (s.AddressFieldSize == 8) {
+         AddressingMode = 8;                     // 64-bit absolute
+      }
+      else if (s.AddressRelocation || (s.BaseReg==0 && s.IndexReg==0)) {
+         AddressingMode = 2;                     // 32-bit absolute in 64-bit mode
+      }
+      else {
+         AddressingMode = 1;                     // 64-bit pointer
+      }
+   }
 
    // Make exception for LEA with no type
    if (Opcodei == 0x8D) {
       Type = 0;
    }
+   // Write type override
+   WriteOperandType(Type);
 
-   // Write type ptr
-   switch (Type & 0xFF) {
-   case 1:  // 8 bits
-      OutFile.Put("byte ptr ");  break;
-
-   case 2:  // 16 bits
-      OutFile.Put("word ptr ");  break;
-
-   case 3:  // 32 bits
-      OutFile.Put("dword ptr ");  break;
-
-   case 4:  // 64 bits
-      OutFile.Put("qword ptr ");  break;
-
-   case 5:  // 80 bits
-      OutFile.Put("tbyte ptr ");  break;
-
-   case 6: case 0x40: case 0x48: case 0:
-      // Other size. Write nothing
-      break;
-
-   case 7:  // 48 bits
-      OutFile.Put("fword ptr ");  break;
-
-   case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: // 64 bits mmx
-   case 0x5B: // 2*32 bits float (3DNow)
-      OutFile.Put("qword ptr ");  break;
-
-   case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: // 128 bits xmm integer
-   case 0x28: // unaligned xmm integer
-   case 0x6B: // 128 bits xmm ps
-   case 0x6C: // 128 bits xmm pd
-      OutFile.Put("xmmword ptr ");  break;
-
-   case 0x43: // 32 bits float (x87)
-   case 0x4B: // 32 bits float (SSE2)
-      OutFile.Put("dword ptr ");  break;
-
-   case 0x44: // 64 bits float
-   case 0x4C: // 64 bits float (SSE2)
-      OutFile.Put("qword ptr ");  break;
-
-   case 0x45: // 80 bits float
-      OutFile.Put("tbyte ptr ");  break;
-
-   default:   // Should not occur
-      OutFile.Put("unknown type ");
-      err.submit(3000);
+   if (Syntax != SUBTYPE_MASM) {
+      // Write "[" around memory operands, before segment
+      OutFile.Put("[");
    }
 
    // Write segment prefix, if any
@@ -239,14 +238,25 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
       OutFile.Put(RegisterNamesSeg[GetSegmentRegisterFromPrefix()]);
       OutFile.Put(":");
    }
-   else if (!s.BaseReg && !s.IndexReg && (!s.AddressRelocation || (s.Warnings & 0x10000))) { 
+   else if (!s.BaseReg && !s.IndexReg && (!s.AddressRelocation || (s.Warnings1 & 0x10000)) && Syntax != SUBTYPE_YASM) { 
       // No pointer register and no memory reference or wrong type of memory reference.
       // Write segment register to indicate that we have a memory operand
       OutFile.Put("DS:");
    }
 
-   // Write "[" to enclose memory operands
-   OutFile.Put("[");
+   if (Syntax == SUBTYPE_MASM) {
+      // Write "[" around memory operands, after segment
+      OutFile.Put("[");
+   }
+
+   if (Syntax == SUBTYPE_YASM && (AddressingMode & 0x0E)) {
+      // Specify absolute or relative addressing mode
+      switch (AddressingMode) {
+      case 2: OutFile.Put("abs ");  break;
+      case 4: OutFile.Put("rel ");  break;
+      case 8: OutFile.Put("abs qword ");  break;
+      }
+   }
 
    // Write relocation target, if any
    if (s.AddressRelocation) {
@@ -271,13 +281,13 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
 
    // Write base register, if any
    if (s.BaseReg) {
-      if (Components++) OutFile.Put(" + ");      // Put "+" if anything before
+      if (Components++) OutFile.Put("+");      // Put "+" if anything before
       OutFile.Put(PointerRegisterNames[s.BaseReg - 1]);
    }
 
    // Write index register, if any
    if (s.IndexReg) {
-      if (Components++) OutFile.Put(" + ");      // Put "+" if anything before
+      if (Components++) OutFile.Put("+");      // Put "+" if anything before
       OutFile.Put(PointerRegisterNames[s.IndexReg - 1]);
       // Write scale factor, if any
       if (s.Scale) {
@@ -291,40 +301,261 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
       // Displacement comes after base/index registers
       if (Addend >= 0 || s.AddressFieldSize == 8) {
          // Positive. Write +
-         OutFile.Put(" + ");
+         OutFile.Put("+");
       }
       else {
          // Negative. Write -
-         OutFile.Put(" - ");
+         OutFile.Put("-");
          Addend = -Addend;
       }
    }
 
    if (Addend || Components == 0) {
+      // Find minimum number of digits needed
+      uint32 AddendSize = s.AddressFieldSize;
+      if ((uint64)Addend < 0x100 && AddendSize > 1) AddendSize = 1;
+      else if ((uint64)Addend < 0x10000 && AddendSize > 2) AddendSize = 2;
+
       // Write address or addend as hexadecimal
-      switch (s.AddressFieldSize) {
-      case 1:
-         OutFile.PutHex((uint8)Addend, 1);
-         break;
-      case 2:
-         OutFile.PutHex((uint16)Addend, 1);
-         break;
-      case 4:
-         OutFile.PutHex((uint32)Addend, 1);
-         break;
-      case 8:
-         OutFile.PutHex((uint64)Addend, 1);
-         break;
-      }
+      OutFile.PutHex((uint64)Addend, 2);
+   }
+
+   if (Syntax == SUBTYPE_GASM && (AddressingMode == 4)) {
+      // Need to specify rip-relative address
+      OutFile.Put("+rip");
    }
 
    // End with "]"
    OutFile.Put("]");
 }
 
+
+void CDisassembler::WriteOperandType(uint32 type) {
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      WriteOperandTypeMASM(type);  break;
+   case SUBTYPE_YASM:
+      WriteOperandTypeYASM(type);  break;
+   case SUBTYPE_GASM:
+      WriteOperandTypeGASM(type);  break;
+   }
+}
+
+void CDisassembler::WriteOperandTypeMASM(uint32 type) {
+   // Write type override before operand, e.g. "dword ptr", MASM syntax
+   if (type & 0xF00) {
+      type &= 0xF00;                             // Ignore element type for vectors
+   }
+   else {
+      type &= 0xFF;                              // Use operand type only
+   }
+
+   switch (type) {
+   case 1:  // 8 bits
+      OutFile.Put("byte ptr ");  break;
+   case 2:  // 16 bits
+      OutFile.Put("word ptr ");  break;
+   case 3:  // 32 bits
+      OutFile.Put("dword ptr ");  break;
+   case 4:  // 64 bits
+      OutFile.Put("qword ptr ");  break;
+   case 5:  // 80 bits
+      if ((s.OpcodeDef->Destination & 0xFF) == 0xD) {
+         // 64+16 bit far pointer. Not supported by MASM
+         OutFile.Put("fword ptr ");
+         s.OpComment = "64+16 bit. Need REX.W prefix";
+      }
+      else { 
+         OutFile.Put("tbyte ptr ");}
+      break;
+   case 6: case 0x40: case 0x48: case 0:
+      // Other size. Write nothing
+      break;
+   case 7: case 0x0D: // 48 bits or far
+      OutFile.Put("fword ptr ");  
+      if ((s.OpcodeDef->Destination & 0xFF) == 0xD && WordSize == 64) {
+         // All assemblers I have tried forget the REX.W prefix here. Make a notice
+         s.OpComment = "32+16 bit. Possibly forgot REX.W prefix"; 
+      }      
+      break;
+   case 0x43: // 32 bits float (x87)
+   case 0x4B: // 32 bits float (SSE2)
+      OutFile.Put("dword ptr ");  break;
+   case 0x44: // 64 bits float
+   case 0x4C: // 64 bits float (SSE2)
+      OutFile.Put("qword ptr ");  break;
+   case 0x45: // 80 bits float
+      OutFile.Put("tbyte ptr ");  break;
+   case 0x84: case 0x85: // far call
+      OutFile.Put("far ptr ");  break;
+   case 0x300:  // MMX
+      OutFile.Put("qword ptr ");  break;
+   case 0x400:  // XMM
+      OutFile.Put("xmmword ptr ");  break;
+   case 0x500:  // YMM
+      OutFile.Put("ymmword ptr ");  break;
+   }
+}
+
+void CDisassembler::WriteOperandTypeYASM(uint32 type) {
+   // Write type override before operand, e.g. "dword", YASM syntax
+   if (type & 0xF00) {
+      type &= 0xF00;                             // Ignore element type for vectors
+   }
+   else {
+      type &= 0xFF;                              // Use operand type only
+   }
+   uint32 Dest = s.OpcodeDef->Destination & 0xFF;// Destination operand
+   if (Dest >= 0xB && Dest < 0x10) {
+      // This is a pointer
+      if (Dest < 0x0D) {
+         OutFile.Put("near ");                   // Near indirect jump/call
+      }
+      else {
+         // Far pointer
+         if ((WordSize == 16 && type == 3) || (WordSize == 32 && type == 7)) {
+            OutFile.Put("far ");
+         }
+         else {
+            // Size currently not supported by YASM
+            switch (type) {
+            case 3: OutFile.Put("far ");
+               s.OpComment = "16+16 bit. Needs 66H prefix";
+               break;
+            case 7: OutFile.Put("far ");  
+               s.OpComment = "32+16 bit. Possibly forgot REX.W prefix";
+               break;
+            case 5: OutFile.Put("far ");  
+               s.OpComment = "64+16 bit. Needs REX.W prefix";
+               break;
+            }
+         }
+      }
+      return;
+   }
+   switch (type) {
+   case 1:  // 8 bits
+      OutFile.Put("byte ");  break;
+   case 2:  // 16 bits
+      OutFile.Put("word ");  break;
+   case 3:  // 32 bits
+      OutFile.Put("dword ");  break;
+   case 4:  // 64 bits
+      OutFile.Put("qword ");  break;
+   case 5:  // 80 bits
+      OutFile.Put("tbyte ");  break;
+   case 7:  // 48 bits
+      OutFile.Put("fword ");  break;
+   case 0x43: // 32 bits float (x87)
+   case 0x4B: // 32 bits float (SSE2)
+      OutFile.Put("dword ");  break;
+   case 0x44: // 64 bits float
+   case 0x4C: // 64 bits float (SSE2)
+      OutFile.Put("qword ");  break;
+   case 0x45: // 80 bits float
+      OutFile.Put("tbyte ");  break;
+   case 0x84: case 0x85: // far call
+      OutFile.Put("far ");  break;
+   case 0x300:  // MMX
+      OutFile.Put("qword ");  break;
+   case 0x400:  // XMM
+      OutFile.Put("oword ");  break;
+   case 0x500:  // YMM
+      OutFile.Put("yword ");  break;
+   default:; // Anything else: write nothing
+   }
+}
+
+void CDisassembler::WriteOperandTypeGASM(uint32 type) {
+   // Write type override before operand, e.g. "dword ptr", GAS syntax
+   if (type & 0xF00) {
+      type &= 0xF00;                             // Ignore element type for vectors
+   }
+   else {
+      type &= 0xFF;                              // Use operand type only
+   }
+
+   switch (type & 0xFF) {
+   case 1:  // 8 bits
+      OutFile.Put("byte ptr ");  break;
+   case 2:  // 16 bits
+      OutFile.Put("word ptr ");  break;
+   case 3:  // 32 bits
+      OutFile.Put("dword ptr ");  break;
+   case 4:  // 64 bits
+      OutFile.Put("qword ptr ");  break;
+   case 5:  // 80 bits
+      if ((s.OpcodeDef->Destination & 0xFF) == 0xD) {
+         // 64+16 bit far pointer. Not supported by Gas
+         OutFile.Put("fword ptr ");
+         s.OpComment = "64+16 bit. Needs REX.W prefix";
+      }
+      else { 
+         OutFile.Put("tbyte ptr ");}
+      break;
+   case 6: case 0x40: case 0x48: case 0:
+      // Other size. Write nothing
+      break;
+   case 7:    // 48 bits
+      OutFile.Put("fword ptr ");  
+      if ((s.OpcodeDef->Destination & 0xFF) == 0xD && WordSize == 64) {
+         // All assemblers I have tried forget the REX.W prefix here. Make a notice
+         s.OpComment = "32+16 bit. Possibly forgot REX.W prefix"; 
+      }      
+      break;
+   case 0x43: // 32 bits float (x87)
+   case 0x4B: // 32 bits float (SSE2)
+      OutFile.Put("dword ptr ");  break;
+   case 0x44: // 64 bits float
+   case 0x4C: // 64 bits float (SSE2)
+      OutFile.Put("qword ptr ");  break;
+   case 0x45: // 80 bits float
+      OutFile.Put("tbyte ptr ");  break;
+   case 0x84: case 0x85: // far call
+      OutFile.Put("far ptr ");  break;
+   case 0x300:  // MMX
+      OutFile.Put("qword ptr ");  break;
+   case 0x400:  // XMM
+      OutFile.Put("xmmword ptr ");  break;
+   case 0x500:  // YMM
+      OutFile.Put("ymmword ptr ");  break;
+   }
+}
+
+
+void CDisassembler::WriteDREXOperand(uint32 Type) {
+   // Write register operand from dest bits of DREX byte (AMD only)
+   uint32 Num = s.DVREX >> 4;                    // Register number
+   // Write register name
+   WriteRegisterName(Num, Type);
+}
+
+void CDisassembler::WriteVEXOperand(uint32 Type, int i) {
+   // Write register operand from VEX.vvvv bits or immediate bits
+   uint32 Num;                                   // Register number
+   switch (i) {
+   case 0:  // Use VEX.vvvv bits
+      Num = s.DVREX & 0x0F;  break;
+   case 1:  // Use immediate bits 4-7
+      Num = Get<uint8>(s.ImmediateField) >> 4;  break;
+   case 2:  // Use immediate bits 0-3 (Unused. For possible future use)
+      Num = Get<uint8>(s.ImmediateField) & 0x0F;  break;
+   }
+   // Write register name
+   WriteRegisterName(Num, Type);
+}
+
+
 void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
    // Write name of register to OutFile
-   Type &= 0xFF;                                         // Remove irrelevant bits
+   if (Type & 0xF00) {
+      // vector register
+      Type &= 0xF00;
+   }
+   else {
+      // Other register
+      Type &= 0xFF;                              // Remove irrelevant bits
+   }
 
    // Check fixed registers (do not depend on Value)
    switch (Type) {
@@ -336,12 +567,16 @@ void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
       Type = 2;  Value = 0;
       break;
 
-   case 0xA8:  // ax or eax
-      Type = 8;  Value = 0;
+   case 0xA3:  // eax
+      Type = 3;  Value = 0;
       break;
 
-   case 0xA9:  // ax, eax or rax
-      Type = 9;  Value = 0;
+   case 0xA4:  // rax
+      Type = 4;  Value = 0;
+      break;
+
+   case 0xAE:  // xmm0
+      Type = 0x400;  Value = 0;
       break;
 
    case 0xAF:  // st(0)
@@ -351,35 +586,11 @@ void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
    case 0xB2:  // dx
       Type = 2;  Value = 2;
       break;
-   }
 
-   // Check if register size depends on mode or prefixes
-   switch (Type) {
-   case 8:  // 16 or 32 bit general purpose register
-      Type = (s.OperandSize == 16) ? 2 : 3;
-      break;
-
-   case 9:  // 16, 32 or 64 bit general purpose register
-      if (s.OperandSize == 16) Type = 2;
-      else if (s.OperandSize == 64) Type = 4;
-      else Type = 3;
-      break;
-
-   case 0xA:  // 16, 32 or 64 bit general purpose register. Default size = WordSize. REX.W ignored
-      if (WordSize == 16) Type = (s.Prefixes[4] == 0x66) ? 3 : 2;
-      else if (WordSize == 64) (s.Prefixes[4] == 0x66) ? 2 : 4;
-      else (s.Prefixes[4] == 0x66) ? 2 : 3;
-      break;
-
-   case 0x30: case 0x31: case 0x32: case 0x33: case 0x34:
-      // mmx or xmm operand, depending on 66 prefix
-      if (s.Prefixes[5] == 0x66) Type &= ~0x10;  // xmm register
-      else Type &= ~0x20;                        // mmx register
+   case 0xB3:  // cl
+      Type = 1;  Value = 1;
       break;
    }
-
-   // Remove bits that define precision on mmx, xmm and st registers
-   if (Type >= 0x10 && Type < 0x80) Type &= ~7;
 
    // Get value within limits
    Value &= 0x0F;
@@ -402,22 +613,34 @@ void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
       OutFile.Put(RegisterNames64[Value]);
       break;
 
-   case 0x10:  // mmx register (packed integer)
-   case 0x58:  // mmx register (3DNow float)
+   case 0x300:  // mmx register
       OutFile.Put("mm");
       OutFile.PutDecimal(Value & 7);
       break;
 
-   case 0x20: case 0x28: // xmm register (packed integer or float)
-   case 0x48: case 0x68: // xmm register (scalar float)
+   case 0x400:  // xmm register (packed integer or float)
+   case 0x48: case 0x4B: case 0x4C: // xmm register (scalar float)
       OutFile.Put("xmm");
       OutFile.PutDecimal(Value);
       break;
 
+   case 0x500:  // ymm register (packed)
+      OutFile.Put("ymm");
+      OutFile.PutDecimal(Value);
+      break;
+
    case 0x40:  // st register
-      OutFile.Put("st(");
-      OutFile.PutDecimal(Value & 7);
-      OutFile.Put(")");
+      if (Syntax == SUBTYPE_YASM) {
+         // NASM, YASM and GAS-AT&T use st0
+         OutFile.Put("st");
+         OutFile.PutDecimal(Value & 7);
+      }
+      else {
+         // MASM and GAS-Intel use st(0), 
+         OutFile.Put("st(");
+         OutFile.PutDecimal(Value & 7);
+         OutFile.Put(")");
+      }
       break;
 
    case 0x91:  // Segment register
@@ -438,7 +661,7 @@ void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
       OutFile.PutDecimal(Value);
       break;
 
-   case 0xB2:  // 1
+   case 0xB1:  // 1
       OutFile.Put("1");
       break;
 
@@ -452,49 +675,79 @@ void CDisassembler::WriteRegisterName(uint32 Value, uint32 Type) {
 
 void CDisassembler::WriteImmediateOperand(uint32 Type) {
    // Write immediate operand or direct jump/call address
-   int    Components = 0;                        // Number of components in immediate operand       
-   int64  Value = 0;                             // Value of immediate operand
-   uint32 Value2;                                // Value of second immediate operand
+   int    WriteFormat;                 // 0: unsigned, 1: signed, 2: hexadecimal
+   int    Components = 0;              // Number of components in immediate operand       
+   uint32 OSize;                       // Operand size
+   uint32 FieldPointer;                // Pointer to field containing value
+   uint32 FieldSize;                   // Size of field containing value
+   int64  Value = 0;                   // Value of immediate operand
 
    // Check if far
    if ((Type & 0xFE) == 0x84) {
       // Write far ptr
-      OutFile.Put("far ptr ");
+      WriteOperandType(Type);
    }
 
    // Check if type override needed
    if ((s.OpcodeDef->AllowedPrefixes & 2) && s.Prefixes[4] == 0x66
    && (Opcodei == 0x68 || Opcodei == 0x6A)) {
       // Push immediate with non-default operand size needs type override
-      OutFile.Put((s.OperandSize == 16) ? "word ptr " : "dword ptr ");
+      WriteOperandType(s.OperandSize == 16 ? 2 : 3);
+   }
+
+   FieldPointer = s.ImmediateField;
+   FieldSize    = s.ImmediateFieldSize;
+
+   if (Syntax == SUBTYPE_YASM && (Type & 0x0F) == 4 && FieldSize == 8) {
+      // Write type override to make sure we get 8 bytes address in case there is a relocation here
+      WriteOperandType(4);
+   }
+
+   if (Type & 0x200000) {
+      if (FieldSize > 1) {
+         // Uses second part of field. Single byte only
+         FieldPointer += FieldSize-1;
+         FieldSize = 1;
+      }
+      else {
+         // Uses half a byte
+         FieldSize = 0;
+      }
    }
 
    // Get inline value
-   switch (s.ImmediateFieldSize) {
-      case 1:  // 8 bits
-         Value = Get<int8>(s.ImmediateField);  break;
+   switch (FieldSize) {
+   case 0:  // 4 bits
+      Value = Get<uint8>(FieldPointer) & 0x0F;
+      break;
 
-      case 2:  // 16 bits
-         Value = Get<int16>(s.ImmediateField);  break;
+   case 1:  // 8 bits
+      Value = Get<int8>(FieldPointer);  
+      break;
 
-      case 6:  // 48 bits
-         Value  = Get<int32>(s.ImmediateField);  
-         Value += (uint64)Get<uint16>(s.ImmediateField + 4) << 32;  
-         break;
+   case 2:  // 16 bits
+      Value = Get<int16>(FieldPointer);  break;
 
-      case 4:  // 32 bits
-         Value = Get<int32>(s.ImmediateField);  break;
+   case 6:  // 48 bits
+      Value  = Get<int32>(FieldPointer);  
+      Value += (uint64)Get<uint16>(FieldPointer + 4) << 32;  
+      break;
 
-      case 8:  // 64 bits
-         Value = Get<int64>(s.ImmediateField);  break;
+   case 4:  // 32 bits
+      Value = Get<int32>(FieldPointer);  break;
 
-      case 3:  // 16 + 8 bits ("enter" instruction)
-         Value  = Get<int16>(s.ImmediateField);
-         Value2 = Get<uint8>(s.ImmediateField + 2);
-         break;
+   case 8:  // 64 bits
+      Value = Get<int64>(FieldPointer);  break;
 
-      default:  // Other sizes should not occur
-         err.submit(3000);  Value = -1;
+   case 3:  // 16+8 bits ("Enter" instruction)
+      if ((Type & 0xFF) == 0x12) {
+         // First 16 bits
+         FieldSize = 2; Value = Get<int16>(FieldPointer);  break;
+      }
+      // else continue in default case to get error message
+
+   default:  // Other sizes should not occur
+      err.submit(3000);  Value = -1;
    }
 
    // Check if relocation
@@ -512,13 +765,35 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
       Components++;
    }
    // Check if AAM or AAD
-   if (Value == 10 && (Opcodei == 0xD4 || Opcodei == 0xD5)) {
+   if (Value == 10 && (Opcodei & 0xFE) == 0xD4) {
       // Don't write operand for AAM or AAD if = 10
       return;
    }
 
-   // Write as decimal or hexadecimal:
-   int WriteAsHex = (Type & 0x4000) || (Type & 0xF0) == 0x80 || (s.ImmediateFieldSize == 8 && Value != (int32)Value);
+   // Write as unsigned, signed or hexadecimal:
+   if ((Type & 0xF0) == 0x30 || (Type & 0xF0) == 0x80) {
+      // Hexadecimal
+      WriteFormat = 2;
+   }
+   else if (s.ImmediateFieldSize == 8) {
+      // 64 bit constant
+      if (Value == (int32)Value) {
+         // Signed
+         WriteFormat = 1;
+      }
+      else {
+         // Hexadecimal
+         WriteFormat = 2;
+      }
+   }
+   else if ((Type & 0xF0) == 0x20) {
+      // Signed
+      WriteFormat = 1;
+   }
+   else {
+      // Unsigned
+      WriteFormat = 0;
+   }
 
    if ((Type & 0xFC) == 0x80 && !s.ImmediateRelocation) {
       // Self-relative jump or call without relocation. Adjust immediate value
@@ -536,15 +811,40 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
       Type |= 0x4000;                            // Write target as hexadecimal
    }
 
+   // Operand size
+   if ((s.Operands[0] & 0xFFF) <= 0xA || (s.Operands[0] & 0xF0) == 0xA0) {
+      // Destination is general purpose register
+      OSize = s.OperandSize;
+   }
+   else {
+      // Constant probably unrelated to destination size
+      OSize = 8;
+   }
+   // Check if destination is 8 bit operand
+   //if ((s.Operands[0] & 0xFF) == 1 || (s.Operands[0] & 0xFF) == 0xA1) OSize = 8;
+
+   // Check if sign extended
+   if (OSize > s.ImmediateFieldSize * 8) {
+      if (WriteFormat == 2 && Value >= 0) {
+         // Hexadecimal sign extended, not negative:
+         // Does not need full length
+         OSize = s.ImmediateFieldSize * 8;
+      }
+      else if (WriteFormat == 0) {
+         // Unsigned and sign extended, change to signed
+         WriteFormat = 1;
+      }
+   }
+
    if (Components) {
       // There was a relocated name
       if (Value) {
          // Addend to relocation is not zero
-         if (Value > 0 || WriteAsHex) {
-            OutFile.Put(" + ");               // Put "+" between name and addend
+         if (Value > 0 || WriteFormat != 1) {
+            OutFile.Put("+");                  // Put "+" between name and addend
          }
          else {
-            OutFile.Put(" - ");               // Put "-" between name and addend
+            OutFile.Put("-");                  // Put "-" between name and addend
             Value = - Value;                  // Change sign to avoid another "-"
          }
       }
@@ -554,11 +854,7 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
       }
    }
    // Write value
-   if (WriteAsHex) {
-      // Write as hexadecimal
-      uint8 OSize = s.OperandSize;
-      // Check if destination is 8 bit operand
-      if ((s.Operands[0] & 0xFF) == 1 || (s.Operands[0] & 0xFF) == 0xA1) OSize = 8;
+   if (WriteFormat == 2) {
       // Write with hexadecimal number appropriate size
       switch (OSize) {
          case 8:  // 8 bits
@@ -569,7 +865,7 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
                OutFile.PutHex((uint16)(Value >> 16), 1);
                OutFile.Put(':');
             }
-            OutFile.PutHex((uint16)Value, 1);  break;
+            OutFile.PutHex((uint16)Value, 2);  break;
          case 32:  // 32 bits
          default:  // Should not occur
             if ((Type & 0xFC) == 0x84) {
@@ -577,26 +873,17 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
                OutFile.PutHex((uint16)(Value >> 32), 1);
                OutFile.Put(':');
             }
-            OutFile.PutHex((uint32)Value, 1);  break;
+            OutFile.PutHex((uint32)Value, 2);  break;
          case 64:  // 64 bits
-            OutFile.PutHex((uint64)Value, 1);  break;
+            OutFile.PutHex((uint64)Value, 2);  break;
       }
    }
    else {
-      // Write as signed decimal
-      OutFile.PutDecimal((int32)Value, 1);    // Write value. Signed decimal
-   }
-   // Check for second immediate operand
-   if (s.ImmediateFieldSize == 3) {
-      OutFile.Put(", ");
-      if (WriteAsHex) {
-         OutFile.PutHex((uint8)Value2, 1);
-      }
-      else {
-         OutFile.PutDecimal((uint32)Value2, 0);
-      }
+      // Write as signed or unsigned decimal
+      OutFile.PutDecimal((int32)Value, WriteFormat);  // Write value. Signed or usigned decimal
    }
 }
+
 
 void CDisassembler::WriteOtherOperand(uint32 Type) {
    // Write other type of operand
@@ -610,27 +897,29 @@ void CDisassembler::WriteOtherOperand(uint32 Type) {
    case 0xA2:  // AX
       OpRegisterNames = RegisterNames16;
       break;
-   case 0xA8:  // AX or EAX
-      OpRegisterNames = (s.OperandSize == 16) ? RegisterNames16 : RegisterNames32;
+   case 0xA3:  // EAX
+      OpRegisterNames = RegisterNames32;
       break;
-   case 0xA9:  // AX, EAX or RAX
-      OpRegisterNames = (s.OperandSize == 16) ? RegisterNames16 : RegisterNames32;
-      if (s.OperandSize == 64) OpRegisterNames = RegisterNames64;
+   case 0xA4:  // RAX
+      OpRegisterNames = RegisterNames64;
       break;
-   case 0xB2:  // DX
-      OpRegisterNames = RegisterNames16;
-      RegI = 2;
-      break;
-   case 0x800: // CL
-      OpRegisterNames = RegisterNames8;
-      RegI = 1;
-      break;
+   case 0xAE:  // xmm0
+      OutFile.Put("xmm0");
+      return;
    case 0xAF:  // ST(0)
       OutFile.Put("st(0)");
       return;
    case 0xB1:  // 1
       OutFile.Put("1");
       return;
+   case 0xB2:  // DX
+      OpRegisterNames = RegisterNames16;
+      RegI = 2;
+      break;
+   case 0xB3: // CL
+      OpRegisterNames = RegisterNames8;
+      RegI = 1;
+      break;
    default:
       OutFile.Put("unknown operand");
       err.submit(3000);
@@ -658,20 +947,46 @@ void CDisassembler::WriteErrorsAndWarnings() {
       }
    }
 
-   if (s.Warnings) {
-      // There are warnings
-      // Loop through all bits in s.Warnings
+   if (s.Warnings1) {
+      // There are warnings 1
+      // Loop through all bits in s.Warnings1
       for (n = 1; n; n <<= 1) {
-         if (s.Warnings & n) {
+         if (s.Warnings1 & n) {
             if (OutFile.GetColumn()) OutFile.NewLine(); 
             OutFile.Put(CommentSeparator);       // Write "; "
             OutFile.Put("Note: ");               // Write "Note: "
-            OutFile.Put(Lookup(AsmWarningTexts, n));// Write warning text
+            OutFile.Put(Lookup(AsmWarningTexts1, n));// Write warning text
             OutFile.NewLine(); 
          }
       }
    }
-   else if (s.Prefixes[0] && (s.OpcodeDef->AllowedPrefixes & 8)) {
+   if (s.Warnings2) {
+      // There are warnings 2
+      // Loop through all bits in s.Warnings2
+      for (n = 1; n; n <<= 1) {
+         if (s.Warnings2 & n) {
+            if (OutFile.GetColumn()) OutFile.NewLine(); 
+            OutFile.Put(CommentSeparator);            // Write "; "
+            OutFile.Put("Warning: ");                 // Write "Warning: "
+            OutFile.Put(Lookup(AsmWarningTexts2, n)); // Write warning text
+            OutFile.NewLine(); 
+         }
+      }
+      if (s.Warnings2 & 1) {
+         // Write spurious label
+         uint32 sym1 = Symbols.FindByAddress(Section, LabelEnd);
+         if (sym1) {
+            const char * name = Symbols.GetName(sym1);
+            OutFile.Put(CommentSeparator);
+            OutFile.Put(name);
+            OutFile.Put("; Misplaced symbol at address ");
+            OutFile.PutHex(Symbols[sym1].Offset);
+            OutFile.NewLine();
+         }
+      }
+   }
+
+   if (!s.Warnings1 && s.Prefixes[0] && (s.OpcodeDef->AllowedPrefixes & 8)) {
       // Branch hint prefix. Write comment
       OutFile.Put(CommentSeparator);             // Write "; "
       switch (s.Prefixes[0]) {
@@ -732,14 +1047,26 @@ void CDisassembler::WriteSectionName(int32 SegIndex) {
       }
       break;
    }
-   // Write name
-   OutFile.Put(Name);
+   if (Syntax == SUBTYPE_YASM && Name[0] == '_') {
+      // Change leading underscore to dot
+      OutFile.Put('.');
+      OutFile.Put(Name+1); // Write rest of name
+   }
+   else {
+      // Write name
+      OutFile.Put(Name);
+   }
 }
 
 void CDisassembler::WriteDataItems() {
    // Write data items to output file
 
-   int LineFinished;                             // 1 = new line needed, 2 = DB needed, 4 = comment has been written
+   int LineState;  // 0: Start of new line, write label
+                   // 1: Label written if any, write data directive
+                   // 2: Data directive written, write data
+                   // 3: First data item written, write comma and more data
+                   // 4: Last data item written, write comment
+                   // 5: Comment written if any, start new line
    uint32 Pos = IBegin;                          // Current position
    uint32 LinePos = IBegin;                      // Position for beginning of output line
    uint32 BytesPerLine;                          // Number of bytes to write per line
@@ -747,13 +1074,16 @@ void CDisassembler::WriteDataItems() {
    uint32 DataEnd;                               // End of data
    uint32 ElementSize, OldElementSize;           // Size of each data element
    uint32 RelOffset;                             // Offset of relocation
+   uint32 irel, Oldirel;                         // Relocation index
    int64  Value;                                 // Inline value or addend
+   const char * Symname;                         // Symbol name
+   int    SeparateLine;                          // Label is on separate line
 
    SARelocation Rel;                             // Dummy relocation record
 
    // Check if size is valid
    if (DataSize == 0) DataSize = 1;
-   if (DataSize > 16) DataSize = 16;  
+   if (DataSize > 32) DataSize = 32;  
 
    // Expected end position
    if (CodeMode & 3) {
@@ -774,7 +1104,7 @@ void CDisassembler::WriteDataItems() {
    ElementSize = DataSize;
 
    // Check if packed type
-   if (DataType & 0x70) {
+   if (DataType & 0xF00) {
       // This is a packed vector type. Get element size
       ElementSize = GetDataElementSize(DataType);
    }
@@ -787,6 +1117,12 @@ void CDisassembler::WriteDataItems() {
 
    // Set minimum element size to 1
    if (ElementSize < 1)  ElementSize = 1;
+               
+   if (Pos + ElementSize > DataEnd) {
+      // Make sure we end at DataEnd
+      ElementSize = 1;  BytesPerLine = 8;
+      LineEnd = DataEnd;
+   }
 
    // Set number of bytes per line
    BytesPerLine = (DataSize == 10) ? 10 : 8;
@@ -795,16 +1131,15 @@ void CDisassembler::WriteDataItems() {
       // Begin new line for each data item (except in code segment)
       OutFile.NewLine();
    }
-   LineFinished = 1;
+   LineState = 0; irel = 0;
 
    // Check if alignment required
-   if (DataSize == 16 && (DataType & 0x20) && (DataType & 0xFF) != 0x28 
-   && !(FlagPrevious & 0x100) && !(IBegin & 0xF)) {
+   if (DataSize >= 16 && (DataType & 0xC00) && (DataType & 0xFF) != 0x51 
+   && (FlagPrevious & 0x100) < (DataSize << 4) && !(IBegin & (DataSize-1))) {
       // Write align directive
-      OutFile.Put("ALIGN");  OutFile.Tabulate(AsmTab1);  OutFile.Put("16");       
-      OutFile.NewLine();
+      WriteAlign(DataSize);
       // Remember that data is aligned
-      FlagPrevious |= 0x100;
+      FlagPrevious |= (DataSize << 4);
    }
 
    // Get symbol name for label
@@ -818,65 +1153,28 @@ void CDisassembler::WriteDataItems() {
 
       if (sym && Symbols[sym].Scope && !(Symbols[sym].Scope & 0x100) && !(Symbols[sym].Type & 0x80000000)) {
 
+         // Prepare for writing symbol label
+         Symname = Symbols.GetName(sym);         // Symbol name
+         // Check if label needs a separate line
+         SeparateLine = (ElementSize != DataSize 
+            || Symbols[sym].Size != DataSize 
+            || strlen(Symname) > AsmTab1
+            || sym < sym2 
+            // || (Sections[Section].Type & 0xFF) == 3
+            || (Symbols[sym].Type+1 & 0xFE) == 0x0C);
+
          // Write symbol label
-         OutFile.Put(Symbols.GetName(sym));
-         // At least one space
-         OutFile.Put(" ");
-         // Tabulate
-         OutFile.Tabulate(AsmTab1);
-         // Get size
-         uint32 Size1 = Symbols[sym].Size;
-         if (Size1 == 0) Size1 = DataSize;
-
-         if (ElementSize != DataSize || Size1 != DataSize || OutFile.GetColumn() > AsmTab1 
-         || sym < sym2 || (Sections[Section].Type & 0xFF) == 3
-         || (Symbols[sym].Type+1 & 0xFE) == 0x0C) {
-
-            // Write label and type on seperate line
-            OutFile.Put("label ");
-
-            // Write type
-            switch(Size1) {
-            case 1: default:
-               OutFile.Put("byte");  break;
-            case 2:
-               OutFile.Put("word");  break;
-            case 4:
-               OutFile.Put("dword");  break;
-            case 6:
-               OutFile.Put("fword");  break;
-            case 8:
-               OutFile.Put("qword");  break;
-            case 10:
-               OutFile.Put("tbyte");  break;
-            case 16:
-               OutFile.Put("xmmword");  break;
-            }
-            // Check if jump table or call table
-            if ((Symbols[sym].Type+1 & 0xFE) == 0x0C) {
-               OutFile.Tabulate(AsmTab3);
-               OutFile.Put(CommentSeparator);
-               if (Symbols[sym].DLLName) {
-                  // DLL import
-                  OutFile.Put("import from ");
-                  OutFile.Put(Symbols.GetDLLName(sym));
-               }
-               else if (Symbols[sym].Type & 1) {
-                  OutFile.Put("switch/case jump table");
-               }
-               else {
-                  OutFile.Put("virtual table or function pointer");
-               }
-            }
-
-            // New line
-            OutFile.NewLine();
-            // Avoid comment
-            LineFinished = 6;
+         switch (Syntax) {
+         case SUBTYPE_MASM:
+            WriteDataLabelMASM(Symname, sym, SeparateLine);  break;
+         case SUBTYPE_YASM:
+            WriteDataLabelYASM(Symname, sym, SeparateLine);  break;
+         case SUBTYPE_GASM:
+            WriteDataLabelGASM(Symname, sym, SeparateLine);  break;
          }
-         else {
-            // Write DB directive but no linefeed
-            LineFinished = 2;
+         LineState = 1;                          // Label written
+         if (SeparateLine) {
+            LineState = 0;
          }
       }
    }
@@ -886,38 +1184,20 @@ void CDisassembler::WriteDataItems() {
       // Data repeat count
       uint32 DataCount = (DataEnd - Pos) / ElementSize;
       if (DataCount) {
-         // Align
          OutFile.Tabulate(AsmTab1);
-
-         // Write data definition directive for appropriate size
-         switch (ElementSize) {
-         case 1:
-            OutFile.Put("db ");  break;
-         case 2:
-            OutFile.Put("dw ");  break;
-         case 4:
-            OutFile.Put("dd ");  break;
-         case 6:
-            OutFile.Put("df ");  break;
-         case 8:
-            OutFile.Put("dq ");  break;
-         case 10:
-            OutFile.Put("dt ");  break;
-         }
-         // Align
-         OutFile.Tabulate(AsmTab2);
-         if (DataCount > 1) {
-            // Write duplication operator
-            OutFile.PutDecimal(DataCount);
-            OutFile.Put(" dup (?)");
-         }
-         else {
-            // DataCount == 1
-            OutFile.Put("?");
+         // Write data directives
+         switch (Syntax) {
+         case SUBTYPE_MASM:
+            WriteUninitDataItemsMASM(ElementSize, DataCount);  break;
+         case SUBTYPE_YASM:
+            WriteUninitDataItemsYASM(ElementSize, DataCount);  break;
+         case SUBTYPE_GASM:
+            WriteUninitDataItemsGASM(ElementSize, DataCount);  break;
          }
          // Write comment
          WriteDataComment(ElementSize, Pos, Pos, 0);
          OutFile.NewLine();
+         LineState = 0;
       }
       // Update data position
       Pos += DataCount * ElementSize;
@@ -927,23 +1207,24 @@ void CDisassembler::WriteDataItems() {
          DataCount = DataEnd - Pos;
          ElementSize = 1;
          OutFile.Tabulate(AsmTab1);
-         OutFile.Put("db ");
-         OutFile.Tabulate(AsmTab2);
-         if (DataCount > 1) {
-            // Write duplication operator
-            OutFile.PutDecimal(DataCount);
-            OutFile.Put(" dup (?)");
+         switch (Syntax) {
+         case SUBTYPE_MASM:
+            WriteUninitDataItemsMASM(ElementSize, DataCount);  break;
+         case SUBTYPE_YASM:
+            WriteUninitDataItemsYASM(ElementSize, DataCount);  break;
+         case SUBTYPE_GASM:
+            WriteUninitDataItemsGASM(ElementSize, DataCount);  break;
          }
-         else {
-            // DataCount == 1
-            OutFile.Put("?");
-         }
+         // Write comment
+         WriteDataComment(ElementSize, Pos, Pos, 0);
          OutFile.NewLine();
          Pos = DataEnd;
+         LineState = 0;
       }
    }
    else {
       // Not a BSS section
+      // Label has been written, write data
 
       // Loop for one or more elements
       LinePos = Pos;
@@ -952,8 +1233,9 @@ void CDisassembler::WriteDataItems() {
          // Find end of line position
          LineEnd = LinePos + BytesPerLine;
 
-         // Remember element size
+         // Remember element size and relocation
          OldElementSize = ElementSize;
+         Oldirel = irel;
 
          // Check if relocation
          Rel.Section = Section;
@@ -974,14 +1256,14 @@ void CDisassembler::WriteDataItems() {
                if (ElementSize < 1) ElementSize = WordSize / 8;
                if (ElementSize < 1) ElementSize = 4;
                LineEnd = Pos + ElementSize;
-               LineFinished = 1;
+               if (LineState > 2) LineState = 4; // Make sure we begin at new line
             }
             else if (RelOffset < Pos + ElementSize) {
                // Relocation source begins before end of element with current ElementSize
                // Change ElementSize to make sure a new element begins at relocation source
                ElementSize = 1;  BytesPerLine = 8;
                LineEnd = RelOffset;
-               LineFinished = 1;
+               if (LineState > 2) LineState = 4; // Make sure we begin at new line
                irel = 0;
             }
             else {
@@ -996,115 +1278,63 @@ void CDisassembler::WriteDataItems() {
                   s.Errors |= 0x2000;
                   WriteErrorsAndWarnings();
                   LineEnd = Relocations[irel+1].Offset;
-                  LineFinished = 1;
+                  if (LineState > 2) LineState = 4; // Make sure we begin at new line
                }
                // Drop alignment
-               FlagPrevious &= ~0x100;
+               FlagPrevious &= ~0xF00;
          }
          if (irel == 0) {
             // No relocation here
-            if (ElementSize == 6 || ElementSize >= 10) {
-               // Avoid odd element size
-               ElementSize = 1;  BytesPerLine = 8;
-               LineEnd = DataEnd;
-               LineFinished = 1;
-               FlagPrevious &= ~0x100;                 // Drop alignment
-            }
             // Check if DataEnd would be exceeded
             if (Pos + ElementSize > DataEnd) {
                // Make sure we end at DataEnd unless there is a relocation source here
                ElementSize = 1;  BytesPerLine = 8;
                LineEnd = DataEnd;
-               LineFinished = 1;
-               FlagPrevious &= ~0x100;                 // Drop alignment
+               if (LineState > 2) LineState = 4; // Make sure we begin at new line
+               FlagPrevious &= ~0xF00;           // Drop alignment
             }
          }
-
          // Check if new line needed
-         if (LineFinished & 3) {
-
-            // Begin new line
-            if ((LineFinished & 1) && OutFile.GetColumn()) {
-               if (Pos == LinePos) {
-                  // Name has been written. Need to write 'LABEL' before new line
-                  OutFile.Put("label ");
-                  switch(ElementSize) {
-                  case 1: default:
-                     OutFile.Put("byte");  break;
-                  case 2:
-                     OutFile.Put("word");  break;
-                  case 4:
-                     OutFile.Put("dword");  break;
-                  case 6:
-                     OutFile.Put("fword");  break;
-                  case 8:
-                     OutFile.Put("qword");  break;
-                  case 10:
-                     OutFile.Put("tbyte");  break;
-                  case 16:
-                     OutFile.Put("xmmword");  break;
-                  }
-               }
-               // Write comment if data segment
-               if (!(CodeMode & 3) && Pos > LinePos) {
-                  WriteDataComment(OldElementSize, LinePos, Pos, irel);
-               }
-               OutFile.NewLine(); 
-            }         
-            LineFinished = 0;
+         if (LineState == 4) {
+            // Finish this line
+            if (!(CodeMode & 3)) {
+               WriteDataComment(OldElementSize, LinePos, Pos, Oldirel);
+            }
+            // Start new line
+            OutFile.NewLine();
+            LineState = 0;
             LinePos = Pos;
-            if (LineEnd <= LinePos) {
-               LineEnd = LinePos + BytesPerLine;
-            }
-
-            // Tabulate
-            OutFile.Tabulate(AsmTab1);
-
-            // Write data definition directive for appropriate size
-            switch (ElementSize) {
-            case 1:
-               OutFile.Put("db ");  break;
-            case 2:
-               OutFile.Put("dw ");  break;
-            case 4:
-               OutFile.Put("dd ");  break;
-            case 6:
-               OutFile.Put("df ");  break;
-            case 8:
-               OutFile.Put("dq ");  break;
-            case 10:
-               OutFile.Put("dt ");  break;
-            case 16:
-               OutFile.Put("xmmword ");  break;
-            }
+            continue;
          }
-         else {
+
+         // Tabulate
+         OutFile.Tabulate(AsmTab1);
+
+         if (LineState < 2) {
+            // Write data definition directive for appropriate size
+            switch (Syntax) {
+            case SUBTYPE_MASM:
+               WriteDataDirectiveMASM(ElementSize);  break;
+            case SUBTYPE_YASM:
+               WriteDataDirectiveYASM(ElementSize);  break;
+            case SUBTYPE_GASM:
+               WriteDataDirectiveGASM(ElementSize);  break;
+            }
+            LineState = 2;
+         }
+         else if (LineState == 3) {
             // Not the first element, write comma
             OutFile.Put(", ");
          }
-
          // Get inline value
          switch (ElementSize) {
-         case 1:
-            Value = Get<int8>(Pos);
-            break;
-         case 2:
-            Value = Get<int16>(Pos);
-            break;
-         case 4:
-            Value = Get<int32>(Pos);
-            break;
-         case 6:
-            Value = Get<uint32>(Pos) + ((uint64)Get<uint16>(Pos+4) << 32);
-            break;
-         case 8:
-            Value = Get<int64>(Pos);
-            break;
-         case 10: 
-            Value = Get<int64>(Pos); //?
-            break;
+         case 1:  Value = Get<int8>(Pos);  break;
+         case 2:  Value = Get<int16>(Pos);  break;
+         case 4:  Value = Get<int32>(Pos);  break;
+         case 6:  Value = Get<uint32>(Pos) + ((uint64)Get<uint16>(Pos+4) << 32); break;
+         case 8:  Value = Get<int64>(Pos);  break;
+         case 10: Value = Get<int64>(Pos); break;
          }
-
          if (irel) {
             // There is a relocation here. Write the name etc.
             WriteRelocationTarget(irel, 1, Value);
@@ -1134,20 +1364,22 @@ void CDisassembler::WriteDataItems() {
                break;
             }
          }
-
+         LineState = 3;
          // Increment position
          Pos += ElementSize;
 
          // Check if end of line
-         if (Pos >= LineEnd || Pos >= DataEnd) LineFinished = 1;
+         if (Pos >= LineEnd || Pos >= DataEnd) LineState = 4;
 
-         if (LineFinished) {
+         if (LineState == 4) {
             // End of line
             if (!(CodeMode & 3)) {
                // Write comment
                WriteDataComment(ElementSize, LinePos, Pos, irel);
             }
             OutFile.NewLine();
+            LinePos = Pos;
+            LineState = 0;
          }
       }
    }
@@ -1158,12 +1390,296 @@ void CDisassembler::WriteDataItems() {
    if (IEnd > FunctionEnd && FunctionEnd) IEnd = FunctionEnd;
 
    // Reset FlagPrevious if not aligned
-   if (DataSize != 16 || (DataType & 0xFF) == 0x28) FlagPrevious = 0;
+   if (DataSize < 16 || (DataType & 0xFF) == 0x28) FlagPrevious = 0;
 }
+
+
+void CDisassembler::WriteDataLabelMASM(const char * name, uint32 sym, int line) {
+   // Write label before data item, MASM syntax
+   // name = name of data item(s)
+   // sym  = symbol index
+   // line = 1 if label is on separate line, 0 if data follows on same line
+   // Write name
+   OutFile.Put(name);
+   // At least one space
+   OutFile.Put(" ");
+   // Tabulate
+   OutFile.Tabulate(AsmTab1);
+
+   if (line) {
+      // Write label and type on seperate line
+      // Get size
+      uint32 Symsize = Symbols[sym].Size;
+      if (Symsize == 0) Symsize = DataSize;
+      OutFile.Put("label ");
+      // Write type
+      switch(Symsize) {
+      case 1: default:
+         OutFile.Put("byte");  break;
+      case 2:
+         OutFile.Put("word");  break;
+      case 4:
+         OutFile.Put("dword");  break;
+      case 6:
+         OutFile.Put("fword");  break;
+      case 8:
+         OutFile.Put("qword");  break;
+      case 10:
+         OutFile.Put("tbyte");  break;
+      case 16:
+         OutFile.Put("xmmword");  break;
+      case 32:
+         OutFile.Put("ymmword");  break;
+      }
+      // Check if jump table or call table
+      if ((Symbols[sym].Type+1 & 0xFE) == 0x0C) {
+         OutFile.Tabulate(AsmTab3);
+         OutFile.Put(CommentSeparator);
+         if (Symbols[sym].DLLName) {
+            // DLL import
+            OutFile.Put("import from ");
+            OutFile.Put(Symbols.GetDLLName(sym));
+         }
+         else if (Symbols[sym].Type & 1) {
+            OutFile.Put("switch/case jump table");
+         }
+         else {
+            OutFile.Put("virtual table or function pointer");
+         }
+      }
+      // New line
+      OutFile.NewLine();
+   }
+}
+
+void CDisassembler::WriteDataLabelYASM(const char * name, uint32 sym, int line) {
+   // Write label before data item, YASM syntax
+   // name = name of data item(s)
+   // sym  = symbol index
+   // line = 1 if label is on separate line, 0 if data follows on same line
+   // Write name and colon
+   OutFile.Put(name);
+   OutFile.Put(": ");
+   // Tabulate
+   OutFile.Tabulate(AsmTab1);
+
+   if (line) {
+      // Write label on seperate line
+      // Write comment
+      OutFile.Tabulate(AsmTab3);
+      OutFile.Put(CommentSeparator);
+      // Check if jump table or call table
+      if ((Symbols[sym].Type+1 & 0xFE) == 0x0C) {
+         if (Symbols[sym].DLLName) {
+            // DLL import
+            OutFile.Put("import from ");
+            OutFile.Put(Symbols.GetDLLName(sym));
+         }
+         else if (Symbols[sym].Type & 1) {
+            OutFile.Put("switch/case jump table");
+         }
+         else {
+            OutFile.Put("virtual table or function pointer");
+         }
+      }
+      else {
+         // Write size
+         uint32 Symsize = Symbols[sym].Size;
+         if (Symsize == 0) Symsize = DataSize;
+         switch(Symsize) {
+         case 1: default:
+            OutFile.Put("byte");  break;
+         case 2:
+            OutFile.Put("word");  break;
+         case 4:
+            OutFile.Put("dword");  break;
+         case 6:
+            OutFile.Put("fword");  break;
+         case 8:
+            OutFile.Put("qword");  break;
+         case 10:
+            OutFile.Put("tbyte");  break;
+         case 16:
+            OutFile.Put("oword");  break;
+         case 32:
+            OutFile.Put("yword");  break;
+         }
+      }
+      // New line
+      OutFile.NewLine();
+   }
+}
+
+void CDisassembler::WriteDataLabelGASM(const char * name, uint32 sym, int line) {
+   // Write label before data item, GAS syntax
+   // name = name of data item(s)
+   // sym  = symbol index
+   // line = 1 if label is on separate line, 0 if data follows on same line
+   // Write name and colon
+   OutFile.Put(name);
+   OutFile.Put(": ");
+   // Tabulate
+   OutFile.Tabulate(AsmTab1);
+
+   if (line) {
+      // Write label on seperate line
+      // Write comment
+      OutFile.Tabulate(AsmTab3);
+      OutFile.Put(CommentSeparator);
+      // Check if jump table or call table
+      if ((Symbols[sym].Type+1 & 0xFE) == 0x0C) {
+         if (Symbols[sym].DLLName) {
+            // DLL import
+            OutFile.Put("import from ");
+            OutFile.Put(Symbols.GetDLLName(sym));
+         }
+         else if (Symbols[sym].Type & 1) {
+            OutFile.Put("switch/case jump table");
+         }
+         else {
+            OutFile.Put("virtual table or function pointer");
+         }
+      }
+      else {
+         // Write size
+         uint32 Symsize = Symbols[sym].Size;
+         if (Symsize == 0) Symsize = DataSize;
+         switch(Symsize) {
+         case 1: default:
+            OutFile.Put("byte");  break;
+         case 2:
+            OutFile.Put("word");  break;
+         case 4:
+            OutFile.Put("int");  break;
+         case 6:
+            OutFile.Put("farword");  break;
+         case 8:
+            OutFile.Put("qword");  break;
+         case 10:
+            OutFile.Put("tfloat");  break;
+         case 16:
+            OutFile.Put("xmmword");  break;
+         case 32:
+            OutFile.Put("ymmword");  break;
+         }
+      }
+      // New line
+      OutFile.NewLine();
+   }
+}
+
+void CDisassembler::WriteUninitDataItemsMASM(uint32 size, uint32 count) {
+   // Write uninitialized (BSS) data, MASM syntax
+   // size = size of each data element
+   // count = number of data elements on each line
+         
+   // Write data definition directive for appropriate size
+   switch (size) {
+   case 1:
+      OutFile.Put("db ");  break;
+   case 2:
+      OutFile.Put("dw ");  break;
+   case 4:
+      OutFile.Put("dd ");  break;
+   case 6:
+      OutFile.Put("df ");  break;
+   case 8:
+      OutFile.Put("dq ");  break;
+   case 10:
+      OutFile.Put("dt ");  break;
+   }
+   OutFile.Tabulate(AsmTab2);
+   if (count > 1) {
+      // Write duplication operator
+      OutFile.PutDecimal(count);
+      OutFile.Put(" dup (?)");
+   }
+   else {
+      // DataCount == 1
+      OutFile.Put("?");
+   }
+}
+
+void CDisassembler::WriteUninitDataItemsYASM(uint32 size, uint32 count) {
+   // Write uninitialized (BSS) data, YASM syntax
+   // Write data definition directive for appropriate size
+   switch (size) {
+   case 1:
+      OutFile.Put("resb ");  break;
+   case 2:
+      OutFile.Put("resw ");  break;
+   case 4:
+      OutFile.Put("resd ");  break;
+   case 6:
+      OutFile.Put("resw ");  count *= 3;  break;
+   case 8:
+      OutFile.Put("resq ");  break;
+   case 10:
+      OutFile.Put("rest ");  break;
+   }
+   OutFile.Tabulate(AsmTab2);
+   OutFile.PutDecimal(count);
+}
+
+void CDisassembler::WriteUninitDataItemsGASM(uint32 size, uint32 count) {
+   // Write uninitialized (BSS) data, GAS  syntax
+   OutFile.Put(".zero");
+   OutFile.Tabulate(AsmTab2);
+   if (count != 1) {
+      OutFile.PutDecimal(count);  OutFile.Put(" * ");
+   }
+   OutFile.PutDecimal(size);
+}
+
+void CDisassembler::WriteDataDirectiveMASM(uint32 size) {
+   // Write DB, etc., MASM syntax
+   // Write data definition directive for appropriate size
+   switch (size) {
+   case 1:  OutFile.Put("db ");  break;
+   case 2:  OutFile.Put("dw ");  break;
+   case 4:  OutFile.Put("dd ");  break;
+   case 6:  OutFile.Put("df ");  break;
+   case 8:  OutFile.Put("dq ");  break;
+   case 10: OutFile.Put("dt ");  break;
+   case 16: OutFile.Put("xmmword ");  break;
+   case 32: OutFile.Put("ymmword ");  break;
+   default: OutFile.Put("Error ");  break;
+   }
+}
+
+void CDisassembler::WriteDataDirectiveYASM(uint32 size) {
+   // Write DB, etc., YASM syntax
+   // Write data definition directive for appropriate size
+   switch (size) {
+   case 1:  OutFile.Put("db ");  break;
+   case 2:  OutFile.Put("dw ");  break;
+   case 4:  OutFile.Put("dd ");  break;
+   case 6:  OutFile.Put("df ");  break;
+   case 8:  OutFile.Put("dq ");  break;
+   case 10: OutFile.Put("dt ");  break;
+   case 16: OutFile.Put("ddq ");  break;
+   default: OutFile.Put("Error ");  break;
+   }
+}
+
+void CDisassembler::WriteDataDirectiveGASM(uint32 size) {
+   // Write DB, etc., GAS syntax
+   // Write data definition directive for appropriate size
+   switch (size) {
+   case 1:  OutFile.Put(".byte  ");  break;
+   case 2:  OutFile.Put(".short ");  break;
+   case 4:  OutFile.Put(".int   ");  break;
+   case 8:  OutFile.Put(".quad  ");  break;
+   case 10: OutFile.Put(".tfloat ");  break;
+   default: OutFile.Put("Error ");  break;
+   }
+}
+
 
 void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 Pos, uint32 irel) {
    // Write comment after data item
    uint32 pos1;                            // Position of data for comment
+   uint32 RelType = 0;                     // Relocation type
    char TextBuffer[64];                    // Buffer for writing floating point number
 
    OutFile.Tabulate(AsmTab3);              // Tabulate to comment field
@@ -1182,6 +1698,11 @@ void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 
    if ((Sections[Section].Type & 0xFF) == 3 || Pos > Sections[Section].InitSize) {
       // Unitialized data. Write no data
       return;
+   }
+
+   if (irel && irel < Relocations.GetNumEntries() && Relocations[irel].Offset == LinePos) {
+      // Value is relocated, get relocation type
+      RelType = Relocations[irel].Type;
    }
 
    // Space after address
@@ -1203,7 +1724,12 @@ void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 
    case 2:
       // Words. Write as decimal
       for (pos1 = LinePos; pos1 < Pos; pos1 += 2) {
-         OutFile.PutDecimal(Get<int16>(pos1), 1);
+         if (RelType) {
+            OutFile.PutHex(Get<uint16>(pos1), 1); // Write as hexadecimal
+         }
+         else {
+            OutFile.PutDecimal(Get<int16>(pos1), 1);// Write as signed decimal
+         }
          OutFile.Put(' ');
       }
       break;
@@ -1217,7 +1743,7 @@ void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 
             // Make sure the number has a . or E to indicate a floating point number
             if (!strchr(TextBuffer,'.') && !strchr(TextBuffer,'E')) OutFile.Put(".0");
          }
-         else if (((DataType + 1) & 0xFF) == 0x0C) {
+         else if (((DataType + 1) & 0xFF) == 0x0C || RelType) {
             // jump/call address or offset. Write as hexadecimal
             OutFile.PutHex(Get<uint32>(pos1));
          }
@@ -1240,7 +1766,7 @@ void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 
          }
          else {
             // Write as hexadecimal
-            OutFile.PutHex(Get<uint64>(pos1), 1);
+            OutFile.PutHex(Get<uint64>(pos1));
          }
          OutFile.Put(' ');
       }
@@ -1252,15 +1778,12 @@ void CDisassembler::WriteDataComment(uint32 ElementSize, uint32 LinePos, uint32 
       }
       break;
    }
-
-   if (irel && irel < Relocations.GetNumEntries() && Relocations[irel].Offset == LinePos) {
-      // Value is relocated
-      uint32 RelType = Relocations[irel].Type;
-      if (RelType) {
-         OutFile.Put(Lookup(RelocationTypeNames, RelType));
-      }
+   if (RelType) {
+      // Indicate relocation type
+      OutFile.Put(Lookup(RelocationTypeNames, RelType));
    }
 }
+
 
 void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Addend) {
    // Write cross reference, including addend, but not including segment override and []
@@ -1279,6 +1802,7 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
    // BaseReg, IndexReg
 
    uint32 RefFrame;                    // Target segment
+   int32  Addend2 = 0;                 // Difference between '$' and reference point
 
    // Get relocation type
    uint32 RelType = Relocations[irel].Type;
@@ -1300,7 +1824,9 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
    uint32 Target = Relocations[irel].TargetOldIndex;
 
    // Is offset operand needed?
-   if (((RelType & 0xB) && (Context & 3)) || ((RelType & 8) && (Context & 0x108))) {
+   if (Syntax != SUBTYPE_YASM && (
+      ((RelType & 0xB) && (Context & 2)) 
+      || ((RelType & 8) && (Context & 0x108)))) {
       // offset operator needed to convert memory operand to immediate address
       OutFile.Put("offset ");
    }
@@ -1344,7 +1870,8 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
    if ((RelType & 2) && !(Context & 0x108)) {
       // Self-relative relocation found but not expected
       // Fix difference between '$' and reference point
-      Addend += IBegin - Relocations[irel].Offset;
+      Addend2 = Relocations[irel].Offset - IBegin;
+      Addend -= Addend2;
    }
    // Add self-reference if self-relative relocation expected but not found
    if (!(RelType & 2) && (Context & 0x108)) {
@@ -1371,28 +1898,22 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
       uint32 TargetSym = Symbols.Old2NewIndex(Target);
 
       // Check if Target is appropriate
-      if ((Symbols[TargetSym].Type & 0x80000000) || (int32)Addend) {
+      if (((Symbols[TargetSym].Type & 0x80000000) || (int32)Addend)
+      && !(CodeMode == 1 && s.BaseReg)) {
          // Symbol is a start-of-section entry in symbol table, or has an addend
-         // Look for a more appropriate symbol
+         // Look for a more appropriate symbol, except if code with base register
          uint32 sym, sym1, sym2 = 0;
          sym1 = Symbols.FindByAddress(Symbols[TargetSym].Section, Symbols[TargetSym].Offset + (int32)Addend, &sym2);
          for (sym = sym1; sym && sym <= sym2; sym++) {
             if (Symbols[sym].Scope && !(Symbols[sym].Type & 0x80000000)) {
                // Found a better symbol name for target address
                TargetSym = sym;
-               Addend = 0;
+               Addend = Addend2;
             }
          }
       }
       // Write name of target symbol
-      if (TargetSym && Symbols[TargetSym].Name) {
-         // Target name valid. Write it
-         OutFile.Put(Symbols.GetName(TargetSym));
-      }
-      else {
-         // Invalid
-         OutFile.Put("Unnamed_Symbol");
-      }
+      OutFile.Put(Symbols.GetName(TargetSym));
    }
 
    // End parenthesis if we started one
@@ -1402,7 +1923,7 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
 
    // Subtract reference point, if any
    if (RelType & 0x10) {
-      OutFile.Put(" - ");
+      OutFile.Put("-");
       // Write name of segment/group frame
       uint32 RefPoint = Relocations[irel].RefOldIndex;
       if (RefPoint) {
@@ -1417,25 +1938,25 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
    // Subtract self-reference if unexpected self-relative relocation
    if ((RelType & 2) && !(Context & 0x108)) {
       // Self-relative relocation found but not expected
-      OutFile.Put(" - $");
+      OutFile.Put("-"); OutFile.Put(HereOperator);
    }
 
    // Add self-reference if self-relative relocation expected but not found
    if (!(RelType & 2) && (Context & 0x108)) {
       // Self-relative relocation expected but not found
-      OutFile.Put(" + $");
+      OutFile.Put("+"); OutFile.Put(HereOperator);
    }
 
    // Write addend, if not zero
    if (Addend) {
       if (Addend < 0) {
          // Negative, write "-"
-         OutFile.Put(" - ");
+         OutFile.Put("-");
          Addend = -Addend;
       }
       else {
          // Positive, write "+"
-         OutFile.Put(" + ");
+         OutFile.Put("+");
       }
 
       // Write value as hexadecimal
@@ -1444,10 +1965,10 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
          OutFile.PutHex((uint8)Addend, 1);
          break;
       case 2:
-         OutFile.PutHex((uint16)Addend, 1);
+         OutFile.PutHex((uint16)Addend, 2);
          break;
       case 4:
-         OutFile.PutHex((uint32)Addend, 1);
+         OutFile.PutHex((uint32)Addend, 2);
          break;
       case 6:
          OutFile.PutHex((uint16)(Addend >> 32), 1);
@@ -1455,7 +1976,7 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
          OutFile.PutHex((uint32)Addend, 1);
          break;
       case 8:
-         OutFile.PutHex((uint64)Addend, 1);
+         OutFile.PutHex((uint64)Addend, 2);
          break;
       default:
          OutFile.Put("??"); // Should not occur
@@ -1463,6 +1984,7 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
       }
    }
 }
+
 
 int CDisassembler::WriteFillers() {
    // Check if code is a series of NOPs or other fillers. 
@@ -1484,7 +2006,7 @@ int CDisassembler::WriteFillers() {
       // Instruction is a NOP or int 3 breakpoint
       FillerType = Opcodei;
    }
-   else if (s.Warnings & 0x1000000) {
+   else if (s.Warnings1 & 0x1000000) {
       // Instruction is a LEA, MOV, etc. with same source and destination
       // used as a multi-byte NOP
       FillerType = 0xFFFFFFFF;
@@ -1510,7 +2032,7 @@ int CDisassembler::WriteFillers() {
          break;
       }
       if (Opcodei != 0xCC && (Opcodei & 0xFFFE) != 0x3C00 && Opcodei != 0x11F
-      && !(s.Warnings & 0x1000000)) {
+      && !(s.Warnings1 & 0x1000000)) {
          // Not a filler
          // Save position of this instruction
          IFillerEnd = IBegin;
@@ -1528,31 +2050,20 @@ int CDisassembler::WriteFillers() {
    // Write size of filling space
    OutFile.Put(CommentSeparator);
    OutFile.Put("Filling space: ");
-   if (IFillerEnd - IFillerBegin < 0x100) {
-      // Write with 2 hexadecimal digits
-      OutFile.PutHex(uint8(FillerSize), 1);
-   }
-   else {
-      // Write with 8 hexadecimal digits
-      OutFile.PutHex(FillerSize, 1);
-   }
+   OutFile.PutHex(FillerSize, 2);
    OutFile.NewLine();
    // Write filler type
    OutFile.Put(CommentSeparator);
    OutFile.Put("Filler type: ");
    switch (FillerType) {
    case 0xCC:
-      FillerName = "INT 3 Debug breakpoint";
-      break;
+      FillerName = "INT 3 Debug breakpoint"; break;
    case 0x3C00:
-      FillerName = "NOP";
-      break;
+      FillerName = "NOP"; break;
    case 0x3C01:
-      FillerName = "NOP with prefixes";
-      break;
+      FillerName = "NOP with prefixes"; break;
    case 0x011F:
-      FillerName = "Multi-byte NOP";
-      break;
+      FillerName = "Multi-byte NOP";break;
    }
    OutFile.Put(FillerName);
    if (FillerType == 0xFFFFFFFF) {
@@ -1565,8 +2076,9 @@ int CDisassembler::WriteFillers() {
       if ((Pos - IFillerBegin & 7) == 0) {
          // Start new line
          OutFile.NewLine();
+         OutFile.Put(CommentSeparator);
          OutFile.Tabulate(AsmTab1);
-         OutFile.Put("db ");
+         OutFile.Put(Syntax == SUBTYPE_GASM ? ".byte " : "db ");
       }
       else {
          // Continue on same line
@@ -1576,8 +2088,7 @@ int CDisassembler::WriteFillers() {
       OutFile.PutHex(Get<uint8>(Pos), 1);
    }
    // Blank line
-   OutFile.NewLine();
-   OutFile.NewLine();
+   OutFile.NewLine(); OutFile.NewLine();
 
    // Find alignment
    uint32 Alignment = 4;                         // Limit to 2^4 = 16
@@ -1595,12 +2106,8 @@ int CDisassembler::WriteFillers() {
          // Change to align 8
          Alignment--;
       }
-
       // Write align directive
-      OutFile.Put("ALIGN");
-      OutFile.Tabulate(AsmTab1);
-      OutFile.PutDecimal(1 << Alignment, 1);     // 2 ^ Alignment
-      OutFile.NewLine();
+      WriteAlign(1 << Alignment);
       // Prevent writing ALIGN again
       FlagPrevious &= ~1;
    }
@@ -1617,6 +2124,14 @@ int CDisassembler::WriteFillers() {
    return 1;
 }
 
+void CDisassembler::WriteAlign(uint32 a) {
+   // Write alignment directive
+   OutFile.Put(Syntax == SUBTYPE_GASM ? ".ALIGN" : "ALIGN");
+   OutFile.Tabulate(AsmTab1);
+   OutFile.PutDecimal(a);
+   OutFile.NewLine();
+}
+
 void CDisassembler::WriteFileBegin() {
    // Write begin of file
 
@@ -1625,10 +2140,16 @@ void CDisassembler::WriteFileBegin() {
    OutFile.Put("Disassembly of file: ");
    OutFile.Put(cmd.InputFile);
    OutFile.NewLine();
-   // Date and time. Note: will fail after year 2038
+   // Date and time. 
+   // Note: will fail after year 2038 on computers that use 32-bit time_t
    time_t time1 = time(0);
-   const char * timestring = ctime(&time1);
+   char * timestring = ctime(&time1);
    if (timestring) {
+      // Remove terminating '\n' in timestring
+      for (char *c = timestring; *c; c++) {
+         if (*c < ' ') *c = 0;
+      }
+      // Write date and time as comment
       OutFile.Put(CommentSeparator);
       OutFile.Put(timestring);
       OutFile.NewLine();
@@ -1644,7 +2165,14 @@ void CDisassembler::WriteFileBegin() {
    // Write syntax dialect
    OutFile.Put(CommentSeparator);
    OutFile.Put("Syntax: ");
-   OutFile.Put(WordSize < 64 ? "MASM/ML" : "ML64");
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      OutFile.Put(WordSize < 64 ? "MASM/ML" : "MASM/ML64");  break;
+   case SUBTYPE_YASM:
+      OutFile.Put("YASM/NASM");  break;
+   case SUBTYPE_GASM:
+      OutFile.Put("GAS(Intel)");  break;
+   }
    OutFile.NewLine();
 
    // Write instruction set as comment
@@ -1653,68 +2181,84 @@ void CDisassembler::WriteFileBegin() {
 
    // Get name of basic instruction set
    const char * set0 = "";
-   switch (InstructionSetMax) {
-   case 0:
-      set0 = "8086";  break;
-   case 1:
-      set0 = "80186";  break;
-   case 2:
-      set0 = "80286";  break;
-   case 3:
-      set0 = "80386";  break;
-   case 4:
-      set0 = "80486";  break;
-   case 5:
-      set0 = "Pentium";  break;
-   case 6:
-      set0 = "Pentium Pro";  break;
-   case 7:
-      set0 = "MMX";  break;
-   case 8:
-      set0 = "Pentium II";  break;
-   case 0x11:
-      set0 = "SSE";  break;
-   case 0x12:
-      set0 = "SSE2";  break;
-   case 0x13:
-      set0 = "SSE3";  break;
-   case 0x14:
-      set0 = "Supplementary SSE3";  break;
-   case 0x15:
-      set0 = "SSE4";  break;
+   if (InstructionSetMax < InstructionSetNamesLen) {
+      set0 = InstructionSetNames[InstructionSetMax];
    }
+
    // Write as comment
    OutFile.Put(CommentSeparator);
    OutFile.Put("Instruction set: ");
    OutFile.Put(set0);
+
+   if (InstructionSetAMDMAX) {
+      // Get name of any AMD-specific instruction set
+      const char * setA = "";
+      switch (InstructionSetAMDMAX) {
+      case 1:  setA = "AMD 3DNow";   break;
+      case 2:  setA = "AMD 3DNowE";  break;
+      case 4:  setA = "AMD SSE4a";   break;
+      case 5:  setA = "AMD XOP";     break;
+      case 6:  setA = "AMD FMA4";    break;
+      case 7:  setA = "AMD CVT16";   break;
+      }
+      if (*setA) {
+         OutFile.Put(", ");
+         OutFile.Put(setA);
+      }
+   }
+   // VIA instruction set:
+   if (InstructionSetOR & 0x2000) OutFile.Put(", VIA");
+
    // Additional instruction sets:
    if (WordSize > 32) OutFile.Put(", x64");
    if (InstructionSetOR & 0x100) OutFile.Put(", 80x87");
    if (InstructionSetOR & 0x800) OutFile.Put(", privileged instructions");
-   if (InstructionSetOR & 0x1000) OutFile.Put(", 3DNow");
    OutFile.NewLine();
 
+   if (NamesChanged) {
+      // Tell that symbol names have been changed
+      OutFile.NewLine();
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Error: symbol names contain illegal characters,");
+      OutFile.NewLine(); OutFile.Put(CommentSeparator);
+      OutFile.PutDecimal(NamesChanged);
+      OutFile.Put(" Symbol names changed");
+      OutFile.NewLine();
+   }
+
+   // Write syntax-specific initializations
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      WriteFileBeginMASM();  
+      WritePublicsAndExternalsMASM();
+      break;
+   case SUBTYPE_YASM:
+      WriteFileBeginYASM();  
+      WritePublicsAndExternalsYASMGASM();
+      break;
+   case SUBTYPE_GASM:
+      WriteFileBeginGASM();
+      WritePublicsAndExternalsYASMGASM();
+      break;
+   }
+}
+
+
+void CDisassembler::WriteFileBeginMASM() {
+   // Write MASM-specific file init
    if (WordSize < 64) {
       // Write instruction set directive, except for 64 bit assembler
-
       const char * set1 = "";
       switch (InstructionSetMax) {
-      case 0:
-         set1 = ".8086";  break;
-      case 1:
-         set1 = ".186";  break;
-      case 2:
-         set1 = ".286";  break;
-      case 3:
-         set1 = ".386";  break;
-      case 4:
-         set1 = ".486";  break;
-      case 5:
-         set1 = ".586";  break;
+      case 0:  set1 = ".8086";  break;
+      case 1:  set1 = ".186";  break;
+      case 2:  set1 = ".286";  break;
+      case 3:  set1 = ".386";  break;
+      case 4:  set1 = ".486";  break;
+      case 5:  set1 = ".586";  break;
       case 6: default:
          set1 = ".686";  break;
       }
-
       // Write basic instruction set
       OutFile.NewLine();
       OutFile.Put(set1);
@@ -1723,7 +2267,6 @@ void CDisassembler::WriteFileBegin() {
          OutFile.Put("p");
       }
       OutFile.NewLine();
-
       // Write extended instruction set
       if (InstructionSetOR & 0x100) {
          // Floating point
@@ -1771,158 +2314,38 @@ void CDisassembler::WriteFileBegin() {
    if (MasmOptions & 4) {
       OutFile.Put("assume gs:nothing");  OutFile.NewLine();
    }
-   // Blank line
-   OutFile.NewLine();
-
-   // Public and external symbols
-   WritePublicsAndExternals();
-}
-
-void CDisassembler::WriteFileEnd() {
-   // Write end of file
-   OutFile.NewLine();
-   OutFile.Put("END");
-}
-
-void CDisassembler::WriteSegmentBegin() {
-   // Write begin of segment
-   int AlignmentIncompatible = 0;                // != 0 if alignment not supported by assembler
-
    OutFile.NewLine();                            // Blank line
+}
 
-   // Check if Section is valid
-   if (Section == 0 || Section >= Sections.GetNumEntries()) {
-      // Illegal segment entry
-      OutFile.Put("UNKNOWN SEGMENT");  OutFile.NewLine(); 
-      return;
+void CDisassembler::WriteFileBeginYASM() {
+   // Write YASM-specific file init
+   OutFile.NewLine();
+   if (WordSize == 64) {
+      OutFile.Put("default rel"); OutFile.NewLine();
    }
+   //if (InstructionSetMax >= 0x11) {OutFile.Put("%define xmmword  oword");  OutFile.NewLine();}
+   //if (InstructionSetMax >= 0x19) {OutFile.Put("%define ymmword");  OutFile.NewLine();}
+   OutFile.NewLine();
+}
 
-   // Write segment name
-   WriteSectionName(Section);
-   // Tabulate
-   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
-   // Write "segment"
-   OutFile.Put("SEGMENT ");
-   // Write alignment
-   switch (Sections[Section].Align) {
-   case 0:  // 1
-      OutFile.Put("BYTE ");  break;
-   case 1:  // 2
-      OutFile.Put("WORD ");  break;
-   case 2:  // 4
-      OutFile.Put("DWORD ");  break;
-   case 3:  // 8
-      AlignmentIncompatible = 8;
-      // Cannot align by 8. Continue in next case
-   case 4:  // 16
-      OutFile.Put("PARA ");  break;
-   case 8:  // 256 or 4096. Definition is ambiguous!
-      OutFile.Put("PAGE ");  break;
-   default:
-      // Alignment not supported by assembler
-      AlignmentIncompatible = 1 << Sections[Section].Align;
-      OutFile.Put("PAGE ");  break;
-   }
-   if (WordSize != 64) {
-      // "PUBLIC" not supported by ml64 assembler
-      OutFile.Put("PUBLIC ");
-      // Write segment word size if necessary
-      if (MasmOptions & 0x100) {
-         // There is at least one 16-bit segment. Write segment word size
-         switch (Sections[Section].WordSize) {
-         case 16:
-            OutFile.Put("USE16 ");  break;
-         case 32:
-            OutFile.Put("USE32 ");  break;
-         case 64:
-            OutFile.Put("USE64 ");  break;
-         }
-      }
-   }
-   // Write segment class
-   switch (Sections[Section].Type & 0xFF) {
-   case 1:
-       OutFile.Put("'CODE'");  break;
-   case 2:
-       OutFile.Put("'DATA'");  break;
-   case 3:
-       OutFile.Put("'BSS'");  break;
-   case 4:
-       OutFile.Put("'CONST'");  break;
-   default:;
-      // Unknown class. Write nothing
-   }
-
-   // Tabulate to comment
-   OutFile.Put(" ");  OutFile.Tabulate(AsmTab3);
+void CDisassembler::WriteFileBeginGASM() {
+   // Write  GAS-specific file init
+   OutFile.NewLine();
    OutFile.Put(CommentSeparator);
-   // Write section number
-   OutFile.Put("section number ");  
-   OutFile.PutDecimal(Section);
-
-   // New line
+   OutFile.Put("Note: Uses Intel syntax with destination operand first. Remember to");
    OutFile.NewLine();
-
-   if (Sections[Section].Type & 0x1000) {
-      // Communal
-      OutFile.Put(CommentSeparator);
-      OutFile.Put(" Communal section not supported by MASM");
-      OutFile.NewLine();
-   }
-
-   if (AlignmentIncompatible) {
-      // Write warning for incompatible alignment
-      OutFile.Put(CommentSeparator);
-      OutFile.Put(" Alignment by ");
-      OutFile.PutDecimal(AlignmentIncompatible);
-      OutFile.Put(" not supported by MASM");
-      OutFile.NewLine();
-   }
-
-   if (WordSize == 16 && Sections[Section].Type == 1) {
-      // 16 bit code segment. Write ASSUME CS: SEGMENTNAME
-      OutFile.Put("ASSUME ");
-      OutFile.Tabulate(AsmTab1);
-      OutFile.Put("CS:");
-      if (Sections[Section].Group) {
-         // Group name takes precedence over segment name
-         WriteSectionName(Sections[Section].Group);
-      }
-      else {
-         WriteSectionName(Section);
-      }
-      OutFile.NewLine();
-      Assumes[1] = Section;
-   }
+   OutFile.Put(CommentSeparator);
+   OutFile.Put("put syntax directives in the beginning and end of inline assembly:");
+   OutFile.NewLine();
+   OutFile.Put(".intel_syntax noprefix ");
+   OutFile.NewLine(); OutFile.NewLine();
 }
 
-void CDisassembler::WriteSegmentEnd() {
-   // Write end of segment
-
-   // Check if Section is valid
-   if (Section == 0 || Section >= Sections.GetNumEntries()) {
-      // Illegal segment entry
-      OutFile.Put("UNKNOWN ENDS");  OutFile.NewLine(); 
-      return;
-   }
-
-   // Write segment name
-   const char * segname = NameBuffer.Buf() + Sections[Section].Name;
-   OutFile.Put(segname);
-
-   // Tabulate
-   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
-   // Write "segment"
-   OutFile.Put("ENDS");
-   // New line
-   OutFile.NewLine();
-}
-
-void CDisassembler::WritePublicsAndExternals() {
+void CDisassembler::WritePublicsAndExternalsMASM() {
    // Write public and external symbol definitions
    uint32 i;                                     // Loop counter
    uint32 LinesWritten = 0;                      // Count lines written
-   char * XName;                                 // Name of external symbols
+   const char * XName;                           // Name of external symbols
 
    // Loop through public symbols
    for (i = 0; i < Symbols.GetNumEntries(); i++) {
@@ -1977,20 +2400,14 @@ void CDisassembler::WritePublicsAndExternals() {
          else {
             // Data. Write size
             switch (GetDataItemSize(Symbols[i].Type)) {
-            case 1: default:
-               OutFile.Put("byte");  break;
-            case 2:
-               OutFile.Put("word");  break;
-            case 4:
-               OutFile.Put("dword");  break;
-            case 6:
-               OutFile.Put("fword");  break;
-            case 8:
-               OutFile.Put("qword");  break;
-            case 10:
-               OutFile.Put("tbyte");  break;
-            case 16:
-               OutFile.Put("xmmword");  break;
+            case 1: default: OutFile.Put("byte");  break;
+            case 2: OutFile.Put("word");  break;
+            case 4: OutFile.Put("dword");  break;
+            case 6: OutFile.Put("fword");  break;
+            case 8: OutFile.Put("qword");  break;
+            case 10: OutFile.Put("tbyte");  break;
+            case 16: OutFile.Put("xmmword");  break;
+            case 32: OutFile.Put("ymmword");  break;
             }
          }
          // Add comment if DLL import
@@ -2008,11 +2425,12 @@ void CDisassembler::WritePublicsAndExternals() {
       OutFile.NewLine();
       LinesWritten = 0;
    }
-   // Write the value of any exported constants
-   // Loop through external symbols
+   // Write the value of any constants
+   // Loop through symbols
    for (i = 0; i < Symbols.GetNumEntries(); i++) {
-      if (Symbols[i].Section == ASM_SEGMENT_ABSOLUTE && (Symbols[i].Scope & 0x1C)) {
-         // Symbol is public and constant
+      // Local symbols included because there might be a rip-relative address to a named constant = 0
+      if (Symbols[i].Section == ASM_SEGMENT_ABSOLUTE /*&& (Symbols[i].Scope & 0x1C)*/) {
+         // Symbol is constant
          // Write name
          OutFile.Put(Symbols.GetName(i));
          OutFile.Put(" equ ");
@@ -2068,6 +2486,443 @@ void CDisassembler::WritePublicsAndExternals() {
    }
 }
 
+
+void CDisassembler::WritePublicsAndExternalsYASMGASM() {
+   // Write public and external symbol definitions, YASM and GAS syntax
+   uint32 i;                                     // Loop counter
+   uint32 LinesWritten = 0;                      // Count lines written
+   const char * XName;                           // Name of external symbols
+
+   // Loop through public symbols
+   for (i = 0; i < Symbols.GetNumEntries(); i++) {
+      if (Symbols[i].Scope & 0x1C) {
+         // Symbol is public
+         if (Syntax == SUBTYPE_GASM) OutFile.Put(".");
+         OutFile.Put("global ");
+         // Write name
+         OutFile.Put(Symbols.GetName(i));
+         // Check if weak or communal
+         if (Symbols[i].Scope & 0x18) {
+            // Scope is weak or communal
+            OutFile.Tabulate(AsmTab3);
+            OutFile.Put(CommentSeparator);
+            if (Symbols[i].Scope & 8) OutFile.Put("Note: Weak.");
+            if (Symbols[i].Scope & 0x10) OutFile.Put("Note: Communal.");
+         }
+         OutFile.NewLine();  LinesWritten++;
+      }
+   }
+   // Blank line if anything written
+   if (LinesWritten) {
+      OutFile.NewLine();
+      LinesWritten = 0;
+   }
+   // Loop through external symbols
+   for (i = 0; i < Symbols.GetNumEntries(); i++) {
+
+      if (Symbols[i].Scope & 0x20) {
+         // Symbol is external
+         if (Syntax == SUBTYPE_GASM) OutFile.Put(".");
+         OutFile.Put("extern ");
+         // Get name
+         XName = Symbols.GetName(i);
+         // Check for dynamic import
+         if (Symbols[i].DLLName && strncmp(XName, Symbols.ImportTablePrefix, (uint32)strlen(Symbols.ImportTablePrefix)) == 0) {
+            // Remove "_imp" prefix from name
+            XName += (uint32)strlen(Symbols.ImportTablePrefix);
+         }
+         // Write name
+         OutFile.Put(XName);
+         OutFile.Put(" ");
+         OutFile.Tabulate(AsmTab3);
+         OutFile.Put(CommentSeparator);
+
+         // Write type
+         if ((Symbols[i].Type & 0xFE) == 0x84) {
+            // Far
+            OutFile.Put("far");
+         }
+         else if ((Symbols[i].Type & 0xF0) == 0x80 || Symbols[i].DLLName) {
+            // Near
+            OutFile.Put("near");
+         }
+         else {
+            // Data. Write size
+            switch (GetDataItemSize(Symbols[i].Type)) {
+            case 1: default: OutFile.Put("byte");  break;
+            case 2: OutFile.Put("word");  break;
+            case 4: OutFile.Put("dword");  break;
+            case 6: OutFile.Put("fword");  break;
+            case 8: OutFile.Put("qword");  break;
+            case 10: OutFile.Put("tbyte");  break;
+            case 16: OutFile.Put("xmmword");  break;
+            case 32: OutFile.Put("ymmword");  break;
+            }
+         }
+         // Add comment if DLL import
+         if (Symbols[i].DLLName) {
+            OutFile.Tabulate(AsmTab3);
+            OutFile.Put(CommentSeparator);
+            OutFile.Put(Symbols.GetDLLName(i));
+         }
+         // Finished line
+         OutFile.NewLine();  LinesWritten++;
+      }
+   }
+   // Blank line if anything written
+   if (LinesWritten) {
+      OutFile.NewLine();  LinesWritten = 0;
+   }
+   // Write the value of any constants
+   // Loop through symbols
+   for (i = 0; i < Symbols.GetNumEntries(); i++) {
+      if (Symbols[i].Section == ASM_SEGMENT_ABSOLUTE /*&& (Symbols[i].Scope & 0x1C)*/) {
+         // Symbol is constant
+         if (Syntax == SUBTYPE_YASM) {
+            // Write name equ value
+            OutFile.Put(Symbols.GetName(i));
+            OutFile.Put(" equ ");
+         }
+         else {
+            // Gas: write .equ name, value
+            OutFile.Put(".equ ");
+            OutFile.Tabulate(AsmTab1);
+            OutFile.Put(Symbols.GetName(i));
+            OutFile.Put(", ");
+         }
+         // Write value as hexadecimal
+         OutFile.PutHex(Symbols[i].Offset, 1);
+         // Write decimal value as comment
+         OutFile.Tabulate(AsmTab3);
+         OutFile.Put(CommentSeparator);
+         OutFile.PutDecimal(Symbols[i].Offset, 1);
+         OutFile.NewLine();  LinesWritten++;
+      }
+   }
+   // Blank line if anything written
+   if (LinesWritten) {
+      OutFile.NewLine();
+      LinesWritten = 0;
+   }
+   // Write any group definitions
+   int32 GroupId, SegmentId;
+   // Loop through sections to search for group definitions
+   for (GroupId = 1; GroupId < (int32)Sections.GetNumEntries(); GroupId++) {
+      // Get section type
+      uint32 SectionType = Sections[GroupId].Type;
+      if (SectionType & 0x800) {
+         // This is a segment group definition
+         // Count number of members
+         uint32 NumMembers = 0;
+         // Write group name
+         WriteSectionName(GroupId);
+         // Write "group"
+         OutFile.Put(" ");  OutFile.Tabulate(AsmTab1);  OutFile.Put("GROUP ");
+         // Search for group members
+         for (SegmentId = 1; SegmentId < (int32)Sections.GetNumEntries(); SegmentId++) {
+            if (Sections[SegmentId].Group == GroupId && !(Sections[SegmentId].Type & 0x800)) {
+               // is this first member?
+               if (NumMembers++) {
+                  // Not first member. Write comma
+                  OutFile.Put(", ");
+               }
+               // Write group member
+               WriteSectionName(SegmentId);
+            }
+         }
+         // End line
+         OutFile.NewLine();  LinesWritten++;
+      }
+   }
+   // Blank line if anything written
+   if (LinesWritten) {
+      OutFile.NewLine();
+      LinesWritten = 0;
+   }
+}
+
+
+void CDisassembler::WriteFileEnd() {
+   // Write end of file
+   OutFile.NewLine();
+   switch(Syntax) {
+   case SUBTYPE_MASM:
+      OutFile.Put("END");  break;
+   case SUBTYPE_GASM:
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Return to AT&T syntax with destination operand last:");
+      OutFile.NewLine();
+      OutFile.Put(".att_syntax prefix ");
+      OutFile.NewLine();
+      break;
+   case SUBTYPE_YASM:
+      break;
+   }
+}
+
+
+void CDisassembler::WriteSegmentBegin() {
+   // Write begin of segment
+   // Choose dialect
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      WriteSegmentBeginMASM();  break;
+   case SUBTYPE_YASM:
+      WriteSegmentBeginYASM();  break;
+   case SUBTYPE_GASM:
+      WriteSegmentBeginGASM();  break;
+   }
+}
+
+
+void CDisassembler::WriteSegmentBeginMASM() {
+   // Write begin of segment
+   OutFile.NewLine();                            // Blank line
+
+   // Check if Section is valid
+   if (Section == 0 || Section >= Sections.GetNumEntries()) {
+      // Illegal segment entry
+      OutFile.Put("UNKNOWN SEGMENT");  OutFile.NewLine(); 
+      return;
+   }
+
+   // Write segment name
+   WriteSectionName(Section);
+   // Tabulate
+   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
+   // Write "segment"
+   OutFile.Put("SEGMENT ");
+
+   // Write alignment
+   switch (Sections[Section].Align) {
+   case 0:  // 1
+      OutFile.Put("BYTE ");  break;
+   case 1:  // 2
+      OutFile.Put("WORD ");  break;
+   case 2:  // 4
+      OutFile.Put("DWORD ");  break;
+   case 4:  // 16
+      OutFile.Put("PARA ");  break;
+   //case 8:  // 256 or 4096. Definition is ambiguous!
+   //   OutFile.Put("PAGE ");  break;
+   default:
+      // Non-standard alignment
+      OutFile.Put("ALIGN("); 
+      OutFile.PutDecimal(1 << Sections[Section].Align); 
+      OutFile.Put(") "); 
+      break;
+   }
+   if (WordSize != 64) {
+      // "PUBLIC" not supported by ml64 assembler
+      OutFile.Put("PUBLIC ");
+      // Write segment word size if necessary
+      if (MasmOptions & 0x100) {
+         // There is at least one 16-bit segment. Write segment word size
+         OutFile.Put("USE"); 
+         OutFile.PutDecimal(Sections[Section].WordSize);
+         OutFile.Put(" "); 
+      }
+   }
+   // Write segment class
+   switch (Sections[Section].Type & 0xFF) {
+   case 1:
+       OutFile.Put("'CODE'");   break;
+   case 2:
+       OutFile.Put("'DATA'");   break;
+   case 3:
+       OutFile.Put("'BSS'");    break;
+   case 4:
+       OutFile.Put("'CONST'");  break;
+   default:;
+      // Unknown class. Write nothing
+   }
+
+   // Tabulate to comment
+   OutFile.Put(" ");  OutFile.Tabulate(AsmTab3);
+   OutFile.Put(CommentSeparator);
+   // Write section number
+   OutFile.Put("section number ");  
+   OutFile.PutDecimal(Section);
+
+   // New line
+   OutFile.NewLine();
+
+   if (Sections[Section].Type & 0x1000) {
+      // Communal
+      OutFile.Put(CommentSeparator);
+      OutFile.Put(" Communal section not supported by MASM");
+      OutFile.NewLine();
+   }
+
+   if (WordSize == 16 && Sections[Section].Type == 1) {
+      // 16 bit code segment. Write ASSUME CS: SEGMENTNAME
+      OutFile.Put("ASSUME ");
+      OutFile.Tabulate(AsmTab1);
+      OutFile.Put("CS:");
+      if (Sections[Section].Group) {
+         // Group name takes precedence over segment name
+         WriteSectionName(Sections[Section].Group);
+      }
+      else {
+         WriteSectionName(Section);
+      }
+      OutFile.NewLine();
+      Assumes[1] = Section;
+   }
+}
+
+void CDisassembler::WriteSegmentBeginYASM() {
+   // Write begin of segment
+   OutFile.NewLine();                            // Blank line
+
+   // Check if Section is valid
+   if (Section == 0 || Section >= Sections.GetNumEntries()) {
+      // Illegal segment entry
+      OutFile.Put("UNKNOWN SEGMENT");  OutFile.NewLine(); 
+      return;
+   }
+
+   // Write SECTION directive
+   OutFile.Put("SECTION ");   
+   // Write segment name
+   WriteSectionName(Section);
+   // Tabulate
+   OutFile.Put(" ");  OutFile.Tabulate(AsmTab2);
+   OutFile.Put("align=");
+   OutFile.PutDecimal(1 << Sections[Section].Align);
+   if (Sections[Section].WordSize != WordSize) {
+      OutFile.Put(" use");
+      OutFile.PutDecimal(Sections[Section].WordSize);
+   }
+   if ((Sections[Section].Type & 0xFF) == 1) {
+      OutFile.Put(" execute");
+   }
+   else {
+      OutFile.Put(" noexecute");
+   }
+
+   // Tabulate to comment
+   OutFile.Put(" ");  OutFile.Tabulate(AsmTab3);
+   OutFile.Put(CommentSeparator);
+   // Write section number
+   OutFile.Put("section number ");  
+   OutFile.PutDecimal(Section);
+   // Write type
+   OutFile.Put(", ");
+   switch (Sections[Section].Type & 0xFF) {
+   case 1: OutFile.Put("code");  break;
+   case 2: OutFile.Put("data");  break;
+   case 3: OutFile.Put("bss");  break;
+   case 4: OutFile.Put("const");  break;
+   default: OutFile.Put("unknown");  break;
+   }
+
+   // New line
+   OutFile.NewLine();
+
+   if (Sections[Section].Type & 0x1000) {
+      // Communal
+      OutFile.Put(CommentSeparator);
+      OutFile.Put(" Communal section not supported by YASM");
+      OutFile.NewLine();
+   }
+}
+
+void CDisassembler::WriteSegmentBeginGASM() {
+   // Write begin of segment
+   uint32 Type;                                  // Section type
+
+   OutFile.NewLine();                            // Blank line
+
+   // Check if Section is valid
+   if (Section == 0 || Section >= Sections.GetNumEntries()) {
+      // Illegal segment entry
+      OutFile.Put("UNKNOWN SEGMENT");  OutFile.NewLine(); 
+      return;
+   }
+
+   // Write SECTION directive
+   OutFile.Put(".SECTION ");
+   OutFile.Tabulate(AsmTab1);
+   // Write segment name
+   WriteSectionName(Section);
+   // Tabulate
+   OutFile.Put(" ");  OutFile.Tabulate(AsmTab2);
+   // Flags not supported by all versions of Gas. Put as comment:
+   OutFile.Put(CommentSeparator);
+   // Write flags
+   OutFile.Put('"');
+   Type = Sections[Section].Type & 0xFF;
+   if (Type) OutFile.Put('a');                   // Allocatable
+   if (Type != 1 && Type != 4) OutFile.Put('w'); // Writeable
+   if (Type == 1) OutFile.Put('x');              // Executable
+   OutFile.Put('"');
+   if (Type) OutFile.Put(", @progbits");         // Allocatable
+
+   // Tabulate to comment
+   OutFile.Put(" ");  OutFile.Tabulate(AsmTab3);
+   OutFile.Put(CommentSeparator);
+   // Write section number
+   OutFile.Put("section number ");  
+   OutFile.PutDecimal(Section);
+   // Write type
+   OutFile.Put(", ");
+   switch (Sections[Section].Type & 0xFF) {
+   case 1: OutFile.Put("code");  break;
+   case 2: OutFile.Put("data");  break;
+   case 3: OutFile.Put("bss");  break;
+   case 4: OutFile.Put("const");  break;
+   default: OutFile.Put("unknown");  break;
+   }
+   OutFile.NewLine();                            // Blank line
+   if (Sections[Section].Type & 0x1000) {
+      // Communal
+      OutFile.Put(CommentSeparator);
+      OutFile.Put(" Communal section ");
+      OutFile.NewLine();
+   }
+
+   // Write alignment
+   OutFile.Tabulate(AsmTab1);
+   OutFile.Put(".ALIGN");
+   OutFile.Tabulate(AsmTab2);
+   OutFile.PutDecimal(1 << Sections[Section].Align);
+
+   // New line
+   OutFile.NewLine();
+}
+
+
+void CDisassembler::WriteSegmentEnd() {
+   // Write end of segment
+   OutFile.NewLine();
+
+   if (Syntax != SUBTYPE_MASM) {
+      // Not MASM syntax, write only blank line
+      return;
+   }
+
+   // Check if Section is valid
+   if (Section == 0 || Section >= Sections.GetNumEntries()) {
+      // Illegal segment entry
+      OutFile.Put("UNKNOWN ENDS");  OutFile.NewLine(); 
+      return;
+   }
+
+   // Write segment name
+   const char * segname = NameBuffer.Buf() + Sections[Section].Name;
+   OutFile.Put(segname);
+
+   // Tabulate
+   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
+   // Write "segment"
+   OutFile.Put("ENDS");
+   // New line
+   OutFile.NewLine();
+}
+
+
+
 void CDisassembler::WriteFunctionBegin() {
    // Write begin of function IFunction
 
@@ -2085,48 +2940,131 @@ void CDisassembler::WriteFunctionBegin() {
    // Get symbol record
    uint32 SymI = Symbols.Old2NewIndex(symi);
 
-   // check scope
-   if (Symbols[SymI].Scope & 0x1C) {
-      // Has public scope. Write PROC entry
-      // (Will be written as label if not public)
-       OutFile.NewLine();                        // Blank line
+   OutFile.NewLine();                        // Blank line
 
-      // Remember that symbol has been written
-      Symbols[SymI].Scope |= 0x100;
+   // Remember that symbol has been written
+   Symbols[SymI].Scope |= 0x100;
 
-      // Check alignment if preceded by NOP
-      if ((FlagPrevious & 1) && (IBegin & 0x0F) == 0 && Sections[Section].Align >= 4) {
-          OutFile.Put("ALIGN");  OutFile.Tabulate(AsmTab1);  OutFile.Put("16");       
-          OutFile.NewLine();
-      }
+   // Check alignment if preceded by NOP
+   if ((FlagPrevious & 1) && (IBegin & 0x0F) == 0 && Sections[Section].Align >= 4) {
+      WriteAlign(16);
+   }
 
-      // Write name
-      WriteSymbolName(SymI);
-      // Space
-      OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
+   if (Symbols[SymI].Name == 0) {
+      // Has no name. Probably only NOP fillers
+      return;
+   }
+
+   // Write function name etc.
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      WriteFunctionBeginMASM(SymI, Symbols[SymI].Scope);  break;
+   case SUBTYPE_YASM:
+      WriteFunctionBeginYASM(SymI, Symbols[SymI].Scope);  break;
+   case SUBTYPE_GASM:
+      WriteFunctionBeginGASM(SymI, Symbols[SymI].Scope);  break;
+   }
+}
+
+void CDisassembler::WriteFunctionBeginMASM(uint32 symi, uint32 scope) {
+   // Write begin of function, MASM syntax
+   // Write name
+   WriteSymbolName(symi);
+   // Space
+   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
+
+   if (scope & 0x1C) {
+      // Scope is public
       // Write "PROC"
       OutFile.Put("PROC");
       // Write "NEAR" unless 64 bit mode
       if (WordSize < 64) OutFile.Put(" NEAR");
-
       // Check if weak
-      if (Symbols[SymI].Scope & 8) {
+      if (scope & 8) {
          OutFile.NewLine();
          OutFile.Put(CommentSeparator);
          OutFile.Put(" WEAK ");
-         WriteSymbolName(SymI);
+         WriteSymbolName(symi);
       }
       // Check if communal
-      if (Symbols[SymI].Scope & 0x10) {
+      if (scope & 0x10) {
          OutFile.NewLine();
          OutFile.Put(CommentSeparator);
          OutFile.Put(" COMDEF ");
-         WriteSymbolName(SymI);
+         WriteSymbolName(symi);
       }
+   }
+   else {
+      // Scope is local
+      OutFile.Put("LABEL NEAR");
+   }
+   // Check if Gnu indirect
+   if (Symbols[symi].Type & 0x40000000) {
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Gnu indirect function"); // Cannot be represented in Masm syntax
+   }
    // End line
    OutFile.NewLine();
-   }
 }
+
+void CDisassembler::WriteFunctionBeginYASM(uint32 symi, uint32 scope) {
+   // Write begin of function, YASM syntax
+   // Write name
+   WriteSymbolName(symi);
+   // Colon
+   OutFile.Put(":"); OutFile.Tabulate(AsmTab1);
+
+   if (scope & 0x1C) {
+      // Scope is public
+      // Write comment
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Function begin");
+      // Check if weak
+      if (scope & 8) {
+         OutFile.Put(", weak");
+      }
+      // Check if communal
+      if (scope & 0x10) {
+         OutFile.Put(", communal");
+      }
+   }
+   else {
+      // Scope is local. Write comment
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Local function");
+   }
+   // Check if Gnu indirect
+   if (Symbols[symi].Type & 0x40000000) {
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Gnu indirect function"); // Cannot be represented in NASM/YASM syntax
+   }
+   // End line
+   OutFile.NewLine();
+}
+
+void CDisassembler::WriteFunctionBeginGASM(uint32 symi, uint32 scope) {
+   // Write begin of function, GAS syntax
+   WriteSymbolName(symi);                        // Write name
+   OutFile.Put(":"); 
+   OutFile.Tabulate(AsmTab3);  OutFile.Put(CommentSeparator);
+   if (scope & 3) OutFile.Put("Local ");
+   if (scope & 8) OutFile.Put("weak ");
+   if (scope & 0x10) OutFile.Put("communal ");
+   OutFile.Put("Function");
+   OutFile.NewLine();
+   OutFile.Tabulate(AsmTab1);
+   OutFile.Put(".type ");
+   OutFile.Tabulate(AsmTab2);
+   WriteSymbolName(symi); // Write name
+   if (Symbols[symi].Type & 0x40000000) {
+      OutFile.Put(", @gnu_indirect_function");
+   }
+   else {
+      OutFile.Put(", @function");
+   }
+   OutFile.NewLine();
+}
+
 
 void CDisassembler::WriteFunctionEnd() {
    // Write end of function
@@ -2135,7 +3073,7 @@ void CDisassembler::WriteFunctionEnd() {
    if (IFunction == 0 || IFunction >= FunctionList.GetNumEntries()) {
       // Should not occur
       OutFile.Put(CommentSeparator);
-      OutFile.Put("Internal error: undefined function begin");
+      OutFile.Put("Internal error: undefined function end");
       return;
    }
 
@@ -2145,16 +3083,55 @@ void CDisassembler::WriteFunctionEnd() {
 
    // check scope
    if (Symbols[SymNewI].Scope & 0x1C) {
-      // Has public scope. Write ENDP
-      // Write name
-      WriteSymbolName(SymNewI);
-      // Space
-      OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
-      // Write "ENDP"
-      OutFile.Put("ENDP");
-      OutFile.NewLine();
+      // Has public scope. Write end of function
+      switch (Syntax) {
+      case SUBTYPE_MASM:
+         WriteFunctionEndMASM(SymNewI);  break;
+      case SUBTYPE_YASM:
+         WriteFunctionEndYASM(SymNewI);  break;
+      case SUBTYPE_GASM:
+         WriteFunctionEndGASM(SymNewI);  break;
+      }
    }
 }
+
+void CDisassembler::WriteFunctionEndMASM(uint32 symi) {
+   // Write end of function, MASM syntax
+   // Write name
+   WriteSymbolName(symi);
+
+   // Space
+   OutFile.Put(" "); OutFile.Tabulate(AsmTab1);
+   // Write "ENDP"
+   OutFile.Put("ENDP");
+   OutFile.NewLine();
+}
+
+void CDisassembler::WriteFunctionEndYASM(uint32 symi) {
+   // Write end of function, YASM syntax
+   // Write comment
+   OutFile.Put(CommentSeparator);
+   // Write name
+   WriteSymbolName(symi);
+   OutFile.Put(" End of function");
+   OutFile.NewLine();
+}
+
+void CDisassembler::WriteFunctionEndGASM(uint32 symi){
+   // Write end of function, GAS syntax
+   // Write .size directive
+   OutFile.Tabulate(AsmTab1);
+   OutFile.Put(".size ");
+   OutFile.Tabulate(AsmTab2);
+   WriteSymbolName(symi);                        // Name of function
+   OutFile.Put(", . - ");
+   WriteSymbolName(symi);                        // Name of function
+   OutFile.Tabulate(AsmTab3);
+   OutFile.Put(CommentSeparator);
+   OutFile.Put("End of function is probably here");
+   OutFile.NewLine();
+}
+
 
 void CDisassembler::WriteCodeLabel(uint32 symi) {
    // Write private or public code label. symi is new symbol index
@@ -2163,7 +3140,7 @@ void CDisassembler::WriteCodeLabel(uint32 symi) {
    uint32 Scope = Symbols[symi].Scope;
 
    // Check scope
-   if (Scope & 0x100) return;                    // Has been written as PROC
+   if (Scope & 0x100) return;                    // Has been written as function begin
 
    if (Scope == 0) {
       // Inaccessible. No name. Make blank line
@@ -2176,18 +3153,33 @@ void CDisassembler::WriteCodeLabel(uint32 symi) {
    // Begin on new line if preceded by another symbol
    if (OutFile.GetColumn()) OutFile.NewLine(); 
 
-   if ((Scope & 0xFF) > 1) {
+   // Check alignment if preceded by NOP
+   if ((Scope & 0xFF) > 1 && (FlagPrevious & 1) && (IBegin & 0x0F) == 0 && Sections[Section].Align >= 4) {
+      WriteAlign(16);
+   }
+
+   switch (Syntax) {
+   case SUBTYPE_MASM:
+      WriteCodeLabelMASM(symi, Symbols[symi].Scope);  break;
+   case SUBTYPE_YASM:
+      WriteCodeLabelYASM(symi, Symbols[symi].Scope);  break;
+   case SUBTYPE_GASM:
+      WriteCodeLabelGASM(symi, Symbols[symi].Scope);  break;
+   }
+
+   // Remember this has been written
+   Symbols[symi].Scope |= 0x100;
+}
+
+
+void CDisassembler::WriteCodeLabelMASM(uint32 symi, uint32 scope) {
+   // Write private or public code label, MASM syntax
+   if ((scope & 0xFF) > 1) {
       // Scope > function local. Write as label near
       // Check if extra linefeed needed
       // if (!(IFunction && FunctionList[IFunction].Start == IBegin)) 
       // New line
       OutFile.NewLine();
-
-      // Check alignment if preceded by NOP
-      if ((FlagPrevious & 1) && (IBegin & 0x0F) == 0 && Sections[Section].Align >= 4) {
-          OutFile.Put("ALIGN");  OutFile.Tabulate(AsmTab1);  OutFile.Put("16");       
-          OutFile.NewLine();
-      }
 
       // Write name
       WriteSymbolName(symi);
@@ -2201,14 +3193,14 @@ void CDisassembler::WriteCodeLabel(uint32 symi) {
       OutFile.NewLine();
 
       // Check if weak
-      if (Symbols[symi].Scope & 8) {
+      if (scope & 8) {
          OutFile.Put(CommentSeparator);
          OutFile.Put(" WEAK ");
          WriteSymbolName(symi);
          OutFile.NewLine();
       }
       // Check if communal
-      if (Symbols[symi].Scope & 0x10) {
+      if (scope & 0x10) {
          OutFile.Put(CommentSeparator);
          OutFile.Put(" COMDEF ");
          WriteSymbolName(symi);
@@ -2217,12 +3209,10 @@ void CDisassembler::WriteCodeLabel(uint32 symi) {
    }
    else {
       // Symbol is local to current function. Write name with colon
-
       if (FlagPrevious & 2) {
          // Insert blank line if previous instruction was unconditional jump or return
          OutFile.NewLine();
       }
-
       // Write name
       WriteSymbolName(symi);
       // Write ":"
@@ -2232,12 +3222,56 @@ void CDisassembler::WriteCodeLabel(uint32 symi) {
          OutFile.NewLine();                   // New line
       }
    }
-   // Remember this has been written
-   Symbols[symi].Scope |= 0x100;
+}
+
+void CDisassembler::WriteCodeLabelYASM(uint32 symi, uint32 scope) {
+   // Write private or public code label, YASM syntax
+   if ((scope & 0xFF) > 2) {
+      // Scope is public
+      OutFile.NewLine();
+      // Write name
+      WriteSymbolName(symi);
+      OutFile.Put(":");
+
+      // Check if weak
+      if (scope & 8) {
+         OutFile.Put(CommentSeparator);
+         OutFile.Put(" weak ");
+         WriteSymbolName(symi);
+      }
+      // Check if communal
+      if (scope & 0x10) {
+         OutFile.Put(CommentSeparator);
+         OutFile.Put(" communal ");
+         WriteSymbolName(symi);
+      }
+      OutFile.NewLine();
+   }
+   else {
+      // Symbol is local to current function. Write name with colon
+      if (FlagPrevious & 2) {
+         // Insert blank line if previous instruction was unconditional jump or return
+         OutFile.NewLine();
+      }
+      // Write name
+      WriteSymbolName(symi);
+      // Write ":"
+      OutFile.Put(":");
+      if (OutFile.GetColumn() > AsmTab1) {
+         // Past tabstop. Go to next line
+         OutFile.NewLine();                   // New line
+      }
+   }
+}
+
+void CDisassembler::WriteCodeLabelGASM(uint32 symi, uint32 scope) {
+   // Write private or public code label, GAS syntax same as YASM syntax
+   WriteCodeLabelYASM(symi, scope);
 }
 
 void CDisassembler::WriteAssume() {
-   // Write assume directive for segment register
+   // Write assume directive for segment register if MASM syntax
+   if (Syntax != SUBTYPE_MASM) return;
    if (!s.AddressField) return;
 
    int32 SegReg, PrefixSeg;                      // Segment register used
@@ -2312,14 +3346,14 @@ void CDisassembler::WriteAssume() {
    }
 }
 
+
 void CDisassembler::WriteInstruction() {
    // Write instruction and operands
    uint32 NumOperands = 0;                       // Number of operands written
    uint32 i;                                     // Loop index
    const char * OpName;                          // Opcode name
-   const char * OpComment;                       // Comment for opcode
 
-   if (s.AddressFieldSize) {
+   if (s.AddressFieldSize && Syntax == SUBTYPE_MASM) {
       // There is a memory operand. Check if ASSUME directive needed
       WriteAssume();
    }
@@ -2327,6 +3361,21 @@ void CDisassembler::WriteInstruction() {
    if (CodeMode & 6) {
       // Code is dubious. Show as comment only
       OutFile.Put(CommentSeparator);             // Start comment
+   }
+   else if ((s.OpcodeDef->Options & 0x20) && s.OpcodeStart1 > IBegin) {
+      // Write prefixes explicitly. 
+      // This is used for rare cases where the assembler cannot generate the prefix
+      OutFile.Tabulate(AsmTab1);                 // Tabulate
+      OutFile.Put(Syntax == SUBTYPE_GASM ? ".byte " : "DB ");
+      OutFile.Tabulate(AsmTab2);                 // Tabulate
+      for (i = IBegin; i < s.OpcodeStart1; i++) {
+         if (i > IBegin) OutFile.Put(", ");
+         OutFile.PutHex(Get<uint8>(i), 1);
+      }
+      OutFile.Tabulate(AsmTab3);                 // Tabulate
+      OutFile.Put(CommentSeparator);
+      OutFile.Put("Prefix coded explicitly");    // Comment
+      OutFile.NewLine();
    }
 
    if ((s.Operands[0] & 0xF0) == 0xC0 || (s.Operands[1] & 0xF0) == 0xC0) {
@@ -2346,14 +3395,22 @@ void CDisassembler::WriteInstruction() {
       // Opcode name
       OpName = s.OpcodeDef->Name;
       // Search for opcode comment
-      OpComment = strchr(OpName, ';');
+      s.OpComment = strchr(OpName, ';');
+      if (s.OpComment) s.OpComment++;            // Point to after ';'
    }
    else {
       OpName = "UNDEFINED";                      // Undefined code with no name
-      OpComment = 0;
+      s.OpComment = 0;
    }
+
+   // Check prefix option
+   if ((s.OpcodeDef->Options & 2) && (s.Prefixes[7] & 0x30)) {
+      // Put prefix 'v' for VEX-prefixed instruction
+      OutFile.Put('v');
+   }
+
    // Write opcode name
-   if (OpComment) {
+   if (s.OpComment) {
       // OpName string contains opcode name and comment, separated by ';'
       while (*OpName != ';' && *OpName != 0) {   // Write opcode name until comment
          OutFile.Put(*(OpName++));
@@ -2390,12 +3447,17 @@ void CDisassembler::WriteInstruction() {
          }
       }
    }
+   // More suffix option
+   if ((s.OpcodeDef->Options & 0x400) && s.ImmediateFieldSize == 8) {
+      // 64 bit immediate mov
+      if (Syntax == SUBTYPE_GASM) OutFile.Put("abs");
+   }   
 
    // Space between opcode name and operands
    OutFile.Put(" "); OutFile.Tabulate(AsmTab2);  // Tabulate. At least one space
 
-   // Write operands
-   for (i = 0; i < 3; i++) {
+   // Loop for all operands to write
+   for (i = 0; i < 5; i++) {
       if (s.Operands[i]) {
 
          // Write operand i
@@ -2403,32 +3465,60 @@ void CDisassembler::WriteInstruction() {
             // At least one operand before this one. Separate by ", "
             OutFile.Put(", ");
          }
-         if (s.Operands[i] & 0x60000) {
-            WriteRMOperand(s.Operands[i]);       // Operand indicated by mod/rm bits
+
+         // Write constant and jump operands
+         switch (s.Operands[i] & 0xF0) {
+         case 0x10: case 0x20: case 0x30: case 0x80:
+            WriteImmediateOperand(s.Operands[i]);
+            continue;
          }
-         else if (s.Operands[i] & 0x10000) {
-            WriteRegOperand(s.Operands[i]);      // Operand indicated by reg bits
-         }
-         else if ((s.Operands[i] & 0x3000) || (s.Operands[i] & 0xF0) == 0x80) {
-            WriteImmediateOperand(s.Operands[i]);// Immediate or jump/call operand
-         }
-         else if (s.Operands[i]) {
-            WriteOtherOperand(s.Operands[i]);    // Other type of operand
+
+         // Write register and memory operands
+         switch (s.Operands[i] & 0xF0000) {
+         case 0:        // Other type of operand
+            WriteOtherOperand(s.Operands[i]);  break;
+
+         case 0x10000:  // Direct memory operand
+            WriteRMOperand(s.Operands[i]);  break;
+
+         case 0x20000:  // Register operand indicated by last bits of opcode
+            WriteShortRegOperand(s.Operands[i]);  break;
+
+         case 0x30000:  // Register or memory operand indicated by mod/rm bits
+            WriteRMOperand(s.Operands[i]);  break;
+
+         case 0x40000:  // Register operand indicated by reg bits
+            WriteRegOperand(s.Operands[i]);  break;
+
+         case 0x50000:  // Register operand indicated by dest bits of DREX byte
+            WriteDREXOperand(s.Operands[i]);  break;
+
+         case 0x60000:  // Register operand indicated by VEX.vvvv bits
+            WriteVEXOperand(s.Operands[i], 0);  break;
+
+         case 0x70000:  // Register operand indicated by bits 4-7 of immediate operand
+            WriteVEXOperand(s.Operands[i], 1);  break;
+
+         case 0x80000:  // Register operand indicated by bits 0-3 of immediate operand
+            WriteVEXOperand(s.Operands[i], 2);  break; // Unused. For future use
          }
       }
    }
-   if (OpComment) {
+
+   if (s.OpComment) {
       // Write opcode comment
       OutFile.Put(' ');
       OutFile.Put(CommentSeparator);
-      OutFile.Put(OpComment + 1);
+      OutFile.Put(s.OpComment);
    }
 }
+
 
 void CDisassembler::WriteStringInstruction() {
    // Write string instruction or xlat instruction
    uint32 NumOperands = 0;                       // Number of operands written
    uint32 i;                                     // Loop index
+   uint32 Segment;                               // Possible segment prefix
 
    if (!(s.OpcodeDef->AllowedPrefixes & 0x1100)) {
       // Operand size is 8 if operand size prefixes not allowed
@@ -2436,6 +3526,14 @@ void CDisassembler::WriteStringInstruction() {
    }
 
    OutFile.Tabulate(AsmTab1);                    // Tabulate
+
+   if (Syntax != SUBTYPE_MASM && s.Prefixes[0] && (s.OpcodeDef->AllowedPrefixes & 4)) {
+      // Get segment prefix
+      Segment = GetSegmentRegisterFromPrefix();  // Interpret segment prefix
+      // Write segment override
+      OutFile.Put(RegisterNamesSeg[Segment]);
+      OutFile.Put(" ");
+   }     
 
    // Check repeat prefix
    if (s.OpcodeDef->AllowedPrefixes & 0x20) {
@@ -2458,8 +3556,9 @@ void CDisassembler::WriteStringInstruction() {
    // Write opcode name
    OutFile.Put(s.OpcodeDef->Name);               // Opcode name
 
-   if (((s.OpcodeDef->AllowedPrefixes & 4) && s.Prefixes[0]) 
-   || ((s.OpcodeDef->AllowedPrefixes & 1) && s.Prefixes[1])) {
+   if (Syntax == SUBTYPE_MASM
+   && (((s.OpcodeDef->AllowedPrefixes & 4) && s.Prefixes[0]) 
+   || ((s.OpcodeDef->AllowedPrefixes & 1) && s.Prefixes[1]))) {
       // Has segment or address size prefix. Must write operands explicitly
       OutFile.Put(" ");                          // Space before operands
 
@@ -2498,7 +3597,7 @@ void CDisassembler::WriteStringInstruction() {
             }
 
             // Get segment
-            uint32 Segment = 1;                  // Default segment is DS
+            Segment = 1;                        // Default segment is DS
             if (s.Prefixes[0]) {
                Segment = GetSegmentRegisterFromPrefix(); // Interpret segment prefix
             }
@@ -2532,7 +3631,7 @@ void CDisassembler::WriteStringInstruction() {
       }
    }
    else {
-      // No segment prefix. We don't have to write the operands
+      // We don't have to write the operands
       // Append suffix for operand size, except for xlat
       if ((s.Operands[1] & 0xCF) != 0xC0) {
 
@@ -2545,6 +3644,7 @@ void CDisassembler::WriteStringInstruction() {
       }
    }
 }
+
 
 void CDisassembler::WriteCodeComment() {
    // Write hex listing of instruction as comment after instruction
@@ -2655,4 +3755,115 @@ void CDisassembler::WriteCodeComment() {
    }
    // New line
    OutFile.NewLine();
+}
+
+
+void CDisassembler::CountInstructions() {
+   // Count total number of instructions defined in opcodes.cpp
+   // Two instructions are regarded as the same and counted as one if they 
+   // have the same name and differ only in the bits that define register 
+   // name, operand size, etc.
+
+   uint32 map;                                   // Map number
+   uint32 index;                                 // Index into map
+   uint32 n;                                     // Number of instructions with same code
+   uint32 iset;                                  // Instruction set
+   uint32 instructions = 0;                      // Total number of instructions
+   uint32 mmxinstr = 0;                          // Number of MMX instructions
+   uint32 sseinstr = 0;                          // Number of SSE instructions
+   uint32 sse2instr = 0;                         // Number of SSE2 instructions
+   uint32 sse3instr = 0;                         // Number of SSE3 instructions
+   uint32 ssse3instr = 0;                        // Number of SSSE3 instructions
+   uint32 sse41instr = 0;                        // Number of SSE4.1 instructions
+   uint32 sse42instr = 0;                        // Number of SSE4.2 instructions
+   uint32 VEXinstr  = 0;                         // Number of VEX instructions
+   uint32 FMAinstr  = 0;                         // Number of FMA3 and later instructions
+   uint32 AMDinstr = 0;                          // Number of AMD instructions
+   uint32 VIAinstr = 0;                          // Number of AMD instructions
+   uint32 privilinstr = 0;                       // Number of privileged instructions
+   uint32 undocinstr = 0;                        // Number of undocumented instructions
+   uint32 droppedinstr = 0;                      // Number of opcodes planned but never implemented
+   SOpcodeDef const * opcode;                    // Pointer to map entry
+
+   // Loop through all maps
+   for (map = 0; map < NumOpcodeTables1; map++) {
+      // Loop through each map
+      for (index = 0; index < OpcodeTableLength[map]; index++) {
+         opcode = OpcodeTables[map] + index;
+         if (opcode->InstructionFormat && opcode->Name 
+         && !opcode->TableLink && !(opcode->InstructionFormat & 0x8000)) {
+            // instruction is defined
+            if ((opcode->InstructionFormat & 0xFFF) == 3
+            && index > 0 && (opcode-1)->Name 
+            && strcmp(opcode->Name, (opcode-1)->Name) == 0) {
+               // Same as previous instruction, just with another register
+               continue;                         // Don't count this
+            }
+            n = 1;                               // Default = one instruction per map entry
+            // Check if we have multiple instructions with different prefixes
+            if (opcode->Options & 1) {
+               if ((opcode->AllowedPrefixes & 0x300) && !(opcode->AllowedPrefixes & 0x8000)) {
+                  n++;                           // Extra instruction with 66 prefix
+               }
+               if (opcode->AllowedPrefixes & 0x400) {
+                  n++;                           // Extra instruction with F3 prefix
+               }
+               if (opcode->AllowedPrefixes & 0x800) {
+                  n++;                           // Extra instruction with F2 prefix
+               }
+            }
+            instructions += n;                   // Count instructions
+            iset = opcode->InstructionSet;       // Instruction set
+            if (iset & 0x20000) {
+               droppedinstr += n; iset = 0;      // Opcodes planned but never implemented
+            }
+            if (iset & 0x800) privilinstr += n;  // Privileged instruction
+            if (opcode->InstructionFormat & 0x4000) undocinstr += n; // Undocumented instruction
+            
+            switch (iset & 0x37FF) {
+            case 7:  // MMX
+               mmxinstr += n;  break;
+            case 0x11:  // SSE
+               sseinstr += n;  break;
+            case 0x12:  // SSE2
+               sse2instr += n;  break;
+            case 0x13: // SSE3
+               sse3instr += n;  break;
+            case 0x14: // SSSE3
+               ssse3instr += n;  break;
+            case 0x15: // SSE4.1
+               sse41instr += n;  break;
+            case 0x16: // SSE4.2
+               sse42instr += n;  break;
+            case 0x17: case 0x18: case 0x19: // VEX etc.
+               VEXinstr += n;  break;
+            case 0x1A: case 0x1B: case 0x1C: // FMA and later instructions
+               FMAinstr += n;  break;
+            case 0x1001: case 0x1002: case 0x1004: case 0x1005: case 0x1006:  // AMD
+               AMDinstr += n;  break;
+            case 0x2001: // VIA
+               VIAinstr += n;  break;               
+            }
+         }
+      }
+   }
+
+   // output result
+   printf("\n\nNumber of instruction opcodes supported by disassembler:\n%5i Total, including:", 
+      instructions);
+   printf("\n%5i Privileged instructions", privilinstr);
+   printf("\n%5i MMX  instructions", mmxinstr);
+   printf("\n%5i SSE  instructions", sseinstr);
+   printf("\n%5i SSE2 instructions", sse2instr);
+   printf("\n%5i SSE3 instructions", sse3instr);
+   printf("\n%5i SSSE3 instructions", ssse3instr);
+   printf("\n%5i SSE4.1 instructions", sse41instr);
+   printf("\n%5i SSE4.2 instructions", sse42instr);
+   printf("\n%5i VEX instructions etc.", VEXinstr);
+   printf("\n%5i FMA3 and later instructions", FMAinstr);
+   printf("\n%5i AMD  instructions", AMDinstr);
+   printf("\n%5i VIA  instructions", VIAinstr);   
+   printf("\n%5i Instructions planned but never implemented in any CPU", droppedinstr);
+   printf("\n%5i Undocumented or illegal instructions", undocinstr);
+   printf("\n");   
 }

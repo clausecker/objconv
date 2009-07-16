@@ -8,7 +8,7 @@
 * Header file for definition of data structures and constants in OMF object 
 * file format. Also defines class COMFFileBuilder.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 ******************************************************************************
 *
 * An OMF file consists of a chain of records which all have the same basic
@@ -171,6 +171,7 @@ public:
    uint32 GetDword();      // Read next 32 bit dword from buffer
    uint32 GetIndex();      // Read byte or word, depending on sign of first byte
    uint32 GetNumeric();    // Read word or dword, depending on record type even or odd
+   uint32 GetLength();     // Read 1, 2, 3 or 4 bytes, depending on value of first byte
    char * GetString();     // Read string and return as ASCIIZ string
    void   Start(int8 * Buffer, uint32 FileOffset, uint32 FileEnd); // Start scanning through records
    uint8  GetNext(uint32 align = 0);// Get next record
@@ -255,13 +256,14 @@ struct SOMFLocalSymbol {
 
 // Structure for interpreted SEGDEF record used during disassembly
 struct SOMFSegment {
-   char * Name;                        // Segment name
+   uint32 NameO;                       // Segment name, as offset into NameBuffer
    uint32 Offset;                      // Segment address
    uint32 Size;                        // Segment size
    uint32 Align;                       // Alignment = 1 << Align
    uint32 Type;                        // Segment type (as defined in disasm.h)
    uint32 WordSize;                    // 16 or 32 bits
    uint32 BufOffset;                   // Offset of raw data into SegmentData buffer
+   uint32 NameIndex;                   // Name index, used for COMDAT segment only
 };
 
 #endif // #ifndef OMF_H

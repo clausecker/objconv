@@ -1,35 +1,33 @@
 /****************************  mac2asm.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2007-05-24
-* Last modified: 2007-05-24
+* Last modified: 2008-05-12
 * Project:       objconv
 * Module:        mac2asm.cpp
 * Description:
 * Module for disassembling Mach-O files
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
 // Constructor
-CMAC2ASM::CMAC2ASM() {
-}
-
-// Destructor
-CMAC2ASM::~CMAC2ASM () {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+CMAC2ASM<MACSTRUCTURES>::CMAC2ASM() {
 }
 
 // Convert
-void CMAC2ASM::Convert() {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+void CMAC2ASM<MACSTRUCTURES>::Convert() {
    // Do the conversion
 
    // Check cpu type
-   switch (FileHeader.cputype) {
+   switch (this->FileHeader.cputype) {
    case MAC_CPU_TYPE_I386:
-      WordSize = 32;  break;
+      this->WordSize = 32;  break;
 
    case MAC_CPU_TYPE_X86_64:
-      WordSize = 64;  break;
+      this->WordSize = 64;  break;
 
    default:
       // Wrong type
@@ -38,22 +36,19 @@ void CMAC2ASM::Convert() {
 
    // check object/executable file type
    uint32 ExeType;                     // File type: 0 = object, 1 = position independent shared object, 2 = executable
-   uint64 ImageBase = 0;
 
-   switch (FileHeader.filetype) {
+   switch (this->FileHeader.filetype) {
    case MAC_OBJECT:   // Relocatable object file
       ExeType = 0;  break;
 
-   case MAC_EXECUTE:  // demand paged executable file
    case MAC_FVMLIB:   // fixed VM shared library file
    case MAC_DYLIB:    // dynamicly bound shared library file
    case MAC_BUNDLE:   // part of universal binary
-      // ImageBase = 0
       ExeType = 1;  break;
 
+   case MAC_EXECUTE:  // demand paged executable file
    case MAC_CORE:     // core file
    case MAC_PRELOAD:  // preloaded executable file
-      // ImageBase = ?
       ExeType = 2;  break;
 
    default:  // Other types
@@ -61,7 +56,8 @@ void CMAC2ASM::Convert() {
    }
 
    // Tell disassembler
-   Disasm.Init(ExeType, ImageBase);
+   // Disasm.Init(ExeType, this->ImageBase);
+   Disasm.Init(ExeType, 0);
 
    // Make Sections list and relocations list
    MakeSectionList();
@@ -82,7 +78,8 @@ void CMAC2ASM::Convert() {
 
 // MakeSectionList
 
-void CMAC2ASM::MakeSectionList() {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+void CMAC2ASM<MACSTRUCTURES>::MakeSectionList() {
    // Make Sections list and Relocations list in Disasm
 
    uint32 icmd;                        // Command index
@@ -95,25 +92,30 @@ void CMAC2ASM::MakeSectionList() {
    StringBuffer.Push(0, 1);            // Initialize string buffer
 
    // Pointer to current position
-   uint8 * currentp = (uint8*)(Buf() + sizeof(MAC_header));
+   uint8 * currentp = (uint8*)(this->Buf() + sizeof(TMAC_header));
 
    // Loop through file commands
-   for (icmd = 1; icmd <= FileHeader.ncmds; icmd++) {
+   for (icmd = 1; icmd <= this->FileHeader.ncmds; icmd++) {
       cmd     = ((MAC_load_command*)currentp) -> cmd;
       cmdsize = ((MAC_load_command*)currentp) -> cmdsize;
 
-      if (cmd == MAC_LC_SEGMENT) {
+      if (cmd == MAC_LC_SEGMENT || cmd == MAC_LC_SEGMENT_64) {
          // This is a segment command
+         if ((this->WordSize == 64) ^ (cmd == MAC_LC_SEGMENT_64)) {
+            // Inconsistent word size
+            err.submit(2320);  break;
+         }
+
          // Number of sections in segment
-         nsect   = ((MAC_segment_command*)currentp) -> nsects;
+         nsect   = ((TMAC_segment_command*)currentp) -> nsects;
 
          // Find first section header
-         MAC_section * sectp = (MAC_section*)(currentp + sizeof(MAC_segment_command));
+         TMAC_section * sectp = (TMAC_section*)(currentp + sizeof(TMAC_segment_command));
 
          // Loop through section headers
          for (isec1 = 1; isec1 <= nsect; isec1++, sectp++) {
 
-            if (sectp->offset >= GetDataSize()) {
+            if (sectp->offset >= this->GetDataSize()) {
                // points outside file
                err.submit(2035);  break;
             }
@@ -121,11 +123,11 @@ void CMAC2ASM::MakeSectionList() {
             // Get section properties
             isec2++;                   // Section number
             uint32 MacSectionType = sectp->flags & MAC_SECTION_TYPE;
-            uint8 * Buffer = (uint8*)Buf() + sectp->offset;
-            uint32 TotalSize = sectp->size;
+            uint8 * Buffer = (uint8*)(this->Buf()) + sectp->offset;
+            uint32 TotalSize = (uint32)sectp->size;
             uint32 InitSize = TotalSize;
             if (MacSectionType == MAC_S_ZEROFILL) InitSize = 0;
-            uint32 SectionAddress = sectp->addr;
+            uint32 SectionAddress = (uint32)sectp->addr;
             uint32 Align = sectp->align;
 
             // Get section type
@@ -148,7 +150,7 @@ void CMAC2ASM::MakeSectionList() {
             char * Name = StringBuffer.Buf() + NameOffset;
 
             // Save section record
-            Disasm.AddSection(Buffer, InitSize, TotalSize, SectionAddress, Type, Align, WordSize, Name);
+            Disasm.AddSection(Buffer, InitSize, TotalSize, SectionAddress, Type, Align, this->WordSize, Name);
 
             // Save information about relocation list for this section
             if (sectp->nreloc) {
@@ -157,7 +159,7 @@ void CMAC2ASM::MakeSectionList() {
             }
 
             // Find import tables
-            if (MacSectionType >= MAC_S_NON_LAZY_SYMBOL_POINTERS && MacSectionType <= MAC_S_MOD_INIT_FUNC_POINTERS) {
+            if (MacSectionType >= MAC_S_NON_LAZY_SYMBOL_POINTERS && MacSectionType <= MAC_S_LAZY_SYMBOL_POINTERS /*?*/) {
                // This is an import table
                ImportSections.Push(sectp);
             }
@@ -173,7 +175,8 @@ void CMAC2ASM::MakeSectionList() {
 }
 
 // MakeRelocations
-void CMAC2ASM::MakeRelocations() {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+void CMAC2ASM<MACSTRUCTURES>::MakeRelocations() {
    // Make relocations for object and executable files
    uint32 iqq;                         // Index into RelocationQueue = table of relocation tables
    uint32 irel;                        // Index into relocation table
@@ -204,7 +207,7 @@ void CMAC2ASM::MakeRelocations() {
 
       if (NumReloc == 0) continue;
 
-      if (ReltabOffset == 0 || ReltabOffset >= GetDataSize() || ReltabOffset + NumReloc*sizeof(MAC_relocation_info) >= GetDataSize()) {
+      if (ReltabOffset == 0 || ReltabOffset >= this->GetDataSize() || ReltabOffset + NumReloc*sizeof(MAC_relocation_info) >= this->GetDataSize()) {
          // Pointer out of range
          err.submit(2035);  return;
       }
@@ -216,7 +219,7 @@ void CMAC2ASM::MakeRelocations() {
          int8 * b;
       } relp;
       // Point to first relocation entry
-      relp.b = Buf() + ReltabOffset;
+      relp.b = this->Buf() + ReltabOffset;
 
       // Loop through relocation table
       for (irel = 0; irel < NumReloc; irel++, relp.r++) {
@@ -248,7 +251,7 @@ void CMAC2ASM::MakeRelocations() {
             TargetAddress = 0;
          }
 
-         if (R_Type == MAC_RELOC_SECTDIFF || R_Type == MAC_RELOC_LOCAL_SECTDIFF) {
+         if (this->WordSize == 32 && (R_Type == MAC32_RELOC_SECTDIFF || R_Type == MAC32_RELOC_LOCAL_SECTDIFF)) {
             // This is the first of a pair of relocation entries.
             // Get second entry containing reference point
             irel++;  relp.r++;
@@ -266,7 +269,7 @@ void CMAC2ASM::MakeRelocations() {
                R_Type2          = relp.r->r_type;
                ReferenceAddress = 0;
             }
-            if (R_Type2 != MAC_RELOC_PAIR) {err.submit(2050); break;}
+            if (R_Type2 != MAC32_RELOC_PAIR) {err.submit(2050); break;}
 
             if (ReferenceSymbol == 0) {
                // Reference point has no symbol index. Make one
@@ -274,38 +277,59 @@ void CMAC2ASM::MakeRelocations() {
             }
          }
 
+         if (this->WordSize == 64 && R_Type == MAC64_RELOC_SUBTRACTOR) {
+            // This is the first of a pair of relocation entries.
+            // The first entry contains reference point to subtract
+            irel++;  relp.r++;
+            if (irel >= NumReloc || relp.s->r_scattered || relp.r->r_type != MAC64_RELOC_UNSIGNED) {
+               err.submit(2050); break;
+            }
+            ReferenceSymbol = TargetSymbol;
+            R_PCRel       = relp.r->r_pcrel;
+            if (relp.r->r_extern) {
+               TargetSymbol = relp.r->r_symbolnum + 1;
+            }
+            else {
+               TargetSection = relp.r->r_symbolnum;
+            }
+            TargetAddress = 0;
+         }
+
          // Get inline addend or address
-         if (SectOffset + SourceOffset < GetDataSize()) {
+         if (SectOffset + SourceOffset < this->GetDataSize()) {
             switch (SourceSize) {
             case 1:
-               Inline = Get<int8>(SectOffset+SourceOffset);
+               Inline = CMemoryBuffer::Get<int8>(SectOffset+SourceOffset);
+               // (this->Get<int8> doesn't work on Gnu compiler 4.0.1)
                break;
             case 2:
-               Inline = Get<int16>(SectOffset+SourceOffset);
+               Inline = CMemoryBuffer::Get<int16>(SectOffset+SourceOffset);
                break;
             case 4: case 8:
-               Inline = Get<int32>(SectOffset+SourceOffset);
+               Inline = CMemoryBuffer::Get<int32>(SectOffset+SourceOffset);
                break;
             default:
                Inline = 0;
             }
          }
 
-         // Calculate target address and addend
-         if (R_Type == MAC_RELOC_SECTDIFF || R_Type == MAC_RELOC_LOCAL_SECTDIFF) {
-            // Relative to reference point
-            // Compensate for inline value = TargetAddress - ReferenceAddress;
-            Addend = ReferenceAddress - TargetAddress;
-         }
-         else if (R_PCRel) {
-            // Self-relative
-            TargetAddress += Inline + SourceOffset + SourceSize;
-            Addend = -4 - Inline;
-         }
-         else {
-            // Direct
-            TargetAddress += Inline;
-            Addend = -Inline;
+         if (this->WordSize == 32) {
+            // Calculate target address and addend, 32 bit system
+            if (R_Type == MAC32_RELOC_SECTDIFF || R_Type == MAC32_RELOC_LOCAL_SECTDIFF) {
+               // Relative to reference point
+               // Compensate for inline value = TargetAddress - ReferenceAddress;
+               Addend = ReferenceAddress - TargetAddress;
+            }
+            else if (R_PCRel) {
+               // Self-relative
+               TargetAddress += Inline + SourceOffset + SourceSize;
+               Addend = -4 - Inline;
+            }
+            else {
+               // Direct
+               TargetAddress += Inline;
+               Addend = -Inline;
+            }
          }
 
          if (TargetSymbol == 0) {
@@ -314,26 +338,63 @@ void CMAC2ASM::MakeRelocations() {
          }
 
          // Find type
-         switch (R_Type) {
-         case MAC_RELOC_VANILLA:
-            // Direct or self-relative
-            RelType = R_PCRel ? 2 : 1;
-            break;
+         if (this->WordSize == 32) {
+            switch (R_Type) {
+            case MAC32_RELOC_VANILLA:
+               // Direct or self-relative
+               RelType = R_PCRel ? 2 : 1;
+               break;
 
-         case MAC_RELOC_SECTDIFF: case MAC_RELOC_LOCAL_SECTDIFF:
-            // Relative to reference point
-            RelType = 0x10;
-            break;
+            case MAC32_RELOC_SECTDIFF: case MAC32_RELOC_LOCAL_SECTDIFF:
+               // Relative to reference point
+               RelType = 0x10;
+               break;
 
-         case MAC_RELOC_PB_LA_PTR:
-            // Lazy pointer
-            RelType = 0x41; //??
-            break;
+            case MAC32_RELOC_PB_LA_PTR:
+               // Lazy pointer
+               RelType = 0x41; //??
+               break;
 
-         default:
-            // Unknown type
-            err.submit(2030, R_Type);
-            break;
+            default:
+               // Unknown type
+               err.submit(2030, R_Type);
+               break;
+            }
+         }
+         else { // 64-bit relocation types
+            switch (R_Type) {
+            case MAC64_RELOC_UNSIGNED:
+               // Absolute address
+               RelType = 1;  
+               break;
+            case MAC64_RELOC_BRANCH:
+               // Signed 32-bit displacement with implicit -4 addend
+            case MAC64_RELOC_SIGNED:
+               // Signed 32-bit displacement with implicit -4 addend
+            case MAC64_RELOC_SIGNED_1:
+               // Signed 32-bit displacement with implicit -4 addend and explicit -1 addend
+            case MAC64_RELOC_SIGNED_2:
+               // Signed 32-bit displacement with implicit -4 addend and explicit -2 addend
+            case MAC64_RELOC_SIGNED_4:
+               // Signed 32-bit displacement with implicit -4 addend and explicit -4 addend
+               RelType = 2;  Addend -= 4;  
+               break;
+            case MAC64_RELOC_GOT:
+               // Absolute or relative reference to GOT?
+               // RelType = 0x1001; break;
+            case MAC64_RELOC_GOT_LOAD: 
+               // Signed 32-bit displacement to GOT
+               RelType = 0x1002;  Addend -= 4;  
+               break;
+            case MAC64_RELOC_SUBTRACTOR:
+               // 32 or 64 bit relative to arbitrary reference point
+               RelType = 0x10;  
+               break;
+            default:
+               // Unknown type
+               err.submit(2030, R_Type);
+               break;
+            }
          }
 
          // Make relocation record
@@ -344,7 +405,8 @@ void CMAC2ASM::MakeRelocations() {
 }
 
 // MakeSymbolList
-void CMAC2ASM::MakeSymbolList() {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+void CMAC2ASM<MACSTRUCTURES>::MakeSymbolList() {
    // Make Symbols list in Disasm
    uint32 symi;                        // Symbol index, 0-based
    uint32 symn = 0;                    // Symbol number, 1-based
@@ -355,26 +417,26 @@ void CMAC2ASM::MakeSymbolList() {
    uint32 Scope;                       // 1 = function local, 2 = file local, 4 = public, 8 = weak public, 0x10 = communal, 0x20 = external
 
    // pointer to string table
-   char * strtab = (char*)(Buf() + StringTabOffset); 
+   char * strtab = (char*)(this->Buf() + this->StringTabOffset); 
 
    // loop through symbol table
-   MAC_nlist * symp = (MAC_nlist*)(Buf() + SymTabOffset);
-   for (symi = 0; symi < SymTabNumber; symi++, symp++) {
+   TMAC_nlist * symp = (TMAC_nlist*)(this->Buf() + this->SymTabOffset);
+   for (symi = 0; symi < this->SymTabNumber; symi++, symp++) {
 
       if (symp->n_type & MAC_N_STAB) {
          // Debug symbol. Ignore
          continue;
       }
 
-      if (symp->n_strx < StringTabSize) {
+      if (symp->n_strx < this->StringTabSize) {
          // Normal symbol
          Section = symp->n_sect;
-         Offset  = symp->n_value;
+         Offset  = (uint32)symp->n_value;
          Name    = strtab + symp->n_strx;
          symn    = symi + 1;           // Convert 0-based to 1-based index
 
          // Get scope
-         if (symi < iextdefsym) {
+         if (symi < this->iextdefsym) {
             // Local
             Scope = 2;
          }
@@ -408,7 +470,7 @@ void CMAC2ASM::MakeSymbolList() {
          Type = 0;
 
          // Offset is always based, not section-relative
-         if (Section) Section = ASM_SEGMENT_IMGREL;
+         if (Section > 0) Section = ASM_SEGMENT_IMGREL;
 
          // Add symbol to diassembler
          Disasm.AddSymbol(Section, Offset, 0, Type, Scope, symn, Name);
@@ -416,15 +478,16 @@ void CMAC2ASM::MakeSymbolList() {
    }
 }
 
-void CMAC2ASM::MakeImports() {
+template <class TMAC_header, class TMAC_segment_command, class TMAC_section, class TMAC_nlist, class MInt>
+void CMAC2ASM<MACSTRUCTURES>::MakeImports() {
    // Make symbol entries for all import tables
    uint32 isec;                        // Index into ImportSections list
    uint32 SectionType;                 // Section type
-   MAC_section * sectp;                // Pointer to section
-   MAC_nlist * symp0 = (MAC_nlist*)(Buf() + SymTabOffset); // Pointer to symbol table
-   uint32 * IndSymp = (uint32*)(Buf() + IndirectSymTabOffset); // Pointer to indirect symbol table
+   TMAC_section * sectp;                // Pointer to section
+   TMAC_nlist * symp0 = (TMAC_nlist*)(this->Buf() + this->SymTabOffset); // Pointer to symbol table
+   uint32 * IndSymp = (uint32*)(this->Buf() + this->IndirectSymTabOffset); // Pointer to indirect symbol table
    uint32 iimp;                        // Index into import table
-   char * strtab = (char*)(Buf() + StringTabOffset);    // pointer to string table
+   char * strtab = (char*)(this->Buf() + this->StringTabOffset);    // pointer to string table
 
    // Loop through import sections
    for (isec = 0; isec < ImportSections.GetNumEntries(); isec++) {
@@ -440,17 +503,19 @@ void CMAC2ASM::MakeImports() {
          // Entry size is 4 if not specified
          if (EntrySize == 0) EntrySize = 4;
          // Number of entries
-         uint32 NumEntries = sectp->size / EntrySize;
+         uint32 NumEntries = (uint32)sectp->size / EntrySize;
          // Index into indirect symbol table entry of first entry in import table
          uint32 Firsti = sectp->reserved1;
          // Check if within range
-         if (Firsti + NumEntries > IndirectSymTabNumber) {
-            err.submit(1052);  continue;
+         if (Firsti + NumEntries > this->IndirectSymTabNumber) {
+            // This occurs when disassembling 64-bit Mach-O executable
+            // I don't know how to interpret the import table
+            err.submit(1054);  continue;
          }
          // Loop through import table entries
          for (iimp = 0; iimp < NumEntries; iimp++) {
             // Address of import table entry
-            uint32 ImportAddress = sectp->addr + iimp * EntrySize;
+            uint32 ImportAddress = (uint32)sectp->addr + iimp * EntrySize;
             // Get symbol table index from indirect symbol table
             uint32 symi = IndSymp[iimp + Firsti];
             // Check index
@@ -459,12 +524,12 @@ void CMAC2ASM::MakeImports() {
                continue;
             }
             // Check if index within symbol table
-            if (symi >= SymTabNumber) {
+            if (symi >= this->SymTabNumber) {
                err.submit(1052); continue;
             }
             // Find name
             uint32 StringIndex = symp0[symi].n_strx;
-            if (StringIndex >= StringTabSize) {
+            if (StringIndex >= this->StringTabSize) {
                err.submit(1052); continue;
             }
             const char * Name = strtab + StringIndex;
@@ -496,12 +561,17 @@ void CMAC2ASM::MakeImports() {
       else if (SectionType == MAC_S_4BYTE_LITERALS) {
          // Section contains 4-byte float constants. 
          // Make symbol
-         Disasm.AddSymbol(ASM_SEGMENT_IMGREL, sectp->addr, 4, 0x43, 2, 0, "Float_constants");
+         Disasm.AddSymbol(ASM_SEGMENT_IMGREL, (uint32)sectp->addr, 4, 0x43, 2, 0, "Float_constants");
       }
       else if (SectionType == MAC_S_8BYTE_LITERALS) {
          // Section contains 8-byte double constants. 
          // Make symbol
-         Disasm.AddSymbol(ASM_SEGMENT_IMGREL, sectp->addr, 8, 0x44, 2, 0, "Double_constants");
+         Disasm.AddSymbol(ASM_SEGMENT_IMGREL, (uint32)sectp->addr, 8, 0x44, 2, 0, "Double_constants");
       }
    }
 }
+
+
+// Make template instances for 32 and 64 bits
+template class CMAC2ASM<MAC32STRUCTURES>;
+template class CMAC2ASM<MAC64STRUCTURES>;

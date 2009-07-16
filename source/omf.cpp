@@ -1,7 +1,7 @@
 /****************************    omf.cpp    *********************************
 * Author:        Agner Fog
 * Date created:  2007-01-29
-* Last modified: 2007-01-29
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        omf.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Class COMF is used for reading, interpreting and dumping OMF files.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -203,7 +203,6 @@ void COMF::ParseFile() {
 
 void COMF::Dump(int options) {
    // Dump file
-
    if (options & DUMP_FILEHDR) DumpRecordTypes(); // Dump summary of record types
 
    if (options & DUMP_STRINGTB) DumpNames(); // Dump names records
@@ -213,6 +212,8 @@ void COMF::Dump(int options) {
    if (options & DUMP_SECTHDR) DumpSegments(); // Dump segment records
 
    if (options & DUMP_RELTAB) DumpRelocations(); // Dump fixup records
+
+   if (options & DUMP_COMMENT) DumpComments(); // Dump coment records
 }
 
 void COMF::DumpRecordTypes() {
@@ -248,6 +249,38 @@ void COMF::DumpNames() {
          // Loop through strings in record
          while (Records[i].Index < Records[i].End) {
             printf("\n  Module: %s\n", Records[i].GetString());
+         }
+         if (Records[i].Index != Records[i].End) err.submit(1203);   // Check for consistency
+      }
+      if (Records[i].Type2 == OMF_COMDEF) {
+         // COMDEF record. Communal names
+         uint32 DType, DSize, DNum;
+         printf("\n\n Communal names:");
+
+         // Loop through strings in record
+         while (Records[i].Index < Records[i].End) {
+            printf("\n  \"%s\":", Records[i].GetString());
+            printf(" %i", Records[i].GetByte()); // Type index, should be 0
+            DType = Records[i].GetByte(); // Data type            
+            switch (DType) {
+            case 0x61:
+               DNum  = Records[i].GetLength();
+               DSize = Records[i].GetLength();
+               printf(" FAR: %i*%i bytes", DNum, DSize); 
+               break;
+            case 0x62:
+               DSize = Records[i].GetLength();
+               printf(" NEAR: 0x%X bytes", DSize); 
+               break;
+            default:
+               DSize = Records[i].GetLength();
+               if (DType < 0x60) { // Borland segment index
+                  printf(" segment %i, size 0x%X", DType, DSize); 
+                  break;
+               }
+               printf(" unknown type %i, size 0x%X", DType, DSize); 
+               break;
+            }
          }
          if (Records[i].Index != Records[i].End) err.submit(1203);   // Check for consistency
       }
@@ -405,9 +438,16 @@ void COMF::DumpRelocations() {
          LastDataRecord = i;                          // Save for later FIXUPP that refers to this record
          LastDataRecordSize = Size;
          LastDataRecordPointer = Records[i].buffer + Records[i].FileOffset + Records[i].Index;
-         printf("\n  LEDATA: segment %s, Offset 0x%X, Size 0x%X", // Dump segment, offset, size
-            GetSegmentName(Segment), Offset, Size);
-         LastOffset = Offset;
+         if (Segment < 0x4000) {
+            printf("\n  LEDATA: segment %s, Offset 0x%X, Size 0x%X", // Dump segment, offset, size
+               GetSegmentName(Segment), Offset, Size);
+            LastOffset = Offset;
+         }
+         else { // Undocumented Borland communal section
+            printf("\n  LEDATA communal section %i, Offset 0x%X, Size 0x%X", // Dump segment, offset, size
+               (Segment & ~0x4000), Offset, Size);
+            LastOffset = Offset;
+         }
       }
 
       if (Records[i].Type2 == OMF_LIDATA) {
@@ -575,6 +615,33 @@ void COMF::DumpRelocations() {
 }
 
 
+void COMF::DumpComments() {
+   // Dump COMENT records
+   uint32 i;           // Record index
+   int startindex;
+   printf("\n");
+   for (i = 0; i < NumRecords; i++) {
+      if (Records[i].Type2 == OMF_COMENT) {
+         // COMENT record
+         printf("\nCOMENT record:\n");
+         startindex = Records[i].Index;
+         // Print as hex
+         while (Records[i].Index < Records[i].End) {
+            printf("%02X ", Records[i].GetByte());
+         }
+         // Print again as string
+         Records[i].Index = startindex;
+         printf("\n");
+         while (Records[i].Index < Records[i].End) {
+            printf("%c ", Records[i].GetByte());
+         }
+         printf("\n");
+         if (Records[i].Index != Records[i].End) err.submit(1203);   // Check for consistency
+      }
+   }
+}
+
+
 void COMF::PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, int m) {
    // Make list of public names
    // Strings will receive ASCIIZ strings
@@ -652,15 +719,22 @@ void COMF::PublicNames(CMemoryBuffer * Strings, CSList<SStringEntry> * Index, in
 
 char * COMF::GetLocalName(uint32 i) {
    // Get section name or class name by name index
-   if (i == 0) return "null";
+   if (i == 0) return (char*)"null";
    if (i < LocalNameOffset.GetNumEntries()) {
       return NameBuffer.Buf() + LocalNameOffset[i];
    }
-   return "?";
+   return (char*)"?";
 }
 
+uint32 COMF::GetLocalNameO(uint32 i) {
+   // Get section name or class by converting name index offset into NameBuffer
+   if (i > 0 && i < LocalNameOffset.GetNumEntries()) {
+      return LocalNameOffset[i];
+   }
+   return 0;
+}
 
-char * COMF::GetSegmentName(uint32 i) {
+const char * COMF::GetSegmentName(uint32 i) {
    // Get section name by segment index
    if (i == 0) return "none";
    if (i <= NumRecords) {
@@ -670,7 +744,7 @@ char * COMF::GetSegmentName(uint32 i) {
 }
 
 
-char * COMF::GetSymbolName(uint32 i) {
+const char * COMF::GetSymbolName(uint32 i) {
    // Get external symbol name by index
    if (i == 0) return "null";
    if (i < SymbolNameOffset.GetNumEntries()) {
@@ -679,7 +753,7 @@ char * COMF::GetSymbolName(uint32 i) {
    return "?";
 }
 
-char * COMF::GetGroupName(uint32 i) {
+const char * COMF::GetGroupName(uint32 i) {
    // Get group name by index
    if (i == 0) return "none";
    if (i <= NumRecords) {
@@ -737,6 +811,23 @@ uint32 SOMFRecordPointer::GetNumeric(){
    else {
       // Even record type. Number is 16 bit s
       return GetWord();
+   }
+}
+
+uint32 SOMFRecordPointer::GetLength() {
+   // Read 1, 2, 3 or 4 bytes, depending on value of first byte
+   uint32 x = GetByte();
+   switch (x) {
+   case 0x81: // 16-bit value
+      return GetWord();
+   case 0x82: // 24-bit value
+      x = GetWord();
+      return (GetByte() << 16) + x;
+   case 0x84: // 32-bit value
+      return GetDword();
+   default: // 8-bit value
+      if (x > 0x80) err.submit(1203);
+      return x;
    }
 }
 
@@ -888,7 +979,9 @@ void COMFFileBuilder::EndRecord() {
    PutByte(-checksum);
 
    // Check size limit
-   if (GetSize() > 1030) err.submit(9005);
+   if (GetSize() > 0x407) {
+      err.submit(9005);
+   }
 }
 
 void COMFFileBuilder::PutByte(uint8 x) {

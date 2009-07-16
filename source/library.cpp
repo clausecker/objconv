@@ -1,14 +1,14 @@
 /****************************  library.cpp  **********************************
 * Author:        Agner Fog
 * Date created:  2006-08-27
-* Last modified: 2007-02-15
+* Last modified: 2008-08-30
 * Project:       objconv
 * Module:        library.cpp
 * Description:
 * This module contains code for reading, writing and manipulating function
 * libraries (archives) of the UNIX type and OMF type.
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -26,6 +26,7 @@ CLibrary::CLibrary() {
    CurrentNumber = 0;
    LongNames = 0;
    LongNamesSize = 0;
+   AlignBy = 0;
    MemberFileType = 0;
    RepressWarnings = 0;
    PageSize = 16;
@@ -47,10 +48,27 @@ void CLibrary::Go() {
          err.submit(2503); // Output file name missing
          return;
       }
+      // Check extension
       if (strstr(cmd.OutputFile, ".lib") && strstr(cmd.OutputFile, ".LIB") && strstr(cmd.OutputFile, ".a")) {
          err.submit(1101); // Warning wrong extension
       }
+      // Check if valid output type
+      if (cmd.OutputType >= IMPORT_LIBRARY_MEMBER) {
+         // Wrong output type
+         if (cmd.OutputType == FILETYPE_ASM) {
+            // Attempt to disassemble whole library
+            err.submit(2620);
+         }
+         else {
+            err.submit(2621);
+         }
+         return;
+      }
    }
+
+   // Desired alignment = 2 for COFF and ELF, 8 for Mach-O
+   AlignBy = 2;
+   if (cmd.OutputType == FILETYPE_MACHO_LE) AlignBy = 8;
 
    if (cmd.DumpOptions && !(cmd.LibraryOptions & CMDL_LIBRARY_EXTRACTMEM)) {
       // Dump library, but not its members
@@ -122,17 +140,18 @@ void CLibrary::Go() {
 
       // Check type of this member
       FileType1 = MemberBuffer.GetFileType();
+      if (FileType1 == 0) continue;
       WordSize1 = MemberBuffer.WordSize;
 
-      if (!(cmd.LibraryOptions & (CMDL_LIBRARY_EXTRACTMEM | CMDL_LIBRARY_ADDMEMBER))) {
-         // Not adding or extracting members. Apply conversion options to all members
-         if (cmd.SymbolChangesRequested() || FileType1 != cmd.OutputType) {
+      // if (!(cmd.LibraryOptions & (CMDL_LIBRARY_EXTRACTMEM | CMDL_LIBRARY_ADDMEMBER))) {
+      // Not adding or extracting members. Apply conversion options to all members
+      if (cmd.SymbolChangesRequested() || FileType1 != cmd.OutputType) {
 
-            // Conversion or name change requested
-            MemberBuffer.Go();                   // Do required conversion
-            if (err.Number()) break;             // Stop if error
-         }
+         // Conversion or name change requested
+         MemberBuffer.Go();                   // Do required conversion
+         if (err.Number()) break;             // Stop if error
       }
+      // }
       // Check type again after conversion
       FileType1 = MemberBuffer.GetFileType();
 
@@ -418,6 +437,8 @@ void CLibrary::RebuildUNIX() {
 
 void CLibrary::Dump() {
    // Print contents of library
+   printf("\nDump of library %s\nExported symbols by member:\n", cmd.InputFile);
+
    // Dispatch according to library type
    switch (cmd.InputType) {
    case FILETYPE_LIBRARY:
@@ -549,7 +570,7 @@ void CLibrary::DumpOMF() {
 void CLibrary::DumpUNIX() {
    // Print contents of UNIX style library
 
-   char * MemberName = 0;
+   const char * MemberName = 0;
    CurrentOffset = 8;  CurrentNumber = 0;
 
    // Loop through library
@@ -577,14 +598,14 @@ void CLibrary::DumpUNIX() {
       case FILETYPE_ELF: 
          if (WordSize == 32) {
             // Make instance of file parser, 32 bit template
-            CELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> elf;
+            CELF<ELF32STRUCTURES> elf;
             MemberBuffer >> elf;        // Transfer MemberBuffer to elf object
             elf.PublicNames(&StringBuffer, &StringEntries, 0);
             break;
          }
          else {
             // Make instance of file parser, 64 bit template
-            CELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> elf;
+            CELF<ELF64STRUCTURES> elf;
             MemberBuffer >> elf;        // Transfer MemberBuffer to elf object
             elf.PublicNames(&StringBuffer, &StringEntries, 0);
             break;
@@ -596,11 +617,21 @@ void CLibrary::DumpUNIX() {
          coff.PublicNames(&StringBuffer, &StringEntries, 0);
          break;}
 
-      case FILETYPE_MACHO_LE: {
-         CMACHO mac;
-         MemberBuffer >> mac;       // Transfer MemberBuffer to coff object
-         mac.PublicNames(&StringBuffer, &StringEntries, 0);
-         break;}
+      case FILETYPE_MACHO_LE:
+         if (WordSize == 32) {
+            // Make instance of file parser, 32 bit template
+            CMACHO<MAC32STRUCTURES> mac;
+            MemberBuffer >> mac;       // Transfer MemberBuffer to coff object
+            mac.PublicNames(&StringBuffer, &StringEntries, 0);
+            break;
+         }
+         else {
+            // Make instance of file parser, 64 bit template
+            CMACHO<MAC64STRUCTURES> mac;
+            MemberBuffer >> mac;       // Transfer MemberBuffer to coff object
+            mac.PublicNames(&StringBuffer, &StringEntries, 0);
+            break;
+         }
 
       case IMPORT_LIBRARY_MEMBER: {
          // This is an import library
@@ -623,6 +654,7 @@ void CLibrary::DumpUNIX() {
 
 
 uint32 CLibrary::NextHeader(uint32 Offset) {
+
    // Loop through library headers.
    // Input = current offset. Output = next offset
    SUNIXLibraryHeader * Header;   // Member header
@@ -689,7 +721,7 @@ void CLibrary::StartExtracting() {
 }
 
 
-char * CLibrary::ExtractMember(CFileBuffer * Destination) {
+const char * CLibrary::ExtractMember(CFileBuffer * Destination) {
    // Extract library member
    // Dispatch according to library type
    if (cmd.InputType == FILETYPE_OMFLIBRARY || cmd.InputType == FILETYPE_OMF) {
@@ -701,12 +733,12 @@ char * CLibrary::ExtractMember(CFileBuffer * Destination) {
 }
 
 
-char * CLibrary::ExtractMemberOMF(CFileBuffer * Destination) {
+const char * CLibrary::ExtractMemberOMF(CFileBuffer * Destination) {
    // Extract member of OMF style library
 
    uint32 RecordEnd;                             // End of OMF record
    SOMFRecordPointer rec;                        // Current OMF record
-   char * MemberName;                            // Name of library member
+   const char * MemberName;                      // Name of library member
    uint32 MemberStart;                           // Start of member
    uint32 MemberEnd;                             // End of member
 
@@ -760,11 +792,11 @@ char * CLibrary::ExtractMemberOMF(CFileBuffer * Destination) {
 }
 
 
-char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
+const char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
    // Extract member of UNIX style library
    // This function is called repeatedly to get each member of library/archive
-   SUNIXLibraryHeader * Header = 0;        // Member header
-   int32 MemberSize = 0;               // Size of member
+   SUNIXLibraryHeader * Header = 0;     // Member header
+   uint32 MemberSize = 0;              // Size of member
    uint32 HeaderExtra = 0;             // Extra added to size of header
    uint32 NameIndex;                   // Index into long names member
    char * Name = 0;                    // Name of member
@@ -783,8 +815,8 @@ char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
       // Extract next library member from input library
       Header = &Get<SUNIXLibraryHeader>(CurrentOffset);
       // Size of member
-      MemberSize = atoi(Header->FileSize);
-      if (MemberSize < 0 || MemberSize + CurrentOffset + sizeof(SUNIXLibraryHeader) > DataSize) {
+      MemberSize = (uint32)atoi(Header->FileSize);
+      if (MemberSize + CurrentOffset + sizeof(SUNIXLibraryHeader) > DataSize) {
          err.submit(2500);  // Points outside file
          return 0;
       }
@@ -818,7 +850,7 @@ char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
             Name = Buf() + LongNames + NameIndex;
          }
          else {
-            Name = "NoName!";
+            Name = (char*)"NoName!";
          }
          Skip = 0;
       }
@@ -827,7 +859,18 @@ char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
          // This variant is used by Mac and some versions of BSD
          HeaderExtra = atoi(Name+3);
          Name += sizeof(SUNIXLibraryHeader);
-         Skip = 0;
+         if (MemberSize > HeaderExtra) {
+            // The length of the name, HeaderExtra, is included in the 
+            // Header->FileSize field. Subtract to get the real file size
+            MemberSize -= HeaderExtra;
+         }
+         if (strncmp(Name, "__.SYMDEF", 9) == 0) {
+            // Symbol table "__.SYMDEF SORTED" as long name
+            Skip = 1;
+         }
+         else {
+            Skip = 0;
+         }
       }
       else {
          // Ordinary short name
@@ -854,7 +897,7 @@ char * CLibrary::ExtractMemberUNIX(CFileBuffer * Destination) {
    }
 
    // Check name
-   if (Name[0] == 0) Name = "NoName!";
+   if (Name[0] == 0) Name = (char*)"NoName!";
 
    // Return member name
    return Name;
@@ -901,6 +944,8 @@ void CLibrary::InsertMemberOMF(CFileBuffer * member) {
 
 void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
    // Add next library member to output library
+   uint32 RawSize = 0;                 // Size of binary file
+   uint32 AlignmentPadding = 0;        // Padding after file
 
    // Get word size
    WordSize = member->WordSize;
@@ -912,13 +957,14 @@ void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
    // Name of member
    if (member->OutputFileName == 0 || *member->OutputFileName == 0) member->OutputFileName = member->FileName;
    char * name = FixMemberNameUNIX(member->OutputFileName);
+
    // Set length of member string after header
    int NameLength = 0;
    if (cmd.OutputType == FILETYPE_MACHO_LE) {
       // Mach-O library stores name after header record.
-      // Name is zero padded to length NameLength = 28
-      NameLength = 28;
-      strcpy(header.Name, "#1/28");
+      // Name is zero padded to length NameLength = 20
+      NameLength = 20;
+      strcpy(header.Name, "#1/20");
    }
    else {
       // ELF and COFF library store names < 16 characters in the name field
@@ -931,8 +977,16 @@ void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
    header.GroupID[0] = '0';
    // File mode
    strcpy(header.FileMode, "100666");
+   // Size of binary file
+   RawSize = member->GetDataSize();
+   // Calculate alignment padding
+   if (AlignBy) {
+      AlignmentPadding = uint32(-int32(RawSize)) & (AlignBy-1);
+   }
+
    // File size including name string
-   sprintf(header.FileSize, "%u", member->GetDataSize() + NameLength);
+   sprintf(header.FileSize, "%u", NameLength + RawSize + AlignmentPadding);
+
    // Header end
    header.HeaderEnd[0] = '`';
    header.HeaderEnd[1] = '\n';
@@ -958,9 +1012,10 @@ void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
    }
 
    // Store member
-   DataBuffer.Push(member->Buf(), member->GetDataSize());
-   // Align by 2
-   if (DataBuffer.GetDataSize() & 1) {
+   DataBuffer.Push(member->Buf(), RawSize);
+
+   // Align by padding with '\n'
+   for (uint32 i = 0; i < AlignmentPadding; i++) {
       DataBuffer.Push("\n", 1);
    }
 
@@ -986,7 +1041,7 @@ void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
    case FILETYPE_ELF:
       if (WordSize == 32) {
          // Make instance of file parser, 32 bit template
-         CELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> elf;
+         CELF<ELF32STRUCTURES> elf;
          *member >> elf;      // Translate member to type ELF
          elf.PublicNames(&StringBuffer, &StringEntries, mindex); // Make list of public names
          *member << elf;      // Return buffer to member
@@ -994,19 +1049,30 @@ void CLibrary::InsertMemberUNIX(CFileBuffer * member) {
       }
       else {
          // Make instance of file parser, 64 bit template
-         CELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> elf;
+         CELF<ELF64STRUCTURES> elf;
          *member >> elf;      // Translate member to type ELF
          elf.PublicNames(&StringBuffer, &StringEntries, mindex); // Make list of public names
          *member << elf;      // Return buffer to member
          break;
       }
 
-   case FILETYPE_MACHO_LE: {
-      CMACHO mac;
-      *member >> mac;      // Translate member to type ELF
-      mac.PublicNames(&StringBuffer, &StringEntries, mindex); // Make list of public names
-      *member << mac;      // Return buffer to member
-      break;}
+   case FILETYPE_MACHO_LE:
+      if (WordSize == 32) {
+         // Make instance of file parser, 32 bit template
+         CMACHO<MAC32STRUCTURES> mac;
+         *member >> mac;      // Translate member to type ELF
+         mac.PublicNames(&StringBuffer, &StringEntries, mindex); // Make list of public names
+         *member << mac;      // Return buffer to member
+         break;
+      }
+      else {
+         // Make instance of file parser, 64 bit template
+         CMACHO<MAC64STRUCTURES> mac;
+         *member >> mac;      // Translate member to type ELF
+         mac.PublicNames(&StringBuffer, &StringEntries, mindex); // Make list of public names
+         *member << mac;      // Return buffer to member
+         break;
+      }
 
    default:                // Type not supported
       err.submit(2501, GetFileFormatName(member->GetFileType()));
@@ -1200,11 +1266,12 @@ int CLibrary::MemberNameExistsUNIX(char * name) {
 void CLibrary::SortStringTable() {
    // Sort the string table in ASCII order
 
-   // Point to table of SStringEntry records
-   SStringEntry * Table = &StringEntries[0];
    // Length of table
    int32 n = StringEntries.GetNumEntries();
    if (n <= 0) return;
+
+   // Point to table of SStringEntry records
+   SStringEntry * Table = &StringEntries[0];
    // String pointers
    char * s1, * s2;
    // Temporary record for swapping
@@ -1289,12 +1356,24 @@ void CLibrary::MakeSymbolTableUnix() {
    // Uses UNIX archive format for COFF, BSD and Mac
    uint32 i;                              // Loop counter
    uint32 MemberOffset;                   // Offset to member
+   uint32 LongNameSize = 0;               // Length of symbol table name if stored after record
+
+   int SymbolTableType = cmd.OutputType;  // FILETYPE_COFF       = 1: COFF
+                                          // FILETYPE_ELF        = 3: ELF
+                                          // FILETYPE_MACHO_LE   = 4: Mac, unsorted
+                                          //              0x10000004: Mac, sorted
+   // Newer Mac tools require the sorted type, unless there are multiple publics with same name
+   if (SymbolTableType == FILETYPE_MACHO_LE) SymbolTableType |= 0x10000000; 
 
    // Make symbol table header
-   SUNIXLibraryHeader SymTab;                 // Symbol table header
+   SUNIXLibraryHeader SymTab;             // Symbol table header
    memset(&SymTab, 0, sizeof(SymTab));    // Fill with spaces
    SymTab.Name[0] = '/';                  // Name = '/'
-   sprintf(SymTab.Date, "%u", (uint32)time(0)); // Time = now
+   // The silly Mac linker requires that the symbol table has a date stamp not 
+   // older than the .a file. Fix this by post-dating the symbol table:
+   uint32 PostDate = 0;
+   if (SymbolTableType & 0x10000000) PostDate = 100; // Post-date if mac sorted symbol table
+   sprintf(SymTab.Date, "%u", (uint32)time(0) + PostDate); // Date stamp for symbol table
    SymTab.UserID[0] = '0';                // UserID = 0
    SymTab.GroupID[0] = '0';               // GroupID = 0
    strcpy(SymTab.FileMode, "100666");     // FileMode = 0100666
@@ -1318,7 +1397,7 @@ void CLibrary::MakeSymbolTableUnix() {
 
    // Offset to first member
    uint32 FirstMemberOffset = 0;
-   switch (cmd.OutputType) {
+   switch (SymbolTableType) {
    case FILETYPE_COFF:
       FirstMemberOffset = 8 + 2*sizeof(SUNIXLibraryHeader) + RoundEven(Index1Size) + RoundEven(Index2Size);
       break;
@@ -1328,12 +1407,16 @@ void CLibrary::MakeSymbolTableUnix() {
    case FILETYPE_MACHO_LE:
       FirstMemberOffset = 8 + sizeof(SUNIXLibraryHeader) + Index3Size;
       break;
+   case FILETYPE_MACHO_LE | 0x10000000: // Mac, sorted
+      LongNameSize = 20;
+      FirstMemberOffset = 8 + sizeof(SUNIXLibraryHeader) + Index3Size + LongNameSize;
+      break;      
    default:
       err.submit(2501, GetFileFormatName(cmd.OutputType));
    }
 
    // Make unsorted symbol table for COFF or ELF output
-   if (cmd.OutputType == FILETYPE_COFF || cmd.OutputType == FILETYPE_ELF) {
+   if (SymbolTableType == FILETYPE_COFF || SymbolTableType == FILETYPE_ELF) {
 
       // Put file size into symbol table header
       sprintf(SymTab.FileSize, "%u", Index1Size);
@@ -1371,14 +1454,15 @@ void CLibrary::MakeSymbolTableUnix() {
    }
 
    // Sort string table
-   if (!RepressWarnings) SortStringTable();
+   if (!RepressWarnings && SymbolTableType != FILETYPE_MACHO_LE) SortStringTable();
 
    // Make sorted symbol table, COFF style
-   if (cmd.OutputType == FILETYPE_COFF) {
+   if (SymbolTableType == FILETYPE_COFF) {
       if (NumMembers > 0xFFFF) err.submit(2502);  // Too many members
 
       // Reuse symbol table header, change size entry
       sprintf(SymTab.FileSize, "%u", Index2Size);
+
       // Remove terminating zeroes
       for (i = 0; i < sizeof(SymTab); i++) {
          if (((char*)&SymTab)[i] == 0) ((char*)&SymTab)[i] = ' ';
@@ -1416,22 +1500,34 @@ void CLibrary::MakeSymbolTableUnix() {
       }
    }
 
-   // Make sorted symbol table, Mach-O style
-   if (cmd.OutputType == FILETYPE_MACHO_LE) {
+   // Make sorted or unsorted symbol table, Mach-O style
+   if ((SymbolTableType & 0xFFFF) == FILETYPE_MACHO_LE) {
 
-      // Put name into symbol table header
-      // Sorted tables are apparently not used, but I guess it doesn't hurt to sort the table?
-      memcpy(SymTab.Name, "__.SYMDEF SORTED", 16);
-      //memcpy(SymTab.Name, "__.SYMDEF       ", 16);
-      // Put file size into symbol table header
-      sprintf(SymTab.FileSize, "%u", Index3Size);
+      if (SymbolTableType & 0x10000000) {
+         // Sorted table. "__.SYMDEF SORTED" stored as long name
+         memcpy(SymTab.Name, "#1/20           ", 16);
+         // Put file size into symbol table header, including long name length
+         sprintf(SymTab.FileSize, "%u", Index3Size + LongNameSize);
+      }
+      else {
+         // Unsorted table. "__.SYMDEF" stored as short name
+         memcpy(SymTab.Name, "__.SYMDEF       ", 16);
+         // Put file size into symbol table header
+         sprintf(SymTab.FileSize, "%u", Index3Size);
+      }
+
       // Remove terminating zeroes
       for (i = 0; i < sizeof(SymTab); i++) {
          if (((char*)&SymTab)[i] == 0) ((char*)&SymTab)[i] = ' ';
       }
+
       // Store header
       OutFile.Push(&SymTab, sizeof(SymTab));
 
+      if (SymbolTableType & 0x10000000) {
+         // Store long name "__.SYMDEF SORTED"
+         OutFile.Push("__.SYMDEF SORTED\0\0\0\0", LongNameSize);
+      }
 
       // Store an array of records of string index and member offsets
       // Store length first
@@ -1457,7 +1553,7 @@ void CLibrary::MakeSymbolTableUnix() {
       // Align by 4
       OutFile.Align(4);
       // Cross check precalculated size (8 is the size of "!<arch>\n" file identifier) 
-      if (OutFile.GetDataSize() != Index3Size + sizeof(SymTab) + 8) err.submit(9000);
+      if (OutFile.GetDataSize() != Index3Size + sizeof(SymTab) + 8 + LongNameSize) err.submit(9000);
    }
 }
 
@@ -1626,7 +1722,7 @@ void CLibrary::CheckOMFHash(CMemoryBuffer &stringbuf, CSList<SStringEntry> &inde
 }
 
 
-char * CLibrary::GetModuleName(uint32 Index) {
+const char * CLibrary::GetModuleName(uint32 Index) {
    // Get name of module from index (UNIX) or page index (OMF)
    static char name[32];
    if (cmd.OutputType == FILETYPE_OMF || cmd.OutputType == FILETYPE_OMFLIBRARY) {
@@ -1653,8 +1749,15 @@ char * CLibrary::GetModuleName(uint32 Index) {
       if (Offset < DataBuffer.GetDataSize()) {
          // Copy name from header
          memcpy(name, DataBuffer.Buf() + Offset, 16);
+         // Check for long name
+         if (strncmp(name, "#1/", 3) == 0) {
+            // Long name format
+            memcpy(name, DataBuffer.Buf()+Offset+sizeof(SUNIXLibraryHeader), 16);
+         }
          // Find terminating '/'
          for (int i = 0; i < 16; i++) if (name[i] == '/') name[i] = 0;
+         // Make sure name is not too long
+         name[16] = 0;
          // return name
          return name;
       }

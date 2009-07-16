@@ -1,7 +1,7 @@
 /****************************   main.cpp   **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-26
-* Last modified: 2007-04-24
+* Last modified: 2009-01-22
 * Project:       objconv
 * Module:        main.cpp
 * Description:
@@ -10,7 +10,7 @@
 *
 * Module main contains the program entry
 *
-* (c) 2007 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -63,6 +63,19 @@ int FloorLog2(uint32 x) {
    return i;
 }
 
+const char * timestring(uint32 t) {
+   // Convert 32 bit time stamp to string
+   // Fix the problem that time_t may be 32 bit or 64 bit
+   union {
+      time_t t;
+      uint32 t32;
+   } utime;
+   utime.t = 0;
+   utime.t32 = t;
+   const char * string = ctime(&utime.t);
+   if (string == 0) string = "?";
+   return string;
+}
 
 // Main. Program starts here
 int main(int argc, char * argv[]) {
@@ -102,6 +115,7 @@ void CMain::Go() {
    cmd.InputType = FileType;           // Save input file type in cmd for access from other modules
    if (err.Number()) return;           // Return if error
    CheckOutputFileName();              // Construct output file name with default extension
+   if (err.Number()) return;
 
    if ((FileType & (FILETYPE_LIBRARY | FILETYPE_OMFLIBRARY)) 
    || (cmd.LibraryOptions & CMDL_LIBRARY_ADDMEMBER)) {
@@ -146,7 +160,7 @@ void CConverter::DumpELF() {
    // Dump ELF file
    if (WordSize == 32) {
       // Make object for interpreting 32 bit ELF file
-      CELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> elf;
+      CELF<ELF32STRUCTURES> elf;
       *this >> elf;                    // Give it my buffer
       elf.ParseFile();                 // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -155,7 +169,7 @@ void CConverter::DumpELF() {
    }
    else {
       // Make object for interpreting 32 bit ELF file
-      CELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> elf;
+      CELF<ELF64STRUCTURES> elf;
       *this >> elf;                    // Give it my buffer
       elf.ParseFile();                 // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -166,12 +180,24 @@ void CConverter::DumpELF() {
 
 void CConverter::DumpMACHO() {
    // Dump Mach-O file
-   CMACHO macho;                       // Make object for interpreting Mach-O file
-   *this >> macho;                     // Give it my buffer
-   macho.ParseFile();                  // Parse file buffer
-   if (err.Number()) return;           // Return if error
-   macho.Dump(cmd.DumpOptions);        // Dump file
-   *this << macho;                     // Take back my buffer
+   if (WordSize == 32) {
+      // Make object for interpreting 32 bit Mach-O file
+      CMACHO<MAC32STRUCTURES> macho;
+      *this >> macho;                     // Give it my buffer
+      macho.ParseFile();                  // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      macho.Dump(cmd.DumpOptions);        // Dump file
+      *this << macho;                     // Take back my buffer
+   }
+   else {
+      // Make object for interpreting 64 bit Mach-O file
+      CMACHO<MAC64STRUCTURES> macho;
+      *this >> macho;                     // Give it my buffer
+      macho.ParseFile();                  // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      macho.Dump(cmd.DumpOptions);        // Dump file
+      *this << macho;                     // Take back my buffer
+   }
 }
 
 void CConverter::ParseMACUnivBin() {
@@ -194,12 +220,24 @@ void CConverter::DumpOMF() {
 
 void CConverter::COF2ELF() {
    // Convert COFF to ELF file
-   CCOF2ELF conv;                      // Make object for conversion 
-   *this >> conv;                      // Give it my buffer
-   conv.ParseFile();                   // Parse file buffer
-   if (err.Number()) return;           // Return if error
-   conv.Convert();                     // Convert
-   *this << conv;                      // Take back converted buffer
+   if (WordSize == 32) {
+      // Make instance of converter, 32 bit template
+      CCOF2ELF<ELF32STRUCTURES> conv;  // Make object for conversion 
+      *this >> conv;                   // Give it my buffer
+      conv.ParseFile();                // Parse file buffer
+      if (err.Number()) return;        // Return if error
+      conv.Convert();                  // Convert
+      *this << conv;                   // Take back converted buffer
+   }
+   else {
+      // Make instance of converter, 64 bit template
+      CCOF2ELF<ELF64STRUCTURES> conv;  // Make object for conversion 
+      *this >> conv;                   // Give it my buffer
+      conv.ParseFile();                // Parse file buffer
+      if (err.Number()) return;        // Return if error
+      conv.Convert();                  // Convert
+      *this << conv;                   // Take back converted buffer
+   }
 }
 
 void CConverter::COF2OMF() {
@@ -226,7 +264,7 @@ void CConverter::ELF2COF() {
    // Convert ELF to COFF file
    if (WordSize == 32) {
       // Make instance of converter, 32 bit template
-      CELF2COF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> conv;
+      CELF2COF<ELF32STRUCTURES> conv;
       *this >> conv;                   // Give it my buffer
       conv.ParseFile();                // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -235,7 +273,7 @@ void CConverter::ELF2COF() {
    }
    else {
       // Make instance of converter, 64 bit template
-      CELF2COF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> conv;
+      CELF2COF<ELF64STRUCTURES> conv;
       *this >> conv;                   // Give it my buffer
       conv.ParseFile();                // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -246,16 +284,46 @@ void CConverter::ELF2COF() {
 
 void CConverter::ELF2MAC() {
    // Convert ELF to Mach-O file
-   CELF2MAC conv;
-   if (this->WordSize != 32) {         // Check word size
-      err.submit(2012, this->WordSize, 32);
-      return;
+   if (WordSize == 32) {
+      // Make instance of converter, 32 bit template
+      CELF2MAC<ELF32STRUCTURES,MAC32STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
    }
-   *this >> conv;                      // Give it my buffer
-   conv.ParseFile();                   // Parse file buffer
-   if (err.Number()) return;           // Return if error
-   conv.Convert();                     // Convert
-   *this << conv;                      // Take back converted buffer
+   else {
+      // Make instance of converter, 64 bit template
+      CELF2MAC<ELF64STRUCTURES,MAC64STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
+   }
+}
+
+void CConverter::MAC2ELF() {
+   // Convert Mach-O file to ELF file
+   if (WordSize == 32) {
+      // Make instance of converter, 32 bit template
+      CMAC2ELF<MAC32STRUCTURES,ELF32STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
+   }
+   else {
+      // Make instance of converter, 64 bit template
+      CMAC2ELF<MAC64STRUCTURES,ELF64STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
+   }
 }
 
 void CConverter::COF2ASM() {
@@ -272,7 +340,7 @@ void CConverter::ELF2ASM() {
    // Disassemble ELF file
    if (WordSize == 32) {
       // Make instance of converter, 32 bit template
-      CELF2ASM<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> conv;
+      CELF2ASM<ELF32STRUCTURES> conv;
       *this >> conv;                      // Give it my buffer
       conv.ParseFile();                   // Parse file buffer
       if (err.Number()) return;           // Return if error
@@ -281,7 +349,7 @@ void CConverter::ELF2ASM() {
    }
    else {
       // Make instance of converter, 64 bit template
-      CELF2ASM<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> conv;
+      CELF2ASM<ELF64STRUCTURES> conv;
       *this >> conv;                      // Give it my buffer
       conv.ParseFile();                   // Parse file buffer
       if (err.Number()) return;           // Return if error
@@ -292,12 +360,24 @@ void CConverter::ELF2ASM() {
 
 void CConverter::MAC2ASM() {
    // Disassemble Mach-O file
-   CMAC2ASM conv;                      // Make object for conversion 
-   *this >> conv;                      // Give it my buffer
-   conv.ParseFile();                   // Parse file buffer
-   if (err.Number()) return;           // Return if error
-   conv.Convert();                     // Convert
-   *this << conv;                      // Take back converted buffer
+   if (WordSize == 32) {
+      // Make instance of converter, 32 bit template
+      CMAC2ASM<MAC32STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
+   }
+   else {
+      // Make instance of converter, 64 bit template
+      CMAC2ASM<MAC64STRUCTURES> conv;
+      *this >> conv;                      // Give it my buffer
+      conv.ParseFile();                   // Parse file buffer
+      if (err.Number()) return;           // Return if error
+      conv.Convert();                     // Convert
+      *this << conv;                      // Take back converted buffer
+   }
 }
 
 void CConverter::OMF2ASM() {
@@ -324,7 +404,7 @@ void CConverter::ELF2ELF() {
    // Make changes in ELF file
    if (WordSize == 32) {
       // Make instance of converter, 32 bit template
-      CELF2ELF<Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela> conv;
+      CELF2ELF<ELF32STRUCTURES> conv;
       *this >> conv;                   // Give it my buffer
       conv.ParseFile();                // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -333,7 +413,29 @@ void CConverter::ELF2ELF() {
    }
    else {
       // Make instance of converter, 64 bit template
-      CELF2ELF<Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela> conv;
+      CELF2ELF<ELF64STRUCTURES> conv;
+      *this >> conv;                   // Give it my buffer
+      conv.ParseFile();                // Parse file buffer
+      if (err.Number()) return;        // Return if error
+      conv.Convert();                  // Convert
+      *this << conv;                   // Take back converted buffer
+   }
+}
+
+void CConverter::MAC2MAC() {
+   // Make changes in Mach-O file
+   if (WordSize == 32) {
+      // Make instance of converter, 32 bit template
+      CMAC2MAC<MAC32STRUCTURES> conv;
+      *this >> conv;                   // Give it my buffer
+      conv.ParseFile();                // Parse file buffer
+      if (err.Number()) return;        // Return if error
+      conv.Convert();                  // Convert
+      *this << conv;                   // Take back converted buffer
+   }
+   else {
+      // Make instance of converter, 64 bit template
+      CMAC2MAC<MAC64STRUCTURES> conv;
       *this >> conv;                   // Give it my buffer
       conv.ParseFile();                // Parse file buffer
       if (err.Number()) return;        // Return if error
@@ -374,13 +476,18 @@ void CConverter::Go() {
       default:
          err.submit(2010, GetFileFormatName(FileType));  // Dump of this file type not supported
       }
+      printf("\n");                              // New line
    }
    else {
       // File conversion requested
       if (cmd.DesiredWordSize == 0) cmd.DesiredWordSize = WordSize;
-      if (WordSize != cmd.DesiredWordSize) {
+      if (WordSize && WordSize != cmd.DesiredWordSize) {
          err.submit(2012, WordSize, cmd.DesiredWordSize); // Cannot convert word size
          return;
+      }
+      if (Executable && cmd.OutputType != CMDL_OUTPUT_MASM) {
+         // Attempt to convert executable file
+         err.submit(2022);
       }
       if (err.Number()) return;        // Return if error
 
@@ -401,17 +508,35 @@ void CConverter::Go() {
       if (cmd.Underscore && cmd.OutputType != 0) {
          if (cmd.Underscore == CMDL_UNDERSCORE_CHANGE) {
             // Find underscore option for desired conversion
-            if (WordSize == 32 && FileType == FILETYPE_ELF && cmd.OutputType != FILETYPE_ELF) {
-               // Converting from ELF32. Add underscores
-               cmd.Underscore = CMDL_UNDERSCORE_ADD;
+            if (WordSize == 32) {
+               // In 32-bit, all formats except ELF have underscores
+               if (FileType == FILETYPE_ELF && cmd.OutputType != FILETYPE_ELF) {
+                  // Converting from ELF32. Add underscores
+                  cmd.Underscore = CMDL_UNDERSCORE_ADD;
+               }
+               else if (FileType != FILETYPE_ELF && cmd.OutputType == FILETYPE_ELF) {
+                  // Converting to ELF32. Remove underscores
+                  cmd.Underscore = CMDL_UNDERSCORE_REMOVE;
+               }
+               else {
+                  // Anything else 32-bit. No change
+                  cmd.Underscore = CMDL_UNDERSCORE_NOCHANGE;
+               }
             }
-            else if (WordSize == 32 && FileType != FILETYPE_ELF && cmd.OutputType == FILETYPE_ELF) {
-               // Converting to ELF32. Remove underscores
-               cmd.Underscore = CMDL_UNDERSCORE_REMOVE;
-            }
-            else {
-               // Anything else. No change
-               cmd.Underscore = CMDL_UNDERSCORE_NOCHANGE;
+            else { 
+               // In 64-bit, only Mach-O has underscores
+               if (FileType == FILETYPE_MACHO_LE && cmd.OutputType != FILETYPE_MACHO_LE) {
+                  // Converting from MachO-64. Remove underscores
+                  cmd.Underscore = CMDL_UNDERSCORE_REMOVE;
+               }
+               else if (FileType != FILETYPE_MACHO_LE && cmd.OutputType == FILETYPE_MACHO_LE) {
+                  // Converting to MachO-64. Add underscores
+                  cmd.Underscore = CMDL_UNDERSCORE_ADD;
+               }
+               else {
+                  // Anything else 64-bit. No change
+                  cmd.Underscore = CMDL_UNDERSCORE_NOCHANGE;
+               }
             }
          }
          if (cmd.Verbose > (uint32)(cmd.LibraryOptions != 0)) { // Tell which option is chosen
@@ -422,11 +547,11 @@ void CConverter::Go() {
       // Check sectionname options
       if (cmd.SegmentDot && cmd.OutputType != 0) {
          if (cmd.SegmentDot == CMDL_SECTIONDOT_CHANGE) {
-            if (FileType == FILETYPE_ELF && cmd.OutputType == FILETYPE_COFF) {
+            if (cmd.OutputType == FILETYPE_COFF || cmd.OutputType == FILETYPE_MACHO_LE || cmd.OutputType == FILETYPE_OMF) {
                // Change leading '.' to '_' in nonstandard section names
                cmd.SegmentDot = CMDL_SECTIONDOT_DOT2U;
             }
-            else if (FileType == FILETYPE_COFF && cmd.OutputType == FILETYPE_ELF ) {
+            else if (cmd.OutputType == FILETYPE_ELF) {
                // Change leading '_' to '.' in nonstandard section names
                cmd.SegmentDot = CMDL_SECTIONDOT_U2DOT;
             }
@@ -457,25 +582,19 @@ void CConverter::Go() {
          switch (cmd.OutputType) {
          case FILETYPE_COFF:
             // Conversion from ELF to COFF
-            if (cmd.SymbolChangesRequested()) {
-               ELF2ELF();              // Make symbol changes in ELF file
-            }
+            ELF2ELF();                 // Make symbol changes in ELF file
             ELF2COF();                 // Convert to COFF
             break;
 
          case FILETYPE_MACHO_LE:
             // Conversion from ELF to Mach-O
-            if (cmd.SymbolChangesRequested()) {
-               ELF2ELF();              // Make symbol changes in ELF file
-            }
             ELF2MAC();                 // Convert to Mach-O
+            MAC2MAC();                 // Make symbol changes in Mach-O file, sort symbol tables alphabetically
             break;
 
          case FILETYPE_OMF:
             // Conversion from ELF to OMF
-            if (cmd.SymbolChangesRequested()) {
-               ELF2ELF();              // Make symbol changes in ELF file
-            }
+            ELF2ELF();                 // Make symbol changes in ELF file
             ELF2COF();                 // Convert to COFF first
             COF2OMF();                 // Then convert to OMF
             break;
@@ -521,25 +640,19 @@ void CConverter::Go() {
             break;
 
          case FILETYPE_ELF:
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
+            COF2COF();                 // Make symbol changes in COFF file
             COF2ELF();                 // Convert to ELF
             break;
             
          case FILETYPE_OMF:
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
+            COF2COF();                 // Make symbol changes in COFF file
             COF2OMF();                 // Convert to OMF
             break;
             
          case FILETYPE_MACHO_LE:
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
             COF2ELF();                 // Convert from COFF to ELF
             ELF2MAC();                 // Then convert from ELF to Mach-O
+            MAC2MAC();                 // Make symbol changes in Mach-O file and sort symbol table
             break;
 
          case CMDL_OUTPUT_MASM:
@@ -569,26 +682,20 @@ void CConverter::Go() {
 
          case FILETYPE_COFF:
             OMF2COF();                 // Convert to COFF
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
+            COF2COF();                 // Make symbol changes in COFF file
             break;
 
          case FILETYPE_ELF:
             OMF2COF();                 // Convert to COFF
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
+            COF2COF();                 // Make symbol changes in COFF file
             COF2ELF();                 // Convert to ELF
             break;
             
          case FILETYPE_MACHO_LE:
             OMF2COF();                 // Convert to COFF
-            if (cmd.SymbolChangesRequested()) {
-               COF2COF();              // Make symbol changes in COFF file
-            }
             COF2ELF();                 // Convert from COFF to ELF
             ELF2MAC();                 // Then convert from ELF to Mach-O
+            MAC2MAC();                 // Make symbol changes in Mach-O file and sort symbol table
             break;
 
          case CMDL_OUTPUT_MASM:
@@ -604,7 +711,30 @@ void CConverter::Go() {
 
       // Conversions from Mach-O
       case FILETYPE_MACHO_LE:
+
          switch (cmd.OutputType) {
+         case FILETYPE_ELF:
+            MAC2ELF();                 // Convert to ELF
+            ELF2ELF();                 // Make symbol changes in ELF file
+            break;
+
+         case FILETYPE_COFF:
+            MAC2ELF();                 // Convert to ELF
+            ELF2ELF();                 // Make symbol changes in ELF file
+            ELF2COF();                 // Convert to COFF
+            break;
+
+         case FILETYPE_OMF:
+            MAC2ELF();                 // Convert to ELF
+            ELF2ELF();                 // Make symbol changes in ELF file
+            ELF2COF();                 // Convert to COFF
+            COF2OMF();                 // Convert to OMF
+            break;
+
+         case FILETYPE_MACHO_LE:
+            MAC2MAC();                 // Make symbol changes in mACH-o file
+            break;
+
          case CMDL_OUTPUT_MASM:
             // Disassemble Mach-O file
             MAC2ASM();                 // Disassemble

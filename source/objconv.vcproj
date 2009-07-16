@@ -1,110 +1,182 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.10"
+	Version="9,00"
 	Name="objconv"
 	ProjectGUID="{45939D47-704D-4F42-8A5A-72B05F04453D}"
-	Keyword="Win32Proj">
+	RootNamespace="objconv"
+	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
+	>
 	<Platforms>
 		<Platform
-			Name="Win32"/>
+			Name="Win32"
+		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="Debug"
 			IntermediateDirectory="Debug"
 			ConfigurationType="1"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
-				MinimalRebuild="TRUE"
-				ExceptionHandling="FALSE"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="5"
-				ForceConformanceInForLoopScope="TRUE"
-				UsePrecompiledHeader="3"
+				RuntimeLibrary="1"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="false"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="4"
+				DisableSpecificWarnings="4996"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)/objconv.exe"
 				LinkIncremental="2"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/objconv.pdb"
 				SubSystem="1"
-				TargetMachine="1"/>
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="1"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
+				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="4"
-				UsePrecompiledHeader="3"
+				StringPooling="true"
+				ExceptionHandling="0"
+				RuntimeLibrary="0"
+				EnableFunctionLevelLinking="true"
+				RuntimeTypeInfo="false"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="3"/>
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="3"
+				DisableSpecificWarnings="4996"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)/objconv.exe"
 				LinkIncremental="1"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				TargetMachine="1"/>
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 	</Configurations>
 	<References>
@@ -113,140 +185,192 @@
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
 			<File
-				RelativePath=".\cmdline.cpp">
+				RelativePath=".\cmdline.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\cof2asm.cpp">
+				RelativePath=".\cof2asm.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\cof2cof.cpp">
+				RelativePath=".\cof2cof.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\cof2elf.cpp">
+				RelativePath=".\cof2elf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\cof2omf.cpp">
+				RelativePath=".\cof2omf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\coff.cpp">
+				RelativePath=".\coff.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\containers.cpp">
+				RelativePath=".\containers.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\disasm1.cpp">
+				RelativePath=".\disasm1.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\disasm2.cpp">
+				RelativePath=".\disasm2.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\elf.cpp">
+				RelativePath=".\elf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\elf2asm.cpp">
+				RelativePath=".\elf2asm.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\elf2cof.cpp">
+				RelativePath=".\elf2cof.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\elf2elf.cpp">
+				RelativePath=".\elf2elf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\elf2mac.cpp">
+				RelativePath=".\elf2mac.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\error.cpp">
+				RelativePath=".\error.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\library.cpp">
+				RelativePath=".\library.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\mac2asm.cpp">
+				RelativePath=".\mac2asm.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\macho.cpp">
+				RelativePath=".\mac2elf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\main.cpp">
+				RelativePath=".\mac2mac.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\omf.cpp">
+				RelativePath=".\macho.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\omf2asm.cpp">
+				RelativePath=".\main.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\omf2cof.cpp">
+				RelativePath=".\omf.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\omfhash.cpp">
+				RelativePath=".\omf2asm.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\opcodes.cpp">
+				RelativePath=".\omf2cof.cpp"
+				>
 			</File>
 			<File
-				RelativePath=".\stdafx.cpp">
+				RelativePath=".\omfhash.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\opcodes.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\stdafx.cpp"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="1"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="1"
+					/>
 				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
 			<File
-				RelativePath=".\cmdline.h">
+				RelativePath=".\cmdline.h"
+				>
 			</File>
 			<File
-				RelativePath=".\coff.h">
+				RelativePath=".\coff.h"
+				>
 			</File>
 			<File
-				RelativePath=".\containers.h">
+				RelativePath=".\containers.h"
+				>
 			</File>
 			<File
-				RelativePath=".\converters.h">
+				RelativePath=".\converters.h"
+				>
 			</File>
 			<File
-				RelativePath=".\disasm.h">
+				RelativePath=".\disasm.h"
+				>
 			</File>
 			<File
-				RelativePath=".\elf.h">
+				RelativePath=".\elf.h"
+				>
 			</File>
 			<File
-				RelativePath=".\error.h">
+				RelativePath=".\error.h"
+				>
 			</File>
 			<File
-				RelativePath=".\library.h">
+				RelativePath=".\library.h"
+				>
 			</File>
 			<File
-				RelativePath=".\macho.h">
+				RelativePath=".\macho.h"
+				>
 			</File>
 			<File
-				RelativePath=".\maindef.h">
+				RelativePath=".\maindef.h"
+				>
 			</File>
 			<File
-				RelativePath=".\omf.h">
+				RelativePath=".\omf.h"
+				>
 			</File>
 			<File
-				RelativePath=".\stdafx.h">
+				RelativePath=".\stdafx.h"
+				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
 		</Filter>
 	</Files>
 	<Globals>

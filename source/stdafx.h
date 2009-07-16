@@ -7,6 +7,7 @@
 * Description:
 * Header file including other header files for the project.
 *
+* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #ifndef OBJCONV_STDAFX_H
@@ -21,6 +22,9 @@
   #include <io.h>                // File in/out function headers
   #include <fcntl.h>
   #include <sys/stat.h>
+  #define stricmp _stricmp       // For later versions of MS compiler
+  #define strnicmp _strnicmp     // For later versions of MS compiler
+  #define filelength _filelength // For later versions of MS compiler
 #else                            // For Gnu and other compilers:
   #define stricmp  strcasecmp    // Alternative function names
   #define strnicmp strncasecmp

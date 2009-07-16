@@ -1,16 +1,19 @@
 /****************************   error.cpp   **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-15
-* Last modified: 2006-07-15
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        error.cpp
 * Description:
 * Standard procedure for error reporting to stderr
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
-#define OBJCONV_ERROR_CPP 1
+// Define this if you get problems:
+// #define OBJCONV_ERROR_CPP 1
+
+
 #include "stdafx.h"
 
 #define MAX_ERROR_TEXT_LENGTH 1024 // Maximum length of error text including extra info
@@ -32,10 +35,12 @@ SErrorText ErrorTexts[] = {
    {1008, 1, "Converting COFF file to ELF and back again."},
    {1009, 1, "Converting OMF file to COFF and back again."},
    {1010, 1, "Section index and section-relative fixup not supported in ELF file. Probably a debug record"},
+   {1011, 1, "Converting Mach-O file to ELF and back again."},
    {1020, 1, "Non-public symbol %s cannot be made weak"},
    {1021, 1, "Non-public symbol %s cannot be made local"},
    {1022, 1, "Non-public symbol %s cannot get an alias"},
    {1023, 1, "External symbol %s made local. Access to this symbol will cause error"},
+   {1024, 1, "Cannot change prefix on name %s, not a symbol"},
    {1029, 1, "Debug information may be incompatible"},
    {1030, 1, "Exception information may be incompatible"},
    {1031, 1, "Windows resource information not translated"},   
@@ -43,10 +48,15 @@ SErrorText ErrorTexts[] = {
    {1033, 1, "Sorry, cannot currently make alias in dynamic symbol table. Symbol = %s"},
    {1040, 1, "Name of section %s too long. Truncating to 16 characters"},
    {1050, 0, "Position dependent references will not work in .so file. (First occurrence is symbol %s. This message can be turned off with -wd1050)"},
-   {1051, 1, "Weak public not supported in Mach-O file, symbol %s"},
+   {1051, 1, "Weak public not supported in target file type, symbol %s"},
    {1052, 1, "Indirect symbol index out of range"},
+   {1053, 1, "Common constant converted to public: %s"},
+   {1054, 1, "Cannot find import table"},
+   {1055, 1, "Communal section currently not supported by objconv. Section dropped"},
    {1060, 1, "Different alignments specified for same segment, %s. Using highest alignment"},
-
+   {1061, 1, "Symbol %s has lazy binding"},
+   {1062, 1, "Symbol %s has unknonwn type"},
+   {1063, 1, "Gnu indirect function (CPU dispatcher) cannot be converted"},
    {1101, 1, "Output file name should have extension .lib or .a"},
    {1102, 1, "Library members have different type"},
    {1103, 1, "Output file name ignored"},
@@ -54,6 +64,10 @@ SErrorText ErrorTexts[] = {
    {1106, 1, "Symbol %s not found. Modification of this symbol failed"},
    {1107, 1, "Name of library member %s should have extension .o or .obj"},
    {1108, 1, "Name of library member %s too long. Truncating to 15 characters"},
+   {1150, 1, "Universal binary contains more than one component that can be converted. Specify desired word size or use lipo to extract desired component"},
+   {1151, 1, "Skipping component with wordsize %i"},
+
+
    {1202, 1, "OMF Record checksum error"},
    {1203, 1, "Unrecognized data in OMF subrecord"},
    {1204, 1, "String too long building OMF file. Truncating to 255 characters: %s"},
@@ -65,7 +79,11 @@ SErrorText ErrorTexts[] = {
    {1212, 1, "Record type (%s) not supported"},
    {1213, 1, "Hash table has %i occurrences of name %s"},
    {1214, 1, "Symbol %s defined in both modules %s"},
-   {1215, 2, "More than 251 blocks required in symbol hash table. May fail with some linkers"},
+   {1215, 1, "More than 251 blocks required in symbol hash table. May fail with some linkers"},
+   {1300, 1, "File contains 32-bit absolute address. Must link with option -image_base %s -pagezero_size 1000"},
+   {1301, 1, "Image-relative address converted to absolute. Assumes image base = %s"},
+   {1302, 1, "64-bit relocation with arbitrary reference point converted to 32-bit self-relative. Will fail if offset is negative"},
+   {1303, 1, "Cannot find imported symbol"},
 
    // Error messages
    {2001, 2, "No more than one input file and one output file can be specified"},
@@ -87,6 +105,8 @@ SErrorText ErrorTexts[] = {
    {2017, 2, "File name %s specified more than once"},
    {2018, 2, "Unknown type for file: %s"},
    {2020, 2, "Overflow when converting value of symbol %s to 32 bits"},
+   {2021, 2, "File contains information for objective-C runtime code. Cannot convert"},
+   {2022, 2, "Cannot convert executable file"},
 
    {2030, 2, "Unsupported relocation type (%i)"},
    {2031, 2, "Relocated symbol not found"},
@@ -97,12 +117,15 @@ SErrorText ErrorTexts[] = {
    {2036, 2, "Unknown section index in ELF file: %i"},
    {2037, 2, "Symbol storage/binding type %i not supported"},
    {2038, 2, "Symbol type %i not supported"},
-   {2039, 2, "Image-relative relocation not supported in ELF file"},
    {2040, 2, "Symbol table corrupt in object file"},
    {2041, 2, "File has relocation of uninitialized data"},
    {2042, 2, "Relocation to global offset table found. Cannot convert position-independent code"},
    {2043, 2, "Relocation to procedure linkage table found. Cannot convert"},
+   {2044, 2, "Relocation relative to arbitrary reference point that cannot be converted"},
+   {2045, 2, "Unknown import table type"},
    {2050, 2, "Inconsistent relocation record pair"},
+   {2051, 2, "Too many symbols for Mach-O file. Maximum = 16M"},
+   {2052, 2, "Unexpected data between symbol table and string table"},
 
    {2103, 2, "Cannot read input file %s"},
    {2104, 2, "Cannot write output file %s"},
@@ -111,8 +134,8 @@ SErrorText ErrorTexts[] = {
    {2110, 2, "COFF file section table corrupt"},
    {2112, 2, "String table corrupt"},
    {2114, 2, "This is an intermediate file for whole-program-optimization in Intel compiler"},
-   {2200, 2, "Weak public symbol not supported in PE/COFF file"},
    {2201, 2, "Not enough space for new file name %s. Please make this name shorter"},
+   {2202, 2, "Symbol name %s too long. Cannot change prefix"},
    {2210, 2, "File contains overlapping relocation sources"},
    {2301, 2, "OMF Record extends beyond end of file"},
    {2302, 2, "Fixup source extends beyond end of section"},
@@ -131,6 +154,12 @@ SErrorText ErrorTexts[] = {
    {2315, 2, "Group-relative relocation to %s not supported"},
    {2316, 2, "Incompatible relocation method: %s"},
    {2317, 2, "Incompatible word size: %i"},
+   {2318, 2, "OMF file has compression of repeated communal data. This is not supported in objconv"},
+   {2320, 2, "Mixed 32-bit and 64-bit segments"},
+   {2321, 2, "Wrong record size found"},
+   {2330, 2, "Imagebase specified more than once"},
+   {2331, 2, "Imagebase must be divisible by page size 1000 (hexadecimal)"},
+   {2332, 2, "Imagebase must > 0 and < 80000000 (hexadecimal)"},
 
    {2500, 2, "Library/archive file is corrupt"},
    {2501, 2, "Cannot store file of type %s in library"},
@@ -147,6 +176,8 @@ SErrorText ErrorTexts[] = {
    {2605, 2, "Symbol hash table too big. Creation of library failed"},
    {2606, 2, "Too many library members. Creation of library failed"},
    {2610, 2, "Library end record not found"},
+   {2620, 2, "You need to extract library members before disassembling"},
+   {2621, 2, "Wrong output file type"},
 
    {2701, 2, "Wrong number of members in universal binary (%i)"},
 

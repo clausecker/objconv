@@ -1,14 +1,14 @@
 /****************************    elf.h    ***********************************
 * Author:        Agner Fog
 * Date created:  2006-07-18
-* Last modified: 2006-07-18
+* Last modified: 2009-07-15
 * Project:       objconv
 * Module:        elf.h
 * Description:
 * Header file for definition of structures in 32 and 64 bit ELF object file 
 * format.
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef ELF_H
 #define ELF_H
@@ -47,8 +47,6 @@ struct Elf64_Ehdr {
   uint16  e_shentsize;   // Section header table entry size
   uint16  e_shnum;       // Section header table entry count
   uint16  e_shstrndx;    // Section header string table index
-  Elf64_Ehdr(){};        // Default constructor
-  Elf64_Ehdr(Elf32_Ehdr &); // Constructor to convert from Elf32_Ehdr
 };
 
 
@@ -205,8 +203,6 @@ struct Elf64_Shdr {
   uint32  sh_info;      // Additional section information
   uint64  sh_addralign; // Section alignment
   uint64  sh_entsize;   // Entry size if section holds table
-  Elf64_Shdr(){};       // Default constructor
-  Elf64_Shdr(Elf32_Shdr&);// Constructor to convert from Elf32_Shdr
 };
 
 
@@ -297,8 +293,6 @@ struct Elf64_Sym {
   uint16  st_shndx;      // Section index
   uint64  st_value;      // Symbol value
   uint64  st_size;       // Symbol size
-  Elf64_Sym(){};         // Default constructor
-  Elf64_Sym(Elf32_Sym&); // Constructor to convert from Elf32_Sym
 };
 
 
@@ -363,6 +357,7 @@ struct Elf64_Syminfo {
 #define STT_COMMON   5    // Symbol is a common data object
 #define STT_NUM      6    // Number of defined types. 
 #define STT_LOOS    10    // Start of OS-specific
+#define STT_GNU_IFUNC 10  // Symbol is an indirect code object (function dispatcher)
 #define STT_HIOS    12    // End of OS-specific
 #define STT_LOPROC  13    // Start of processor-specific
 #define STT_HIPROC  15    // End of processor-specific
@@ -432,6 +427,45 @@ struct Elf64_Rela {
   uint32  r_sym;                  // Symbol index
   int64   r_addend;               // Addend
 };
+
+// i386 Relocation types
+
+#define R_386_NONE      0    // No reloc
+#define R_386_32        1    // Direct 32 bit
+#define R_386_PC32      2    // Self-relative 32 bit (not EIP relative in the sense used in COFF files)
+#define R_386_GOT32     3    // 32 bit GOT entry
+#define R_386_PLT32     4    // 32 bit PLT address
+#define R_386_COPY      5    // Copy symbol at runtime
+#define R_386_GLOB_DAT  6    // Create GOT entry
+#define R_386_JMP_SLOT  7    // Create PLT entry
+#define R_386_RELATIVE  8    // Adjust by program base
+#define R_386_GOTOFF    9    // 32 bit offset to GOT 
+#define R_386_GOTPC    10    // 32 bit self relative offset to GOT
+#define R_386_IRELATIVE 42   // Reference to PLT entry of indirect function (STT_GNU_IFUNC)
+//#define R_386_NUM      11    // Number of entries
+
+// AMD x86-64 relocation types
+#define R_X86_64_NONE       0  // No reloc
+#define R_X86_64_64         1  // Direct 64 bit 
+#define R_X86_64_PC32       2  // Self relative 32 bit signed (not RIP relative in the sense used in COFF files)
+#define R_X86_64_GOT32      3  // 32 bit GOT entry
+#define R_X86_64_PLT32      4  // 32 bit PLT address
+#define R_X86_64_COPY       5  // Copy symbol at runtime
+#define R_X86_64_GLOB_DAT   6  // Create GOT entry
+#define R_X86_64_JUMP_SLOT  7  // Create PLT entry
+#define R_X86_64_RELATIVE   8  // Adjust by program base
+#define R_X86_64_GOTPCREL   9  // 32 bit signed self relative offset to GOT
+#define R_X86_64_32        10  // Direct 32 bit zero extended
+#define R_X86_64_32S       11  // Direct 32 bit sign extended
+#define R_X86_64_16        12  // Direct 16 bit zero extended
+#define R_X86_64_PC16      13  // 16 bit sign extended self relative
+#define R_X86_64_8         14  // Direct 8 bit sign extended
+#define R_X86_64_PC8       15  // 8 bit sign extended self relative
+#define R_X86_64_IRELATIVE 37  // Reference to PLT entry of indirect function (STT_GNU_IFUNC)
+//#define R_X86_64_NUM       16  // Number of entries
+// Pseudo-record when ELF is used as intermediary between COFF and MachO:
+#define R_UNSUPPORTED_IMAGEREL 21  // Image-relative not supported
+
 
 
 // Program segment header.
@@ -807,40 +841,13 @@ struct Elf64_Move {
 #define ELF64_M_INFO(sym, size)  ELF32_M_INFO (sym, size)
 
 
-/* Intel 80386 specific definitions.  */
+/********************** Strings **********************/
+#define ELF_CONSTRUCTOR_NAME    ".ctors"   // Name of constructors segment
 
-// i386 Relocation types
 
-#define R_386_NONE      0    // No reloc
-#define R_386_32        1    // Direct 32 bit
-#define R_386_PC32      2    // Self-relative 32 bit (not EIP relative in the sense used in COFF files)
-#define R_386_GOT32     3    // 32 bit GOT entry
-#define R_386_PLT32     4    // 32 bit PLT address
-#define R_386_COPY      5    // Copy symbol at runtime
-#define R_386_GLOB_DAT  6    // Create GOT entry
-#define R_386_JMP_SLOT  7    // Create PLT entry
-#define R_386_RELATIVE  8    // Adjust by program base
-#define R_386_GOTOFF    9    // 32 bit offset to GOT 
-#define R_386_GOTPC    10    // 32 bit self relative offset to GOT
-#define R_386_NUM      11    // Number of entries
-
-// AMD x86-64 relocation types
-#define R_X86_64_NONE       0  // No reloc
-#define R_X86_64_64         1  // Direct 64 bit 
-#define R_X86_64_PC32       2  // Self relative 32 bit signed (not RIP relative in the sense used in COFF files)
-#define R_X86_64_GOT32      3  // 32 bit GOT entry
-#define R_X86_64_PLT32      4  // 32 bit PLT address
-#define R_X86_64_COPY       5  // Copy symbol at runtime
-#define R_X86_64_GLOB_DAT   6  // Create GOT entry
-#define R_X86_64_JUMP_SLOT  7  // Create PLT entry
-#define R_X86_64_RELATIVE   8  // Adjust by program base
-#define R_X86_64_GOTPCREL   9  // 32 bit signed self relative offset to GOT
-#define R_X86_64_32        10  // Direct 32 bit zero extended
-#define R_X86_64_32S       11  // Direct 32 bit sign extended
-#define R_X86_64_16        12  // Direct 16 bit zero extended
-#define R_X86_64_PC16      13  // 16 bit sign extended self relative
-#define R_X86_64_8         14  // Direct 8 bit sign extended
-#define R_X86_64_PC8       15  // 8 bit sign extended self relative
-#define R_X86_64_NUM       16  // Number of entries
+// Macros listing all word-size dependent structures, used as template parameter list
+#define ELFSTRUCTURES    TELF_Header, TELF_SectionHeader, TELF_Symbol, TELF_Relocation
+#define ELF32STRUCTURES  Elf32_Ehdr, Elf32_Shdr, Elf32_Sym, Elf32_Rela
+#define ELF64STRUCTURES  Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela
 
 #endif // #ifndef ELF_H

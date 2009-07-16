@@ -1,7 +1,7 @@
 /****************************   coff.cpp   ***********************************
 * Author:        Agner Fog
 * Date created:  2006-07-15
-* Last modified: 2006-07-15
+* Last modified: 2009-01-22
 * Project:       objconv
 * Module:        coff.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Class CCOFF is used for reading, interpreting and dumping PE/COFF files.
 *
-* (c) 2006 GNU General Public License www.gnu.org/copyleft/gpl.html
+* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -248,8 +248,9 @@ void CCOFF::Dump(int options) {
       printf("\nFile size: %i", GetDataSize());
       printf("\nFile header:");
       printf("\nMachine: %s", Lookup(COFFMachineNames,FileHeader->Machine));
-      printf("\nTimeDate: 0x%08X - %s", FileHeader->TimeDateStamp, ctime((const time_t*)(&FileHeader->TimeDateStamp)));
-      printf("Number of sections: %2i", FileHeader->NumberOfSections);
+      printf("\nTimeDate: 0x%08X", FileHeader->TimeDateStamp);
+      printf(" - %s", timestring(FileHeader->TimeDateStamp));
+      printf("\nNumber of sections: %2i", FileHeader->NumberOfSections);
       printf("\nNumber of symbols:  %2i", FileHeader->NumberOfSymbols);
       printf("\nOptional header size: %i", FileHeader->SizeOfOptionalHeader);
       printf("\nFlags: 0x%04X", FileHeader->Flags);
@@ -473,7 +474,7 @@ void CCOFF::PrintSegmentCharacteristics(uint32 flags) {
    if (n == 0) printf("None");
 }
 
-char * CCOFF::GetFileName(SCOFF_SymTableEntry * syme) {
+const char * CCOFF::GetFileName(SCOFF_SymTableEntry * syme) {
    // Get file name from records in symbol table
    if (syme->s.NumAuxSymbols < 1 || syme->s.StorageClass != COFF_CLASS_FILE) {
       return ""; // No file name found
@@ -493,10 +494,10 @@ char * CCOFF::GetFileName(SCOFF_SymTableEntry * syme) {
    return text;
 }
 
-char * CCOFF::GetShortFileName(SCOFF_SymTableEntry * syme) {
+const char * CCOFF::GetShortFileName(SCOFF_SymTableEntry * syme) {
    // Same as above. Strips path before filename
    // Full file name
-   char * fullname = GetFileName(syme);
+   const char * fullname = GetFileName(syme);
    // Length
    uint32 len = (uint32)strlen(fullname);
    if (len < 1) return fullname;
@@ -539,9 +540,27 @@ void CCOFF::PrintSymbolTable(int symnum) {
       SCOFF_SymTableEntry *s0;
       printf("\n");
       if (symnum >= 0) printf("  ");
-      printf("Symbol %i - Name: %s", isym, GetSymbolName(Symtab.p->s.Name));
-      printf("\n  Value=%i, Section=%i, Type=0x%X, StorClass=%s, NumAux=%i",
-         Symtab.p->s.Value, Symtab.p->s.SectionNumber, Symtab.p->s.Type,
+      printf("Symbol %i - Name: %s\n  Value=%i, ", 
+         isym, GetSymbolName(Symtab.p->s.Name), Symtab.p->s.Value);
+      if (Symtab.p->s.SectionNumber > 0) {
+         printf("Section=%i", Symtab.p->s.SectionNumber);
+      }
+      else { // Special section numbers
+         switch (Symtab.p->s.SectionNumber) {
+         case COFF_SECTION_UNDEF:
+            printf("External"); break;
+         case COFF_SECTION_ABSOLUTE:
+            printf("Absolute"); break;
+         case COFF_SECTION_DEBUG:
+            printf("Debug"); break;
+         case COFF_SECTION_N_TV:
+            printf("Preload transfer"); break;
+         case COFF_SECTION_P_TV:
+            printf("Postload transfer"); break;
+         }
+      }
+      printf(", Type=0x%X, StorClass=%s, NumAux=%i",
+         Symtab.p->s.Type,
          GetStorageClassName(Symtab.p->s.StorageClass), Symtab.p->s.NumAuxSymbols);
       if (Symtab.p->s.StorageClass == COFF_CLASS_FILE && Symtab.p->s.NumAuxSymbols > 0) {
          printf("\n  File name: %s", GetFileName(Symtab.p));
@@ -706,7 +725,7 @@ void CCOFF::PrintImportExport() {
    uint32 Address;                               // Virtual address of exported symbol
    uint32 NameOffset;                            // Section offset of symbol name
    uint32 SectionOffset;                         // Section offset of table
-   char * Name;                                  // Name of symbol
+   const char * Name;                            // Name of symbol
 
    // Check if 64 bit
    int Is64bit = OptionalHeader->h64.Magic == COFF_Magic_PE64;
@@ -839,7 +858,7 @@ void CCOFF::PrintImportExport() {
 
 // Functions for manipulating COFF files
 
-uint32 COFF_PutNameInSymbolTable(SCOFF_SymTableEntry & sym, char * name, CMemoryBuffer & StringTable) {
+uint32 COFF_PutNameInSymbolTable(SCOFF_SymTableEntry & sym, const char * name, CMemoryBuffer & StringTable) {
    // Function to put a name into SCOFF_SymTableEntry. 
    // Put name in string table if longer than 8 characters.
    // Returns index into StringTable if StringTable used
@@ -859,7 +878,7 @@ uint32 COFF_PutNameInSymbolTable(SCOFF_SymTableEntry & sym, char * name, CMemory
    return 0;
 }
 
-void COFF_PutNameInSectionHeader(SCOFF_SectionHeader & sec, char * name, CMemoryBuffer & StringTable) {
+void COFF_PutNameInSectionHeader(SCOFF_SectionHeader & sec, const char * name, CMemoryBuffer & StringTable) {
    // Function to put a name into SCOFF_SectionHeader. 
    // Put name in string table if longer than 8 characters
    int len = (int)strlen(name);                  // Length of name
