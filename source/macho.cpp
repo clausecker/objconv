@@ -454,11 +454,11 @@ void CMACHO<MACSTRUCTURES>::Dump(int options) {
 
          if (symp->n_strx < StringTabSize && !(symp->n_type & MAC_N_STAB)) {
             printf("\n  %2i %s, Section %i, Value 0x%X\n    ",
-               i, strtab + symp->n_strx, symp->n_sect, symp->n_value);
+               i, strtab + symp->n_strx, symp->n_sect, uint32(symp->n_value));
          }
          else {
             printf("\n  String table offset: 0x%X, Section %i, Value 0x%X\n    ",
-               symp->n_strx, symp->n_sect, symp->n_value);
+               symp->n_strx, symp->n_sect, uint32(symp->n_value));
          }
 
          if (symp->n_type & MAC_N_STAB) {
@@ -505,7 +505,7 @@ void CMACHO<MACSTRUCTURES>::Dump(int options) {
             printf("\n   %s", strtab + StringIndex);
             // print type, etc.
             printf(", type 0x%X, sect %i, desc 0x%X, val 0x%X",
-               pIndSym->n_type, pIndSym->n_sect, pIndSym->n_desc, pIndSym->n_value);
+               pIndSym->n_type, pIndSym->n_sect, pIndSym->n_desc, uint32(pIndSym->n_value));
          }
       }
    }

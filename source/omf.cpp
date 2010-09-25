@@ -1,7 +1,7 @@
 /****************************    omf.cpp    *********************************
 * Author:        Agner Fog
 * Date created:  2007-01-29
-* Last modified: 2009-07-15
+* Last modified: 2009-07-17
 * Project:       objconv
 * Module:        omf.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Class COMF is used for reading, interpreting and dumping OMF files.
 *
-* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -737,6 +737,12 @@ uint32 COMF::GetLocalNameO(uint32 i) {
 const char * COMF::GetSegmentName(uint32 i) {
    // Get section name by segment index
    if (i == 0) return "none";
+   if ((i & 0xC000) == 0x4000) {
+      // Borland communal section
+      static char text[32];
+      sprintf(text, "communal section %i", i - 0x4000);
+      return text;
+   }
    if (i <= NumRecords) {
       return NameBuffer.Buf() + SegmentNameOffset[i];
    }

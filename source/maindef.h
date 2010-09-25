@@ -1,24 +1,47 @@
 /****************************  maindef.h   **********************************
 * Author:        Agner Fog
 * Date created:  2006-08-26
-* Last modified: 2009-07-16
+* Last modified: 2010-09-23
 * Project:       objconv
 * Module:        maindef.h
 * Description:
 * Header file for type definitions and other main definitions.
 *
-* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2010 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef MAINDEF_H
 #define MAINDEF_H
 
 // Program version
-#define OBJCONV_VERSION         2.09
+#define OBJCONV_VERSION         2.10
 
 
 // Integer type definitions with platform-independent sizes:
-#if defined(__GNUC__)
-  // Compilers supporting C99 or C++0x have inttypes.h defining these integer types
+#include <limits.h>
+#if defined(_I64_MAX)
+// Microsoft compilers use __int64 etc
+typedef char               int8;       // 8 bit  signed integer
+typedef unsigned char      uint8;      // 8 bit  unsigned integer
+typedef short int          int16;      // 16 bit signed integer
+typedef unsigned short int uint16;     // 16 bit unsigned integer
+typedef int                int32;      // 32 bit signed integer
+typedef unsigned int       uint32;     // 32 bit unsigned integer
+typedef __int64            int64;      // 64 bit signed integer
+typedef unsigned __int64   uint64;     // 64 bit unsigned integer
+
+#elif defined(INT_MAX) && defined(LLONG_MAX) && INT_MAX==2147483647L && LLONG_MAX==9223372036854775807LL
+// Compiler has int = 32 bit and long long = 64 bit
+typedef char               int8;       // 8 bit  signed integer
+typedef unsigned char      uint8;      // 8 bit  unsigned integer
+typedef short int          int16;      // 16 bit signed integer
+typedef unsigned short int uint16;     // 16 bit unsigned integer
+typedef int                int32;      // 32 bit signed integer
+typedef unsigned int       uint32;     // 32 bit unsigned integer
+typedef long long          int64;      // 64 bit signed integer
+typedef unsigned long long uint64;     // 64 bit unsigned integer
+
+#else
+  // Compilers supporting C99 or C++0x or C++1x have inttypes.h defining these integer types
   // This is the preferred solution:
   #include <inttypes.h>
   //typedef int8_t         int8;       // Gnu compiler can't convert int8_t to char
@@ -30,27 +53,6 @@
   typedef uint32_t         uint32;     // 32 bit unsigned integer
   typedef int64_t          int64;      // 64 bit signed integer
   typedef uint64_t         uint64;     // 64 bit unsigned integer
-
-#else
-
-typedef char               int8;       // 8 bit  signed integer
-typedef unsigned char      uint8;      // 8 bit  unsigned integer
-typedef short int          int16;      // 16 bit signed integer
-typedef unsigned short int uint16;     // 16 bit unsigned integer
-typedef int                int32;      // 32 bit signed integer
-typedef unsigned int       uint32;     // 32 bit unsigned integer
-
-// Definition of 64 bit integers depends on platform
-#if defined(_MSC_VER)
-// Microsofts typenames:
-typedef __int64            int64;      // 64 bit signed integer
-typedef unsigned __int64   uint64;     // 64 bit unsigned integer
-
-#else
-// This works with most compilers:
-typedef long long          int64;      // 64 bit signed integer
-typedef unsigned long long uint64;     // 64 bit unsigned integer
-#endif
 #endif
 
 

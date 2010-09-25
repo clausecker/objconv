@@ -1,13 +1,13 @@
 /****************************  cof2asm.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2007-02-25
+* Last modified: 2009-12-20
 * Project:       objconv
 * Module:        cof2asm.cpp
 * Description:
 * Module for disassembling PE/COFF file
 *
-* Copyright 2007-2008 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -276,7 +276,8 @@ void CCOF2ASM::MakeDynamicRelocations() {
    } Pointer;
 
    // Loop throung .reloc section
-   while (ROffset < reldir.MaxOffset) {
+   // while (ROffset < reldir.MaxOffset) {
+   while (ROffset < reldir.Size) {
       // Set Pointer to current position
       Pointer.header = pBaseRelocation;
       Pointer.b += ROffset;

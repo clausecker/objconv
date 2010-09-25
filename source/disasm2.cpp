@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2009-07-15
+* Last modified: 2010-09-23
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2010 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -880,6 +880,14 @@ void CDisassembler::WriteImmediateOperand(uint32 Type) {
    }
    else {
       // Write as signed or unsigned decimal
+      if (WriteFormat == 0) { // unsigned
+         switch (OSize) {
+         case 8:  // 8 bits
+            Value &= 0x00FF;  break;
+         case 16:  // 16 bits
+            Value &= 0xFFFF;  break;
+         }
+      }
       OutFile.PutDecimal((int32)Value, WriteFormat);  // Write value. Signed or usigned decimal
    }
 }
@@ -1914,6 +1922,12 @@ void CDisassembler::WriteRelocationTarget(uint32 irel, uint32 Context, int64 Add
       }
       // Write name of target symbol
       OutFile.Put(Symbols.GetName(TargetSym));
+
+      if (Syntax == SUBTYPE_GASM && (
+      RelType == 0x41 || RelType == 0x81 || RelType == 0x2002)) {
+         // make PLT entry
+         OutFile.Put("@PLT");
+      }
    }
 
    // End parenthesis if we started one
@@ -2222,7 +2236,11 @@ void CDisassembler::WriteFileBegin() {
       OutFile.Put("Error: symbol names contain illegal characters,");
       OutFile.NewLine(); OutFile.Put(CommentSeparator);
       OutFile.PutDecimal(NamesChanged);
+#if ReplaceIllegalChars
       OutFile.Put(" Symbol names changed");
+#else
+      OutFile.Put(" Symbol names not changed");
+#endif
       OutFile.NewLine();
    }
 

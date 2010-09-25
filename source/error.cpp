@@ -1,7 +1,7 @@
 /****************************   error.cpp   **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-15
-* Last modified: 2009-07-15
+* Last modified: 2009-12-20
 * Project:       objconv
 * Module:        error.cpp
 * Description:
@@ -30,7 +30,6 @@ SErrorText ErrorTexts[] = {
    {1001, 1, "Empty command line option"},
    {1002, 1, "Unknown command line option: %s"},
    {1003, 1, "Unknown warning/error number: %i"},
-
    {1006, 1, "Nothing do do. Copying file unchanged"},
    {1008, 1, "Converting COFF file to ELF and back again."},
    {1009, 1, "Converting OMF file to COFF and back again."},
@@ -55,7 +54,7 @@ SErrorText ErrorTexts[] = {
    {1055, 1, "Communal section currently not supported by objconv. Section dropped"},
    {1060, 1, "Different alignments specified for same segment, %s. Using highest alignment"},
    {1061, 1, "Symbol %s has lazy binding"},
-   {1062, 1, "Symbol %s has unknonwn type"},
+   {1062, 1, "Symbol %s has unknown type"},
    {1063, 1, "Gnu indirect function (CPU dispatcher) cannot be converted"},
    {1101, 1, "Output file name should have extension .lib or .a"},
    {1102, 1, "Library members have different type"},
@@ -66,7 +65,6 @@ SErrorText ErrorTexts[] = {
    {1108, 1, "Name of library member %s too long. Truncating to 15 characters"},
    {1150, 1, "Universal binary contains more than one component that can be converted. Specify desired word size or use lipo to extract desired component"},
    {1151, 1, "Skipping component with wordsize %i"},
-
 
    {1202, 1, "OMF Record checksum error"},
    {1203, 1, "Unrecognized data in OMF subrecord"},
@@ -84,6 +82,7 @@ SErrorText ErrorTexts[] = {
    {1301, 1, "Image-relative address converted to absolute. Assumes image base = %s"},
    {1302, 1, "64-bit relocation with arbitrary reference point converted to 32-bit self-relative. Will fail if offset is negative"},
    {1303, 1, "Cannot find imported symbol"},
+   {1304, 1, "Unknown relocation address"},
 
    // Error messages
    {2001, 2, "No more than one input file and one output file can be specified"},

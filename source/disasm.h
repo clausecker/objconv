@@ -1,13 +1,13 @@
 /****************************  disasm.h   **********************************
 * Author:        Agner Fog
 * Date created:  2007-02-21
-* Last modified: 2009-07-15
+* Last modified: 2010-09-23
 * Project:       objconv
 * Module:        disasm.h
 * Description:
 * Header file for disassembler
 *
-* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2010 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef DISASM_H
 #define DISASM_H
@@ -16,6 +16,8 @@
 #define AsmTab1  8                     // Column for opcode
 #define AsmTab2  16                    // Column for first operand
 #define AsmTab3  56                    // Column for comment
+
+#define ReplaceIllegalChars 0          // 1 if you want to replace illegal characters in symbol names
 
 
 // Structure for defining x86 opcode maps
@@ -72,7 +74,7 @@ InstructionSet:
 0x800:   Privileged instruction
 0x1001:  AMD 3DNow
 0x1002:  AMD 3DNow extension
-0x1004:  AMD SSE4a
+0x1004:  AMD SSE4a or AMD virtualization
 0x1005:  AMD XOP
 0x1006:  AMD FMA4
 0x1007:  AMD CVT16

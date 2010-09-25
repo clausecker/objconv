@@ -1,14 +1,14 @@
 /****************************  library.cpp  **********************************
 * Author:        Agner Fog
 * Date created:  2006-08-27
-* Last modified: 2008-08-30
+* Last modified: 2010-06-27
 * Project:       objconv
 * Module:        library.cpp
 * Description:
 * This module contains code for reading, writing and manipulating function
 * libraries (archives) of the UNIX type and OMF type.
 *
-* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2010 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -1241,19 +1241,26 @@ char * CLibrary::FixMemberNameUNIX(char const * name) {
 
 int CLibrary::MemberNameExistsUNIX(char * name) {
    // Check if DataBuffer contains a member with this name
-   char Name2[20];
+   char Name1[20], Name2[20];
+   uint32 i, j;
+  
+   // Terminate name without extension
+   memcpy(Name1, name, 16);
+   for (j = 0; j < 16; j++) {
+      if (Name1[j] == '.' || Name1[j] == '/') Name1[j] = 0;
+   }
 
    // Loop through previous members in DataBuffer
-   for (uint32 i = 0; i < Indexes.GetNumEntries(); i++) {
+   for (i = 0; i < Indexes.GetNumEntries(); i++) {
       uint32 offset = Indexes[i];
       // Copy name of member i
       memcpy(Name2, DataBuffer.Buf() + offset, 16);
-      // Terminate name
-      for (int j = 0; j < 16; j++) {
+      // Terminate name2
+      for (j = 0; j < 16; j++) {
          if (Name2[j] == '.' || Name2[j] == '/') Name2[j] = 0;
       }
       // Case-insensitive compare of names
-      if (stricmp(name, Name2) == 0) {
+      if (stricmp(Name1, Name2) == 0) {
          // Identical name found
          return i + 1;
       }

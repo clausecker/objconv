@@ -1,7 +1,7 @@
 /****************************  omf2asm.cpp   *********************************
 * Author:        Agner Fog, modified by Don Clugston
 * Date created:  2007-05-27
-* Last modified: 2009-07-15
+* Last modified: 2009-07-17
 * Project:       objconv
 * Module:        omf2asm.cpp
 * Description:
@@ -508,7 +508,7 @@ void COMF2ASM::MakeSegmentList() {
             Records[RecNum].Index = 3;           // Initialize record reading
             Segment = Records[RecNum].GetIndex();// Read segment number
 
-            if ((Segment & 0xFC000) == 0x4000) {
+            if ((Segment & 0xC000) == 0x4000) {
                // Refers to Borland communal section
                Segment = (Segment & ~0x4000) + FirstComDatSection - 1;
             }
@@ -758,6 +758,10 @@ void COMF2ASM::MakeRelocations(int32 Segment, uint32 RecNum, uint32 SOffset, uin
          if (FixData.s.T == 0) {
             // Target specified
             Target = Records[RecNum].GetIndex();
+            if ((Target & 0xC000) == 0x4000) {
+               // Refers to Borland communal section
+               Target = (Target & ~0x4000) + FirstComDatSection - 1;
+            }
             //uint32 TargetMethod = FixData.s.Target + FixData.s.P * 4;
          }
          else {

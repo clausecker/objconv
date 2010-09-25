@@ -1,7 +1,7 @@
 /****************************  disasm1.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2009-07-15
+* Last modified: 2010-09-23
 * Project:       objconv
 * Module:        disasm1.cpp
 * Description:
@@ -11,7 +11,7 @@
 * Instruction tables are in opcodes.cpp.
 * All functions relating to file output are in disasm2.cpp
 *
-* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2010 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -626,7 +626,9 @@ void CDisassembler::AddRelocation(
    // Check if image-relative
    if (Section == ASM_SEGMENT_IMGREL) {   
       // Translate absolute virtual address to section and offset
-      TranslateAbsAddress(ImageBase + (int32)Offset, Section, Offset);
+      if (!TranslateAbsAddress(ImageBase + (int32)Offset, Section, Offset)) {
+         err.submit(1304);
+      }
    }
 
    if (Type != 0x41) {
@@ -4068,12 +4070,17 @@ void CDisassembler::CheckNamesValid() {
                   }
                   else {
                      // Other illegal character in MASM
-                     SymName[j] = '?'; Changed++;
+#if ReplaceIllegalChars
+                     SymName[j] = '?'; 
+#endif
+                     Changed++;
                   }
                }
                else {
                   // Illegal character in GAS or YASM syntax
+#if ReplaceIllegalChars
                   SymName[j] = (Syntax == SUBTYPE_YASM) ? '?' : '$';
+#endif
                   Changed++;
                }
             }
@@ -4090,6 +4097,7 @@ void CDisassembler::FixRelocationTargetAddresses() {
    // to section:offset addresses
    uint32 r;                                     // Relocation index
    uint32 s;                                     // Symbol index
+   int32 sect;
 
    // Loop through relocations
    for (r = 1; r < Relocations.GetNumEntries(); r++) {
@@ -4100,7 +4108,9 @@ void CDisassembler::FixRelocationTargetAddresses() {
          sym.Reset();
 
          // Find target address from relocation source
-         uint8 * pSectionData = Sections[Relocations[r].Section].Start;
+         sect = Relocations[r].Section;
+         if ((uint32)sect >= Sections.GetNumEntries()) continue;
+         uint8 * pSectionData = Sections[sect].Start;
          if (!pSectionData) continue;
          int64 TargetOffset = 0;
          if (Relocations[r].Size == 4) {
