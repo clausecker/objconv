@@ -591,6 +591,8 @@ void CCOF2ELF<ELFSTRUCTURES>::MakeRelocationTables() {
                   NewRelocEntry.r_type = R_386_PC32;
                   // Difference between EIP-relative and self-relative relocation = size of address field
                   NewRelocEntry.r_addend = -4;  break; 
+                  /* !! error  if self-relative relocation with offset
+                   !! test data that fails = testpic32.obj */
 
                case COFF32_RELOC_SECTION:   // 16-bit section index in file
                case COFF32_RELOC_SECREL:    // 32-bit section-relative

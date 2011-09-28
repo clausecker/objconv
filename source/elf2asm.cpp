@@ -1,13 +1,13 @@
 /****************************  elf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2007-04-22
-* Last modified: 2009-07-15
+* Last modified: 2011-08-22
 * Project:       objconv
 * Module:        elf2asm.cpp
 * Description:
 * Module for disassembling ELF
 *
-* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2011 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -467,6 +467,9 @@ void CELF2ASM<ELFSTRUCTURES>::MakeRelocations() {
                case R_X86_64_IRELATIVE:
                   // Reference to Gnu indirect function
                   Type = 0x81;  Size = 4;
+                  break;
+               case R_X86_64_PLT32:  // Self-relative to PLT
+                  Type = 0x2002;  Size = 4;
                   break;
                case R_X86_64_GLOB_DAT:  // Create GOT entry
                case R_X86_64_GOT32:

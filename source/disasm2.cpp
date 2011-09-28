@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2010-09-23
+* Last modified: 2011-08-01
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2010 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2011 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -287,8 +287,20 @@ void CDisassembler::WriteRMOperand(uint32 Type) {
 
    // Write index register, if any
    if (s.IndexReg) {
-      if (Components++) OutFile.Put("+");      // Put "+" if anything before
-      OutFile.Put(PointerRegisterNames[s.IndexReg - 1]);
+      if (Components++) OutFile.Put("+");        // Put "+" if anything before
+      if ((s.OpcodeDef->InstructionFormat & 0x1F) != 0x1E) {
+         // normal index register
+         OutFile.Put(PointerRegisterNames[s.IndexReg - 1]);
+      }
+      else {
+         // VSIB byte specifies vector index register
+         uint8 L = s.Prefixes[6] & 0x20;         // L bit = 256 bit destination vector size 
+         uint8 W = s.Prefixes[7] & 0x08;         // W bit = destination word size is 64 bit
+         int I = Type & 4;                       // index word size is 64 bit
+         int IR = L && (!W || I);                // index register is ymm if dest is ymm, unless index word size < operand word size
+         OutFile.Put(IR ? "ymm" : "xmm");
+         OutFile.PutDecimal(s.IndexReg - 1);
+      }
       // Write scale factor, if any
       if (s.Scale) {
          OutFile.Put("*");
@@ -2519,6 +2531,21 @@ void CDisassembler::WritePublicsAndExternalsYASMGASM() {
          OutFile.Put("global ");
          // Write name
          OutFile.Put(Symbols.GetName(i));
+
+         // Write type
+         if ((Symbols[i].Type & 0xF0) == 0x80) {         
+            // Symbol is a function
+            if (Syntax == SUBTYPE_YASM) { 
+               OutFile.Put(": function");
+            }
+            else if (Syntax == SUBTYPE_GASM) {
+               OutFile.NewLine();
+               OutFile.Put(".type ");
+               OutFile.Put(Symbols.GetName(i));
+               OutFile.Put(", @function");
+            }
+         }
+
          // Check if weak or communal
          if (Symbols[i].Scope & 0x18) {
             // Scope is weak or communal
@@ -3441,8 +3468,18 @@ void CDisassembler::WriteInstruction() {
    // Check suffix option
    if (s.OpcodeDef->Options & 1) {
       // Append suffix for operand size or type to name
-      if (s.OpcodeDef->AllowedPrefixes & 0xE00) {
-         // Operand type defined by prefixes
+      if ((s.OpcodeDef->AllowedPrefixes & 0x3000) == 0x1000) {
+         // F.P. operand size defined by W prefix bit
+         i = s.Prefixes[7] & 8;  // W prefix bit
+         OutFile.Put(i ? 'd' : 's');
+      }
+      else if ((s.OpcodeDef->AllowedPrefixes & 0x3000) == 0x3000) {
+         // Integer operand size defined by W prefix bit
+         i = s.Prefixes[7] & 8;  // W prefix bit
+         OutFile.Put(i ? 'q' : 'd');
+      }
+      else if (s.OpcodeDef->AllowedPrefixes & 0xE00) {
+         // F.P. operand type and size defined by prefixes
          switch (s.Prefixes[5]) {
          case 0:     // No prefix = ps
             OutFile.Put("ps");  break;
@@ -3456,7 +3493,8 @@ void CDisassembler::WriteInstruction() {
             err.submit(9000); // Should not occur
          }
       }
-      else {
+      else if (s.OpcodeDef->AllowedPrefixes & 0x100){
+         // Integer operand size defined by prefixes
          // Suffix for operand size
          i = s.OperandSize / 8;
          if (i <= 8) {
@@ -3794,13 +3832,15 @@ void CDisassembler::CountInstructions() {
    uint32 ssse3instr = 0;                        // Number of SSSE3 instructions
    uint32 sse41instr = 0;                        // Number of SSE4.1 instructions
    uint32 sse42instr = 0;                        // Number of SSE4.2 instructions
-   uint32 VEXinstr  = 0;                         // Number of VEX instructions
+   uint32 AVXinstr  = 0;                         // Number of AVX instructions
    uint32 FMAinstr  = 0;                         // Number of FMA3 and later instructions
+   uint32 AVX2instr  = 0;                        // Number of AVX2 instructions
    uint32 AMDinstr = 0;                          // Number of AMD instructions
    uint32 VIAinstr = 0;                          // Number of AMD instructions
    uint32 privilinstr = 0;                       // Number of privileged instructions
    uint32 undocinstr = 0;                        // Number of undocumented instructions
    uint32 droppedinstr = 0;                      // Number of opcodes planned but never implemented
+   uint32 VEXdouble = 0;                         // Number of instructions that have both VEX and non-VEX version
    SOpcodeDef const * opcode;                    // Pointer to map entry
 
    // Loop through all maps
@@ -3820,17 +3860,22 @@ void CDisassembler::CountInstructions() {
             n = 1;                               // Default = one instruction per map entry
             // Check if we have multiple instructions with different prefixes
             if (opcode->Options & 1) {
-               if ((opcode->AllowedPrefixes & 0x300) && !(opcode->AllowedPrefixes & 0x8000)) {
-                  n++;                           // Extra instruction with 66 prefix
+               if (opcode->AllowedPrefixes & 0x3000) {
+                  n++;                           // Extra instruction with W prefix bit
                }
-               if (opcode->AllowedPrefixes & 0x400) {
-                  n++;                           // Extra instruction with F3 prefix
+               else if (opcode->AllowedPrefixes & 0xE00) {               
+                  if (opcode->AllowedPrefixes & 0x200) n++; // Extra instruction with 66 prefix
+                  if (opcode->AllowedPrefixes & 0x400) n++; // Extra instruction with F3 prefix
+                  if (opcode->AllowedPrefixes & 0x800) n++; // Extra instruction with F2 prefix
                }
-               if (opcode->AllowedPrefixes & 0x800) {
-                  n++;                           // Extra instruction with F2 prefix
+               else if (opcode->AllowedPrefixes & 0x100) {
+                  n++;                                      // Extra instruction with 66 prefix
+                  if (opcode->AllowedPrefixes & 0x1000) n++;// Extra instruction with L prefix bit
                }
             }
-            instructions += n;                   // Count instructions
+            if (opcode->Options & 2) VEXdouble += n; // Instructions that have both VEX and non-VEX version
+            instructions += n;                   // Count total instructions
+
             iset = opcode->InstructionSet;       // Instruction set
             if (iset & 0x20000) {
                droppedinstr += n; iset = 0;      // Opcodes planned but never implemented
@@ -3854,9 +3899,11 @@ void CDisassembler::CountInstructions() {
             case 0x16: // SSE4.2
                sse42instr += n;  break;
             case 0x17: case 0x18: case 0x19: // VEX etc.
-               VEXinstr += n;  break;
-            case 0x1A: case 0x1B: case 0x1C: // FMA and later instructions
+               AVXinstr += n;  break;
+            case 0x1A: case 0x1B:            // FMA and later instructions
                FMAinstr += n;  break;
+            case 0x1C: case 0x1D: case 0x1E: // AVX2 and later instructions
+               AVX2instr += n; break;
             case 0x1001: case 0x1002: case 0x1004: case 0x1005: case 0x1006:  // AMD
                AMDinstr += n;  break;
             case 0x2001: // VIA
@@ -3877,11 +3924,13 @@ void CDisassembler::CountInstructions() {
    printf("\n%5i SSSE3 instructions", ssse3instr);
    printf("\n%5i SSE4.1 instructions", sse41instr);
    printf("\n%5i SSE4.2 instructions", sse42instr);
-   printf("\n%5i VEX instructions etc.", VEXinstr);
-   printf("\n%5i FMA3 and later instructions", FMAinstr);
+   printf("\n%5i AVX instructions etc.", AVXinstr);
+   printf("\n%5i AVX2 and later instructions", AVX2instr);
+   printf("\n%5i FMA3 instructions", FMAinstr);
    printf("\n%5i AMD  instructions", AMDinstr);
    printf("\n%5i VIA  instructions", VIAinstr);   
-   printf("\n%5i Instructions planned but never implemented in any CPU", droppedinstr);
-   printf("\n%5i Undocumented or illegal instructions", undocinstr);
+   printf("\n%5i instructions planned but never implemented in any CPU", droppedinstr);
+   printf("\n%5i undocumented or illegal instructions", undocinstr);
+   printf("\n%5i instructions have both VEX and non-VEX versions", VEXdouble);
    printf("\n");   
 }

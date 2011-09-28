@@ -1,7 +1,7 @@
 /****************************   main.cpp   **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-26
-* Last modified: 2009-01-22
+* Last modified: 2011-10-28
 * Project:       objconv
 * Module:        main.cpp
 * Description:
@@ -10,7 +10,7 @@
 *
 * Module main contains the program entry
 *
-* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2011 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -583,19 +583,23 @@ void CConverter::Go() {
          case FILETYPE_COFF:
             // Conversion from ELF to COFF
             ELF2ELF();                 // Make symbol changes in ELF file
+            if (err.Number()) return;  // Return if error
             ELF2COF();                 // Convert to COFF
             break;
 
          case FILETYPE_MACHO_LE:
             // Conversion from ELF to Mach-O
             ELF2MAC();                 // Convert to Mach-O
+            if (err.Number()) return;  // Return if error
             MAC2MAC();                 // Make symbol changes in Mach-O file, sort symbol tables alphabetically
             break;
 
          case FILETYPE_OMF:
             // Conversion from ELF to OMF
             ELF2ELF();                 // Make symbol changes in ELF file
+            if (err.Number()) return;  // Return if error
             ELF2COF();                 // Convert to COFF first
+            if (err.Number()) return;  // Return if error
             COF2OMF();                 // Then convert to OMF
             break;
 
@@ -628,6 +632,7 @@ void CConverter::Go() {
             // No conversion. Modify file
             if (cmd.DebugInfo == CMDL_DEBUG_STRIP || cmd.ExeptionInfo == CMDL_EXCEPTION_STRIP) {
                COF2ELF();              // Convert to ELF and back again to strip debug and exception info
+               if (err.Number()) return;  // Return if error
                ELF2COF();
                err.submit(1008);       // Warning: Converting to ELF and back again
             }
@@ -641,17 +646,21 @@ void CConverter::Go() {
 
          case FILETYPE_ELF:
             COF2COF();                 // Make symbol changes in COFF file
+            if (err.Number()) return;  // Return if error
             COF2ELF();                 // Convert to ELF
             break;
             
          case FILETYPE_OMF:
             COF2COF();                 // Make symbol changes in COFF file
+            if (err.Number()) return;  // Return if error
             COF2OMF();                 // Convert to OMF
             break;
             
          case FILETYPE_MACHO_LE:
             COF2ELF();                 // Convert from COFF to ELF
+            if (err.Number()) return;  // Return if error
             ELF2MAC();                 // Then convert from ELF to Mach-O
+            if (err.Number()) return;  // Return if error
             MAC2MAC();                 // Make symbol changes in Mach-O file and sort symbol table
             break;
 
@@ -674,7 +683,9 @@ void CConverter::Go() {
             // No conversion. Modify file
             if (cmd.SymbolChangesRequested() || cmd.DebugInfo == CMDL_DEBUG_STRIP || cmd.ExeptionInfo == CMDL_EXCEPTION_STRIP) {
                OMF2COF();              // Convert to COFF and back again to do requested changes
+               if (err.Number()) return;  // Return if error
                COF2COF();              // Make symbol changes in COFF file
+               if (err.Number()) return;  // Return if error
                COF2OMF();
                err.submit(1009);       // Warning: Converting to ELF and back again
             }
@@ -682,19 +693,25 @@ void CConverter::Go() {
 
          case FILETYPE_COFF:
             OMF2COF();                 // Convert to COFF
+            if (err.Number()) return;  // Return if error
             COF2COF();                 // Make symbol changes in COFF file
             break;
 
          case FILETYPE_ELF:
             OMF2COF();                 // Convert to COFF
+            if (err.Number()) return;  // Return if error
             COF2COF();                 // Make symbol changes in COFF file
+            if (err.Number()) return;  // Return if error
             COF2ELF();                 // Convert to ELF
             break;
             
          case FILETYPE_MACHO_LE:
             OMF2COF();                 // Convert to COFF
+            if (err.Number()) return;  // Return if error
             COF2ELF();                 // Convert from COFF to ELF
+            if (err.Number()) return;  // Return if error
             ELF2MAC();                 // Then convert from ELF to Mach-O
+            if (err.Number()) return;  // Return if error
             MAC2MAC();                 // Make symbol changes in Mach-O file and sort symbol table
             break;
 
@@ -715,19 +732,25 @@ void CConverter::Go() {
          switch (cmd.OutputType) {
          case FILETYPE_ELF:
             MAC2ELF();                 // Convert to ELF
+            if (err.Number()) return;  // Return if error
             ELF2ELF();                 // Make symbol changes in ELF file
             break;
 
          case FILETYPE_COFF:
             MAC2ELF();                 // Convert to ELF
+            if (err.Number()) return;  // Return if error
             ELF2ELF();                 // Make symbol changes in ELF file
+            if (err.Number()) return;  // Return if error
             ELF2COF();                 // Convert to COFF
             break;
 
          case FILETYPE_OMF:
             MAC2ELF();                 // Convert to ELF
+            if (err.Number()) return;  // Return if error
             ELF2ELF();                 // Make symbol changes in ELF file
+            if (err.Number()) return;  // Return if error
             ELF2COF();                 // Convert to COFF
+            if (err.Number()) return;  // Return if error
             COF2OMF();                 // Convert to OMF
             break;
 

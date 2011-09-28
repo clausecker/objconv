@@ -494,6 +494,13 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::Elf2MacRelocations(Elf32_Shdr & OldR
          // (The PC reference point is the end of the source = start
          // of source + 4, but ELF files have the same offset so no further
          // correction is needed when converting from ELF file).
+
+         // !! ToDo: Self-relative relocations plus offset to local symbol in a different section 
+         // sometimes causes problems in Mac linker, perhaps because it fails to determine 
+         // correctly which section the target is in. Use a relocation with a reference point
+         // instead. This probably occurs only in assembler-coded self-relative 32-bit code.
+         // (Use asmlib A_strtoupper and A_strcspn as test cases - they fail if dummy data
+         // at the end of .data section is removed)
          *piaddend -= r_address + (uint32)NewHeader.addr;
          break;
 

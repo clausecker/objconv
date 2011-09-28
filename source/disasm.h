@@ -1,13 +1,13 @@
 /****************************  disasm.h   **********************************
 * Author:        Agner Fog
 * Date created:  2007-02-21
-* Last modified: 2010-09-23
+* Last modified: 2011-08-01
 * Project:       objconv
 * Module:        disasm.h
 * Description:
 * Header file for disassembler
 *
-* Copyright 2007-2010 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2011 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef DISASM_H
 #define DISASM_H
@@ -68,7 +68,8 @@ InstructionSet:
 0x17:    AES
 0x18:    CLMUL
 0x19:    AVX
-0x1A:    FMA
+0x1A:    FMA3
+0x1C:    AVX2
 0x100:   8087
 0x101:   80387
 0x800:   Privileged instruction
@@ -101,11 +102,13 @@ AllowedPrefixes:
 0x200:   66 prefix allowed for other purpose. Typical meanings are:
          * indicates packed integer xmm vs. mmx,
          * indicates packed double precision xmm (pd) vs. packed single (ps)
+         * always required
 0x400:   F3 prefix allowed for other purpose. Typical = scalar single precision xmm (ss)
 0x800:   F2 prefix allowed for other purpose. Typical = scalar double precision xmm (sd)
 0xE00:   none/66/F2/F3 prefix indicate ps/pd/sd/ss xmm
-0x1000:  REX.W prefix determines integer operand size or swaps operands or other purpose
+0x1000:  REX.W prefix determines integer g.p. operand size or fp precision or swaps operands or other purpose
 0x2000:  REX.W prefix allowed but unnecessary
+0x3000:  REX.W prefix determines integer vector operand size
 0x4000:  REX.W prefix swaps last two operands
 0x8000:  Instruction not allowed without 66/F2/F3 prefix as specified by previous bits
 0x10000: VEX or XOP prefix allowed
@@ -131,8 +134,10 @@ InstructionFormat:
 0x18:   Has VEX prefix and 2 operands. Dest = VEX.v, src = rm, opcode extension in r bits. Src omitted if no VEX prefix.
 0x19:   Has VEX prefix and 3 operands. Dest = r,  src1 = VEX.v, src2 = rm. Src1 omitted if no VEX prefix. May swap src1 and src2 if VEX.W = 0
 0x1A:   Has VEX prefix and 3 operands. Dest = rm, src1 = VEX.v, src2 = r
+0x1B:   Has VEX prefix and 3 operands. Dest = r,  src1 = rm, src2 = VEX.v.
 0x1C:   Has VEX prefix and 4 operands. Dest = r,  src1 = VEX.v, src2 = rm, src3 = bits 4-7 of immediate byte. May swap src2 and src3 if VEX.W
 0x1D:   Has VEX prefix and 4 operands. Dest = r,  src1 = bits 4-7 of immediate byte, src2 = rm, src3 = VEX.v. May swap src2 and src3 if VEX.W
+0x1E:   Has VEX prefix VSIB and 3 operands. Dest = r, src1 = rm, mask = VEX.v. SIB byte required
 0x20:   Has 2 bytes immediate operand (ret i) or 1 + 1 bytes (insrtq)
 0x40:   Has 1 byte immediate operand or short jump
 0x60:   Has 2 + 1 = 3 bytes immediate operand (enter)
@@ -190,7 +195,7 @@ the values for these two operands are OR'ed (e.g. imul eax,ebx,9; shrd eax,ebx,c
 0x48:   float SSE, unknown size
 0x4B:   32 bit float SSE,  single precision (ss) or packed (ps)
 0x4C:   64 bit float SSE2, double precision (sd) or packed (pd)
-0x4F:   XMM float. Size depends on prefix: none = ps, 66 = pd, F2 = sd, F3 = ss
+0x4F:   XMM float. Size depends on prefix: none = ps, 66 = pd, F2 = sd, F3 = ss; or VEX.W bit = sd/pd
 0x50:   Full vector, aligned
 0x51:   Full vector, unaligned
 
@@ -219,7 +224,7 @@ the values for these two operands are OR'ed (e.g. imul eax,ebx,9; shrd eax,ebx,c
 0xc2:   es:[di], es:[edi] or [rdi]
 
 // The following values can be added to specify vectors
-0x100:  Vector MMX or XMM, depending on 66 prefix
+0x100:  Vector MMX or XMM or YMM, depending on 66 prefix and VEX.L prefix
 0x200:  Vector XMM or YMM, depending on VEX.L prefix
 0x300:  Vector MMX (8  bytes)
 0x400:  Vector XMM (16 bytes)
@@ -270,12 +275,13 @@ the criterion defined by TableLink.
 0x0A:   Use address size as index into next table (0: 16 bits, 1: 32 bits, 2: 64 bits)
 0x0B:   Use VEX prefix and VEX.L bit as index into next table (0: VEX absent, 1: VEX.L=0, 2: VEX.L=1)
 0x0C:   Use VEX.W bit as index into next table (0: VEX.W=0, 1: VEX.W=1)
+0x0D:   Use VEX.L bit as index into next table (0: VEX.L=0, 1: VEX.L=1)
 0x10:   Use assembly language dialect as index into next table (0: MASM, 1: NASM/YASM, 2: GAS)
 
 Options:
 (Values can be OR'ed):
 ----------------------
-1:      Append suffix for operand size or type to opcode name
+1:      Append suffix for operand size or type to opcode name (prefix 0x100: b/w/d/q, 0xE00: ps/pd/ss/sd, 0x1000: s/d, 0x3000: d/q)
 2:      Prepend 'v' to opcode name if VEX prefix present
 4:      Does not change destination register
 8:      Can change registers other than explicit destination register (includes call etc.)

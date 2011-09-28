@@ -1,7 +1,7 @@
 /****************************  disasm1.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2010-09-23
+* Last modified: 2011-08-02
 * Project:       objconv
 * Module:        disasm1.cpp
 * Description:
@@ -2022,7 +2022,7 @@ void CDisassembler::FollowJumpTable(uint32 symi, uint32 RelType) {
          if (Reli <= 0) break;
       }
       // Relocation found. Check if valid
-      if (!(Relocations[Reli].Type & 0x35) || !Relocations[Reli].TargetOldIndex) {
+      if (!(Relocations[Reli].Type & 0x37) || !Relocations[Reli].TargetOldIndex) {
          // Wrong relocation type or invalid. Stop searching
          break;
       }
@@ -2032,21 +2032,28 @@ void CDisassembler::FollowJumpTable(uint32 symi, uint32 RelType) {
          // Target invalid
          break;
       }
+
+      // Calculate target address
+      Addend = Relocations[Reli].Addend;
       // Check inline addend if target is section-relative and this is an object file
       if (!ExeType && Symbols[TargetSymI].Offset == 0) {
          switch (SourceSize) {
          case 2:
-            Addend = *(int16*)(Sections[SourceSection].Start + Pos);
+            Addend += *(int16*)(Sections[SourceSection].Start + Pos);
             break;
          case 4: case 8:
-            Addend = *(int32*)(Sections[SourceSection].Start + Pos);
+            Addend += *(int32*)(Sections[SourceSection].Start + Pos);
             break;
          default:
-            Addend = 0;
+            Addend += 0;
          }
          if (Addend) {
             // Make new symbol at target address
-            uint32 NewSym = Symbols.NewSymbol(Symbols[TargetSymI].Section, Addend, 2);
+            uint32 NewSymOffset = Addend;
+            if (Relocations[Reli].Type & 2) {
+               NewSymOffset -= Relocations[Reli].Offset;
+            }
+            uint32 NewSym = Symbols.NewSymbol(Symbols[TargetSymI].Section, NewSymOffset, 2);
             if (NewSym) TargetSymI = NewSym;
          }
       }
@@ -2650,7 +2657,10 @@ void CDisassembler::FindMapEntry() {
          case 0: default:
             Byte = 0;  break;
          case 0x66:
-            Byte = 1;  break;
+            Byte = 1;  
+            if (s.Prefixes[3] == 0xF2) Byte = 2;      // F2/F3 take precedence over 66 in (tzcnt instruction)
+            else if (s.Prefixes[3] == 0xF3) Byte = 3;
+            break;
          case 0xF2:
             Byte = 2;  break;
          case 0xF3:
@@ -2681,6 +2691,10 @@ void CDisassembler::FindMapEntry() {
 
       case 0x0C:   // Use VEX.W bit as index into next table
          Byte = (s.Prefixes[7] & 0x08) >> 3;
+         break;
+
+      case 0x0D:   // Use VEX.L bit as index into next table
+         Byte = (s.Prefixes[6] >> 5) & 1;        // VEX.L
          break;
 
       case 0x10:   // Use assembly language dialect as index into next table
@@ -2843,7 +2857,7 @@ void CDisassembler::FindOperands() {
                s.RM &= 7;                              // Remove REX.B from RM
 
                s.BaseReg++;                      // Add 1 so that 0 means none
-               if (s.IndexReg == 4) {
+               if (s.IndexReg == 4 && (s.OpcodeDef->InstructionFormat & 0x1F) != 0x1E) {
                   // No index register
                   s.IndexReg = 0;
                }
@@ -3082,6 +3096,17 @@ void CDisassembler::FindOperandTypes() {
       }
       break;
    
+   case 0x1B: // Has VEX prefix and 3 operands
+      // Dest = r, src1 = rm, src2 = VEX.vvvv
+      s.Operands[0] |= 0x40000;
+      s.Operands[1] |= 0x30000;
+      s.Operands[2] |= 0x60000;
+      if (!(s.Prefixes[7] & 0xB0)) {
+         // Last source operand omitted if no VEX prefix
+         s.Operands[2] = 0;
+      }
+      break;
+   
    case 0x1C: // Has VEX prefix and 4 operands
       // Dest = r,  src1 = VEX.v, src2 = rm, src3 = bits 4-7 of immediate byte
       s.Operands[0] |= 0x40000;
@@ -3106,6 +3131,13 @@ void CDisassembler::FindOperandTypes() {
          k = s.Operands[2]; s.Operands[2] = s.Operands[3]; s.Operands[3] = k;
       }
       nimm++;                                    // part of immediate byte used
+      break;
+
+   case 0x1E: // Has VEX prefix, VSIB and 3 operands. 
+      // Dest = r, src1 = rm, mask = VEX.v. SIB byte required
+      s.Operands[0] |= 0x40000;
+      s.Operands[1] |= 0x30000;
+      s.Operands[2] |= 0x60000;
       break;
 
    default: // No explicit operands. 
@@ -3237,9 +3269,17 @@ void CDisassembler::FindOperandTypes() {
       // Resolve vector size
       switch (s.Operands[i] & 0x700) {
       case 0x100:
-         // MMX or XMM depending on 66 prefix
+         // MMX or XMM or YMM depending on 66 prefix and VEX.L prefix
          s.Operands[i] &= ~0x100;
-         s.Operands[i] |= (s.Prefixes[5] == 0x66) ? 0x400 : 0x300;
+         if (s.Prefixes[6] & 0x20) {
+            s.Operands[i] |= 0x500;              // VEX.L: ymm
+         }
+         else if (s.Prefixes[5] == 0x66) {
+            s.Operands[i] |= 0x400;              // 66 prefix: xmm
+         }
+         else {
+            s.Operands[i] |= 0x300;              // no prefix: mm
+         }
          break;
       case 0x200:
          // XMM or YMM depending on VEX.L prefix
@@ -3676,6 +3716,10 @@ void CDisassembler::FindErrors() {
       if ((s.DVREX & 2) && !(s.MFlags & 4)) {
          s.Errors |= 0x800;  // DREX.X bit but no SIB byte (probably ignored, may be changed to warning)
       }
+   }
+   if ((s.OpcodeDef->InstructionFormat & 0x1F) == 0x1E) {
+      // Instruction needs VSIB byte
+      if (s.IndexReg == 0) s.Errors |= 8;  // Illegal operand: no index register
    }
    if (LabelEnd >= s.OpcodeStart2+2 && (
          Get<uint16>(s.OpcodeStart2) == 0 
