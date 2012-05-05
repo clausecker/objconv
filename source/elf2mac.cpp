@@ -1,13 +1,13 @@
 /****************************  elf2mac.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2007-01-10
-* Last modified: 2009-07-15
+* Last modified: 2012-05-05
 * Project:       objconv
 * Module:        elf2mac.cpp
 * Description:
 * Module for converting ELF file to Mach-O file
 *
-* Copyright 2007-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2012 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -218,6 +218,11 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSymbolTable() {
          symtab = this->Buf() + (uint32)OldHeader.sh_offset;
          symtabsize = (uint32)OldHeader.sh_size;
          symtabend = symtab + symtabsize;
+
+         if (NewSymTab[0].GetNumEntries() == 0) {
+            // make empty symbol record for index 0
+            NewSymTab[0].AddSymbol(0, "", 0, 0, 0, 0);
+         }
 
          // Loop through old symbol table
          for (OldSymI = 0; symtab < symtabend; symtab += entrysize, OldSymI++) {

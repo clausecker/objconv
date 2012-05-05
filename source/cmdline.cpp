@@ -1,14 +1,14 @@
 /****************************  cmdline.cpp  **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-25
-* Last modified: 2011-10-27
+* Last modified: 2012-04-15
 * Project:       objconv
 * Module:        cmdline.cpp
 * Description:
 * This module is for interpretation of command line options
 * Also contains symbol change function
 *
-* Copyright 2006-2011 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2012 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 #include "stdafx.h"
@@ -1158,6 +1158,7 @@ void CCommandLineInterpreter::Help() {
    printf("\n-lx:N1:N2  eXtract member N1 from Library to file N2.");
    printf("\n-ld:N1     Delete member N1 from Library.");
    printf("\n-la:N1:N2  Add object file N1 to Library as member N2.");
+   printf("\n           All library options need -fXXX option.");
    printf("\n           Alternative: -lib LIBRARYNAME OBJECTFILENAMES.\n");
 
    printf("\n-vN        Verbose options. Values of N:");
