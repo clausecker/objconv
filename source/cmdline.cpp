@@ -1,7 +1,7 @@
 /****************************  cmdline.cpp  **********************************
 * Author:        Agner Fog
 * Date created:  2006-07-25
-* Last modified: 2012-04-15
+* Last modified: 2012-08-23
 * Project:       objconv
 * Module:        cmdline.cpp
 * Description:
@@ -1129,7 +1129,7 @@ void CCommandLineInterpreter::ReportStatistics() {
 void CCommandLineInterpreter::Help() {
    // Print help message
    printf("\nObject file converter version %.2f for x86 and x86-64 platforms.", OBJCONV_VERSION);
-   printf("\nCopyright (c) 2011 by Agner Fog. Gnu General Public License.");
+   printf("\nCopyright (c) 2012 by Agner Fog. Gnu General Public License.");
    printf("\n\nUsage: objconv options inputfile [outputfile]");
    printf("\n\nOptions:");
    printf("\n-fXXX[SS]  Output file format XXX, word size SS. Supported formats:");

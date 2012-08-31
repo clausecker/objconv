@@ -72,7 +72,7 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSectionsIndex() {
    NewSectOffset.SetNum(this->NSections); // Allocate buffer for section offset table
    NewSectOffset.SetZero();               // Initialize
 
-   MInt NewVirtualAddress = 0;            // Virtual address of new section  as specified in Mach-O file
+   MInt NewVirtualAddress = 0;            // Virtual address of new section as specified in Mach-O file
 
    // First loop through old sections
    for (oldsec = 0; oldsec < this->NSections; oldsec++) {
@@ -142,6 +142,9 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSectionsIndex() {
 
       // Increment memory address
       NewVirtualAddress += this->SectionHeaders[oldsec].sh_size;
+
+      // Fix v. 2.14: Align end of memory address by 4
+      NewVirtualAddress = (NewVirtualAddress + 3) & MInt(-4);
    }
 
    // Store number of sections in new file
@@ -184,7 +187,7 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSymbolTable() {
    int8 * symtab;                  // Old symbol table
    uint32 symtabsize;              // Size of old symbol table
    int8 * symtabend;               // End of old symbol table
-   int entrysize;                  // Size of each entry in old symbol table
+   uint32 entrysize;               // Size of each entry in old symbol table
    TELF_Symbol OldSym;             // Old symbol table record
    uint32 OldSymI;                 // Symbol index in old symbol table
    const char * symname;           // Symbol name
@@ -426,8 +429,8 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::Elf2MacRelocations(Elf32_Shdr & OldR
       // Define relocation parameters
       uint32  r_address = 0;      // section-relative offset to relocation source
       uint32  r_symbolnum = 0;    // symbol index if r_extern == 1 or section ordinal if r_extern == 0
-      uint32  r_value = 0;        // value of relocation target
-      int     r_scattered = 0;    // use scattered relocation
+      // uint32  r_value = 0;        // value of relocation target
+      // int     r_scattered = 0;    // use scattered relocation
       int     r_pcrel = 0;        // self relative
       int     r_length = 2;       // size of source: 0=byte, 1=2 bytes, 2=4 bytes, 3=8 bytes
       int     r_extern = 0;       // public or external
@@ -629,8 +632,8 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::Elf2MacRelocations(Elf64_Shdr & OldR
       // Define relocation parameters
       uint32  r_address = 0;      // section-relative offset to relocation source
       uint32  r_symbolnum = 0;    // symbol index if r_extern == 1 or section ordinal if r_extern == 0
-      uint32  r_value = 0;        // value of relocation target
-      int     r_scattered = 0;    // scattered relocations not used in 64 bit
+      // uint32  r_value = 0;        // value of relocation target
+      // int     r_scattered = 0;    // scattered relocations not used in 64 bit
       int     r_pcrel = 0;        // self relative
       int     r_length = 2;       // size of source: 0=byte, 1=2 bytes, 2=4 bytes, 3=8 bytes
       int     r_extern = 0;       // public or external
@@ -809,7 +812,7 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSections() {
    TMAC_section NewHeader;         // New section header
    TELF_SectionHeader OldHeader;   // Old section header
    TELF_SectionHeader OldRelHeader;// Old relocation section header
-   uint32 NewVirtualAddress = 0;    // Virtual address of new section
+   uint32 NewVirtualAddress = 0;   // Virtual address of new section
    uint32 NewRawDataOffset = 0;    // Offset into NewRawData of section. 
    // NewRawDataOffset is different from NewVirtualAddress if alignment of sections in 
    // the object file is different from alignment of sections in memory
@@ -934,6 +937,9 @@ void CELF2MAC<ELFSTRUCTURES,MACSTRUCTURES>::MakeSections() {
 
          // Align raw data for next section
          NewRawData.Align(4);
+
+         // Fix v. 2.14: adjust NewVirtualAddress to match above alignment
+         NewVirtualAddress = (NewVirtualAddress + 3) & MInt(-4);
 
          // Store section header in file
          ToFile.Push(&NewHeader, sizeof(NewHeader));
