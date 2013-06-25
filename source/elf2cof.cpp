@@ -1,13 +1,13 @@
 /****************************  elf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2006-08-19
-* Last modified: 2009-07-15
+* Last modified: 2013-06-03
 * Project:       objconv
 * Module:        elf2cof.cpp
 * Description:
 * Module for converting ELF file to PE/COFF file
 *
-* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -452,6 +452,7 @@ void CELF2COF<ELFSTRUCTURES>::MakeSymbolTable() {
             // Get symbol name
             if (OldSym.st_name < stringtabsize) {
                symname = strtab + OldSym.st_name;
+
                if (symname && *symname && type != STT_FILE) {
                   // Symbol has a name that we want to store
                   COFF_PutNameInSymbolTable(NewSym, symname, NewStringTable);
@@ -530,7 +531,7 @@ void CELF2COF<ELFSTRUCTURES>::MakeSymbolTable() {
                if (len > 1) {
                   // Scan backwards for last '/'
                   for (int scan = len-2; scan >= 0; scan--) {
-                     if (symname[scan] == '/') {
+                     if (symname[scan] == '/' || symname[scan] == '\\') {
                         // Path found. Short name starts after this character
                         shortname = symname + scan + 1;
                         break;
@@ -538,6 +539,7 @@ void CELF2COF<ELFSTRUCTURES>::MakeSymbolTable() {
                   }
                }
                len = (uint32)strlen(shortname);
+               if (len > 35) len = 35;  // arbitrary limit to file name length
 
                // Number of auxiliary records for storing file name
                numaux = (len + SIZE_SCOFF_SymTableEntry - 1) / SIZE_SCOFF_SymTableEntry;
@@ -545,11 +547,12 @@ void CELF2COF<ELFSTRUCTURES>::MakeSymbolTable() {
                // Store regular record
                NewSymbolTable.Push(&NewSym, SIZE_SCOFF_SymTableEntry);               
                // Store numaux auxiliary records for file name
-               if (numaux < 15) {
-                  int8 * PointAux = NewSymbolTable.Buf() + NewSymbolTable.GetDataSize();
-                  NewSymbolTable.Push(0, numaux * SIZE_SCOFF_SymTableEntry);
-                  memcpy(PointAux, shortname, strlen(shortname));
+               for (uint32 i = 0; i < numaux; i++) { // Can't push all in one operation because NumEntries will be wrong
+                  NewSymbolTable.Push(0, SIZE_SCOFF_SymTableEntry);
                }
+               // copy name into NewSymbolTable aux records
+               int8 * PointAux = NewSymbolTable.Buf() + NewSymbolTable.GetDataSize();
+               memcpy(PointAux - numaux*SIZE_SCOFF_SymTableEntry, shortname, len);
                break;}
 
             case STT_SECTION: {

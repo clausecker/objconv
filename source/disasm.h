@@ -1,13 +1,13 @@
 /****************************  disasm.h   **********************************
 * Author:        Agner Fog
 * Date created:  2007-02-21
-* Last modified: 2012-08-23
+* Last modified: 2013-06-25
 * Project:       objconv
 * Module:        disasm.h
 * Description:
 * Header file for disassembler
 *
-* Copyright 2007-2012 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef DISASM_H
 #define DISASM_H
@@ -70,7 +70,7 @@ InstructionSet:
 0x19:    AVX
 0x1A:    FMA3
 0x1C:    AVX2
-0x1D:    Transactional Synchronization
+0x1D:    BMI1, BMI2, ADX, RDRAND, RDSEED, INVPCID, SMAP, PRFCHW, F16C, Transactional Synchronization
 0x20:    Knights corner
 0x100:   8087
 0x101:   80387
@@ -80,7 +80,7 @@ InstructionSet:
 0x1004:  AMD SSE4a or AMD virtualization
 0x1005:  AMD XOP
 0x1006:  AMD FMA4
-0x1007:  AMD CVT16
+0x1007:  AMD TBM
 0x2001;  VIA
 
 0x4000:  Only available in 64 bit mode
@@ -480,6 +480,7 @@ struct SFunctionRecord {
    uint32 Start;                                 // Offset of function start
    uint32 End;                                   // Offset of function end
    uint32 Scope;                                 // Scope of function. 0 = inaccessible, 1 = function local, 2 = file local, 4 = public, 8 = weak public, 0x10 = communal, 0x20 = external
+                                                 // 0x100 means End not known, extend it when you pass End
    uint32 OldSymbolIndex;                        // Old symbol table index
    int operator < (const SFunctionRecord & y) const{// Operator for sorting function table by source address
       return Section < y.Section || (Section == y.Section && Start < y.Start);}
@@ -661,6 +662,7 @@ protected:
    void    SwizTableLookup();                    // Find swizzle table entry for MVEX code
    void    FindOperandTypes();                   // Determine the types of each operand
    void    FindLabels();                         // Find any labels at current position and next
+   void    CheckForMisplacedLabel();             // Remove any label placed inside function
    void    FindRelocations();                    // Find any relocation sources in this instruction
    void    FindWarnings();                       // Find any reasons for warnings in code
    void    FindErrors();                         // Find any errors in code

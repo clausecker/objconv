@@ -1,19 +1,19 @@
 /****************************  maindef.h   **********************************
 * Author:        Agner Fog
 * Date created:  2006-08-26
-* Last modified: 2012-08-23
+* Last modified: 2013-06-25
 * Project:       objconv
 * Module:        maindef.h
 * Description:
 * Header file for type definitions and other main definitions.
 *
-* Copyright 2006-2012 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef MAINDEF_H
 #define MAINDEF_H
 
 // Program version
-#define OBJCONV_VERSION         2.16
+#define OBJCONV_VERSION         2.19
 
 
 // Integer type definitions with platform-independent sizes:

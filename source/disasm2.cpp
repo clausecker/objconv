@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2012-08-23
+* Last modified: 2013-06-03
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2011 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -135,7 +135,7 @@ const char * InstructionSetNames[] = {
     "", "SSE", "SSE2", "SSE3",                       // 10 - 13
     "Supplementary SSE3", "SSE4.1", "SSE4.2", "AES", // 14 - 17
     "CLMUL", "AVX", "FMA3", "?",                     // 18 - 1B
-    "AVX2", "TSX", "?", "?",                         // 1C - 1F
+    "AVX2", "BMI etc.", "?", "?",                    // 1C - 1F
     "?", "?", "?", "?",                              // 20 - 23
     "?", "?", "?", "?",                              // 24 - 27
     "?", "?", "?", "?",                              // 28 - 2B
@@ -2374,7 +2374,7 @@ void CDisassembler::WriteFileBegin() {
         case 4:  setA = "AMD SSE4a";   break;
         case 5:  setA = "AMD XOP";     break;
         case 6:  setA = "AMD FMA4";    break;
-        case 7:  setA = "AMD CVT16";   break;
+        case 7:  setA = "AMD TBM";   break;
         }
         if (*setA) {
             OutFile.Put(", ");
@@ -3993,6 +3993,7 @@ void CDisassembler::CountInstructions() {
     uint32 AVXinstr  = 0;                         // Number of AVX instructions
     uint32 FMAinstr  = 0;                         // Number of FMA3 and later instructions
     uint32 AVX2instr  = 0;                        // Number of AVX2 instructions
+    uint32 BMIinstr  = 0;                         // Number of BMI instructions and other small instruction sets
     uint32 Knightinstr = 0;                       // Number of Knights Corner instructions
     uint32 AMDinstr = 0;                          // Number of AMD instructions
     uint32 VIAinstr = 0;                          // Number of AMD instructions
@@ -4061,8 +4062,10 @@ void CDisassembler::CountInstructions() {
                     AVXinstr += n;  break;
                 case 0x1A: case 0x1B:            // FMA and later instructions
                     FMAinstr += n;  break;
-                case 0x1C: case 0x1D: case 0x1E: // AVX2 and later instructions
+                case 0x1C:                       // AVX2 instructions
                     AVX2instr += n; break;
+                case 0x1D: case 0x1E:            // BMI and other small instruction sets
+                    BMIinstr += n; break;
                 case 0x20:                       // Knights corner instructions
                     Knightinstr += n; break;
                 case 0x1001: case 0x1002: case 0x1004: case 0x1005: case 0x1006:  // AMD
@@ -4078,19 +4081,20 @@ void CDisassembler::CountInstructions() {
     printf("\n\nNumber of instruction opcodes supported by disassembler:\n%5i Total, including:", 
         instructions);
     printf("\n%5i Privileged instructions", privilinstr);
-    printf("\n%5i MMX  instructions", mmxinstr);
-    printf("\n%5i SSE  instructions", sseinstr);
-    printf("\n%5i SSE2 instructions", sse2instr);
-    printf("\n%5i SSE3 instructions", sse3instr);
-    printf("\n%5i SSSE3 instructions", ssse3instr);
+    printf("\n%5i MMX    instructions", mmxinstr);
+    printf("\n%5i SSE    instructions", sseinstr);
+    printf("\n%5i SSE2   instructions", sse2instr);
+    printf("\n%5i SSE3   instructions", sse3instr);
+    printf("\n%5i SSSE3  instructions", ssse3instr);
     printf("\n%5i SSE4.1 instructions", sse41instr);
     printf("\n%5i SSE4.2 instructions", sse42instr);
-    printf("\n%5i AVX instructions etc.", AVXinstr);
-    printf("\n%5i AVX2 and later instructions", AVX2instr);
-    printf("\n%5i FMA3 instructions", FMAinstr);
+    printf("\n%5i AVX    instructions etc.", AVXinstr);
+    printf("\n%5i AVX2   instructions", AVX2instr);
+    printf("\n%5i FMA3   instructions", FMAinstr);
+    printf("\n%5i BMI/micsellaneous instr.", BMIinstr);
     printf("\n%5i Knights Corner instructions", Knightinstr);
-    printf("\n%5i AMD  instructions", AMDinstr);
-    printf("\n%5i VIA  instructions", VIAinstr);   
+    printf("\n%5i AMD    instructions", AMDinstr);
+    printf("\n%5i VIA    instructions", VIAinstr);   
     printf("\n%5i instructions planned but never implemented in any CPU", droppedinstr);
     printf("\n%5i undocumented or illegal instructions", undocinstr);
     printf("\n%5i instructions have both VEX and non-VEX versions", VEXdouble);

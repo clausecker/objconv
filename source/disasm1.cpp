@@ -1,7 +1,7 @@
 /****************************  disasm1.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2012-08-23
+* Last modified: 2013-06-25
 * Project:       objconv
 * Module:        disasm1.cpp
 * Description:
@@ -11,7 +11,7 @@
 * Instruction tables are in opcodes.cpp.
 * All functions relating to file output are in disasm2.cpp
 *
-* Copyright 2007-2012 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -222,7 +222,7 @@ void CSymbolTable::AssignNames() {
         UnnamedNum = (UnnamedNum + 1999) / 1000 * 1000;
     }
 
-#if 0 //!!
+#if 0 //
     // For debugging: list all symbols
     printf("\n\nSymbols:");
     for (i = 0; i < List.GetNumEntries(); i++) {
@@ -692,7 +692,7 @@ void CDisassembler::Go() {
     // Fix invalid characters in symbol and section names
     CheckNamesValid();
 
-#if 0
+#if 0 //
     // Show function list. For debugging only
     printf("\n\nFunctionList:");
     for (uint32 i = 0; i < FunctionList.GetNumEntries(); i++) {
@@ -859,6 +859,18 @@ void CDisassembler::FindLabels() {
     else {
         // No next label
         LabelEnd = SectionEnd;
+    }
+}
+
+void CDisassembler::CheckForMisplacedLabel() {
+    // Remove any label placed inside function
+    // This is called if there appears to be a function end inside an instruction
+    if (FunctionEnd && FunctionEnd < SectionEnd) {
+        FunctionEnd = IEnd;
+        FunctionList[IFunction].Scope |= 0x100;
+    }
+    else {
+        s.Errors |= 0x10;
     }
 }
 
@@ -1030,10 +1042,12 @@ void CDisassembler::CheckForFunctionEnd() {
         err.submit(9000);  IFunction = 0;  return;
     }
 
-    // Function ends if section ends here or if last instruction was a return
+    // Function ends if section ends here
     if (IEnd >= SectionEnd) {
         // Current function must end because section ends here
-        FunctionList[IFunction].End = IEnd;
+        FunctionList[IFunction].End = SectionEnd;
+        FunctionList[IFunction].Scope &= ~0x100;
+        IFunction = 0;
 
         // Check if return instruction
         if (s.OpcodeDef && !(s.OpcodeDef->Options & 0x10) && (Pass & 0x10)) {
@@ -1041,9 +1055,6 @@ void CDisassembler::CheckForFunctionEnd() {
             s.Errors |= 0x10000;
             WriteErrorsAndWarnings();
         }
-        // Indicate current function ends here
-        FunctionList[IFunction].End = IEnd;
-        IFunction = 0;
         return;
     }
 
@@ -1062,12 +1073,13 @@ void CDisassembler::CheckForFunctionEnd() {
         if (IEnd >= FunctionList[IFunction].End) {
             // Indicate current function ends here
             FunctionList[IFunction].End = IEnd;
+            FunctionList[IFunction].Scope &= ~0x100;
             IFunction = 0;
             return;
         }
     }
 
-    // Function ends at next label if preceding label is inaccessible 
+    // Function ends at next label if preceding label is inaccessible and later end not known
     if (IFunction && FunctionList[IFunction].Scope == 0 && IEnd >= FunctionList[IFunction].End) {
         if (Symbols.FindByAddress(Section, IEnd)) {
             // Previous label was inaccessible. There is a new label here. Begin new function here
@@ -1201,8 +1213,9 @@ void CDisassembler::CheckJumpTarget(uint32 symi) {
                 // Target is known as public or a function. No need to extend current function
                 return;
         }
-        // Extend current function forward to include at least one instruction after target offset
-        FunctionList[IFunction].End = Symbols[symi].Offset + 1;
+        // Extend current function forward to include target offset
+        FunctionList[IFunction].End = Symbols[symi].Offset;
+        FunctionList[IFunction].Scope |= 0x100;
     }
     else if (Symbols[symi].Offset < FunctionList[IFunction].Start) {
         // Target is before tentative begin of current function but within section
@@ -2790,8 +2803,7 @@ void CDisassembler::FindOperands() {
         s.MFlags |= 2;
 
         if (s.OpcodeStart2 + 1 >= FunctionEnd) {
-            // extends outside code block
-            s.Errors |= 0x10;  
+            CheckForMisplacedLabel();
         }
 
         // Read mod/reg/rm byte
@@ -2820,8 +2832,7 @@ void CDisassembler::FindOperands() {
         }
 
         if (s.AddressField > FunctionEnd) {
-            // instruction extends outside code block
-            s.Errors |= 0x10;
+            CheckForMisplacedLabel();
         }
 
         // Check REX prefix
@@ -2992,11 +3003,13 @@ void CDisassembler::FindOperands() {
 
     // Find instruction end
     IEnd = s.ImmediateField + s.ImmediateFieldSize;
-
     if (IEnd > FunctionEnd) {
-        // instruction extends outside code block
-        s.Errors |= 0x10; 
-        IEnd = FunctionEnd;
+        CheckForMisplacedLabel();
+        if (IEnd > SectionEnd) {
+            // instruction extends outside code block
+            s.Errors |= 0x10; 
+            IEnd = SectionEnd;
+        }
     }
 }
 
@@ -4129,7 +4142,9 @@ void CDisassembler::InitialErrorCheck() {
     }
 
     // Check opcode tables
-    if (NumOpcodeTables1 != NumOpcodeTables2) err.submit(9007, 0xFFFF);
+    if (NumOpcodeTables1 != NumOpcodeTables2) {
+        err.submit(9007, 0xFFFF);
+    }
 }
 
 
