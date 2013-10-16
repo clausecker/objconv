@@ -183,7 +183,7 @@ void CELF2ELF<ELFSTRUCTURES>::MakeSymbolTable() {
                name1 = name2;  name2 = 0;
                break;
 
-            case SYMA_CHANGE_ALIAS: 
+            case SYMA_ALIAS: 
                // Make alias and keep old name
                if (isymt != 0) err.submit(1033, name1); // alias in dynsym not supported yet
                AliasEntry = sym;
@@ -220,7 +220,7 @@ void CELF2ELF<ELFSTRUCTURES>::MakeSymbolTable() {
                // Insert into symbol index translation table
                NewSymbolIndex[OldSymi] = NewSymi;
 
-               if (action == SYMA_CHANGE_ALIAS && name2 && *name2) {
+               if (action == SYMA_ALIAS && name2 && *name2) {
                   // Make one more entry for new alias
                   symnamei = NewStringTable[isymt].PushString(name2);
                   AliasEntry.st_name = symnamei;

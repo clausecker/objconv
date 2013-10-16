@@ -300,7 +300,8 @@ void CELF2COF<ELFSTRUCTURES>::MakeSections() {
                      case R_X86_64_IRELATIVE:
                         err.submit(1063); // Warning: Gnu indirect function cannot be converted
                         // continue in next case?:
-                     case R_X86_64_32:      // 32 bit absolute virtual address
+                     case R_X86_64_32S:     // 32 bit absolute virtual address, sign extended
+                     case R_X86_64_32:      // 32 bit absolute virtual address, zero extended
                         NewRelocation.Type = COFF64_RELOC_ABS32;  
                         *piaddend += uint32(OldRelocation.r_addend);  
                         break;
@@ -337,6 +338,12 @@ void CELF2COF<ELFSTRUCTURES>::MakeSections() {
                         err.submit(2042);     // cannot convert import table
                         err.ClearError(2043); // report this error only once
                         NewRelocation.Type = 0;
+                        break;
+
+                     default:              // Unknown or unsupported relocation method
+                        err.submit(2030, OldRelocation.r_type); 
+                        err.ClearError(2030); // report this error only once
+                        NewRelocation.Type = 0; 
                         break;
                      }
                   }
