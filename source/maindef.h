@@ -13,7 +13,7 @@
 #define MAINDEF_H
 
 // Program version
-#define OBJCONV_VERSION         2.31
+#define OBJCONV_VERSION         2.32
 
 
 // Integer type definitions with platform-independent sizes:

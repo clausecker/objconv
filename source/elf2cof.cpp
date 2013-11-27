@@ -1,7 +1,7 @@
 /****************************  elf2cof.cpp   *********************************
 * Author:        Agner Fog
 * Date created:  2006-08-19
-* Last modified: 2013-06-03
+* Last modified: 2013-11-27
 * Project:       objconv
 * Module:        elf2cof.cpp
 * Description:
@@ -164,7 +164,7 @@ void CELF2COF<ELFSTRUCTURES>::MakeSections() {
 
          // Raw data
          NewHeader.SizeOfRawData = uint32(OldHeader.sh_size);  // section size in file
-         if (OldHeader.sh_size) {
+         if (OldHeader.sh_size && OldHeader.sh_type != SHT_NOBITS) {
             // File ptr to raw data for section
             NewHeader.PRawData = NewRawData.GetDataSize() + RawDataOffset;
 

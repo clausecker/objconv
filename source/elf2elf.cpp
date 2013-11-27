@@ -1,13 +1,13 @@
 /****************************    elf2elf.cpp    *****************************
 * Author:        Agner Fog
 * Date created:  2006-01-13
-* Last modified: 2006-01-13
+* Last modified: 2013-11-27
 * Project:       objconv
 * Module:        elf2elf.cpp
 * Description:
 * Module for changing symbol names in ELF file
 *
-* Copyright 2006-2008 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2013 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -389,6 +389,10 @@ void CELF2ELF<ELFSTRUCTURES>::MakeBinaryFile() {
          // Section name string table .shstrtab
          sheader.sh_offset = ToFile.Push(NewStringTable[2].Buf(), NewStringTable[2].GetDataSize());
          sheader.sh_size = NewStringTable[2].GetDataSize();
+      }
+      else if (sheader.sh_type == SHT_NOBITS) {
+         // BSS section. Nothing
+         ;
       }
       else {
          // Any other section (including istrtab[3] = .stabstr)
