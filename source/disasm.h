@@ -1,13 +1,13 @@
 /****************************  disasm.h   **********************************
 * Author:        Agner Fog
 * Date created:  2007-02-21
-* Last modified: 2013-09-28
+* Last modified: 2014-12-06
 * Project:       objconv
 * Module:        disasm.h
 * Description:
 * Header file for disassembler
 *
-* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #ifndef DISASM_H
 #define DISASM_H
@@ -72,10 +72,12 @@ InstructionSet:
 0x1A:    FMA3
 0x1C:    AVX2
 0x1D:    BMI1, BMI2, ADX, RDRAND, RDSEED, INVPCID, SMAP, PRFCHW, F16C, Transactional Synchronization
-0x20:    AVX-512
+0x20:    AVX512F,BW,DQ,VL
 0x21:    AVX512PF,ER,CD
-0x22:    SHA,TBD,
-0x80:    MIC/Xeon Phi
+0x22:    SHA,TBD
+0x23:    AVX512IFMA,VBMI
+
+0x80:    MIC Knights Corner
 0x100:   8087
 0x101:   80387
 0x800:   Privileged instruction
@@ -112,16 +114,21 @@ AllowedPrefixes:
 0x400:   F3 prefix allowed for other purpose. Typical = scalar single precision xmm (ss)
 0x800:   F2 prefix allowed for other purpose. Typical = scalar double precision xmm (sd)
 0xC40:   F2 and F3 prefix allowed for XACQUIRE and XRELEASE
-0xE00:   none/66/F2/F3 prefix indicate ps/pd/sd/ss xmm
+0xE00:   none/66/F2/F3 prefix indicate ps/pd/sd/ss vector
+
 0x1000:  REX.W prefix determines integer g.p. operand size or fp precision or swaps operands or other purpose
 0x2000:  REX.W prefix allowed but unnecessary
-0x3000:  REX.W prefix determines integer (vector) operand size
-0x4000:  REX.W prefix swaps last two operands
+0x3000:  REX.W prefix determines integer (vector) operand size d/q or ps/pd
+0x4000:  VEX.W prefix determines integer (vector) operand size b/w
+0x5000:  VEX.W and 66 prefix determines integer operand size b/w/d/q (mask instructions. B = 66W0, W = _W0, D = 66W1, Q = _W1)
+0x7000:  REX.W prefix swaps last two operands (AMD)
 0x8000:  Instruction not allowed without 66/F2/F3 prefix as specified by previous bits
+
 0x10000: VEX or XOP prefix allowed
 0x20000: VEX or EVEX or XOP prefix required
 0x40000: VEX.L prefix allowed
 0x80000: VEX.vvvv prefix allowed
+
 0x100000:VEX.L prefix required
 0x200000:VEX.L prefix allowed only if pp bits < 2
 0x400000:MVEX prefix allowed
@@ -175,7 +182,7 @@ the values for these two operands are OR'ed (e.g. imul eax,ebx,9; shrd eax,ebx,c
 6:      integer memory, other size
 7:      48 bit memory
 8:      16 or 32 bit integer, depending on 66 prefix
-9:      16, 32 or 64 bit integer, depending on 66 or REX.W prefix
+9:      16, 32 or 64 bit integer, depending on 66 or REX.W prefix. (8 bit in some cases as indicated by AllowedPrefixes)
 0x0A:   16, 32 or 64 bit integer, default size = address size (REX.W not needed)
 0x0B:   16, 32 or 64 bit near indirect pointer (jump)
 0x0C:   16, 32 or 64 bit near indirect pointer (call)
@@ -377,7 +384,7 @@ the criterion defined by TableLink.
 Options:
 (Values can be OR'ed):
 ----------------------
-1:      Append suffix for operand size or type to opcode name (prefix 0x100: b/w/d/q, 0xE00: ps/pd/ss/sd, 0x1000: s/d, 0x3000: d/q)
+1:      Append suffix for operand size or type to opcode name (prefix 0x100: b/w/d/q, 0xE00: ps/pd/ss/sd, 0x1000: s/d, 0x3000: d/q, 0x4000: b/w)
 2:      Prepend 'v' to opcode name if VEX prefix present
 4:      Does not change destination register
 8:      Can change registers other than explicit destination register (includes call etc.)
@@ -797,7 +804,7 @@ protected:
 // Declare tables in opcodes.cpp:
 extern SOpcodeDef OpcodeMap0[256];               // First opcode map
 
-extern SOpcodeDef const * OpcodeStartPageVEX[];  // Entries to opcode maps, indexed by VEX.mmmm bits
+extern uint32 OpcodeStartPageVEX[];              // Entries to opcode maps, indexed by VEX.mmmm bits
 extern SOpcodeDef const * OpcodeStartPageXOP[];  // Entries to opcode maps, indexed by XOP.mmmm bits
 
 extern const uint32 NumOpcodeStartPageVEX;       // Number of entries in OpcodeStartPage

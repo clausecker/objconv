@@ -1,7 +1,7 @@
 /****************************  disasm1.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2013-09-28
+* Last modified: 2014-12-06
 * Project:       objconv
 * Module:        disasm1.cpp
 * Description:
@@ -11,7 +11,7 @@
 * Instruction tables are in opcodes.cpp.
 * All functions relating to file output are in disasm2.cpp
 *
-* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -1132,12 +1132,12 @@ void CDisassembler::CheckRelocationTarget(uint32 IRel, uint32 TargetType, uint32
         // Inline Addend;
         int32 InlineA = 0;
         switch (Relocations[IRel].Size) {
-      case 1:
-          InlineA = *(int8*)RelSource;  break;
-      case 2:
-          InlineA = *(int16*)RelSource;  break;
-      case 4:  case 8:
-          InlineA = *(int32*)RelSource;  break;
+        case 1:
+            InlineA = *(int8*)RelSource;  break;
+        case 2:
+            InlineA = *(int16*)RelSource;  break;
+        case 4:  case 8:
+            InlineA = *(int32*)RelSource;  break;
         }
         // Add inline addend to target address
         TargetOffset += InlineA;
@@ -1398,7 +1398,13 @@ dd      imagerel(Label1)
 dd      imagerel(Label2)
 dd      imagerel(Label3)
 
-In order to recognize that SwitchTable is a switch table, the tracer must
+Some other compilers use the beginning of the switch table or the beginning of
+the code section as reference point for 32-bit jump addresses. Other 
+compilers use 64-bit addresses in the switch table. We want to recognize
+all these patterns in order to disassemble a switch table in a comprehensible
+way and find the case label targets.
+
+In order to recognize a switch table in the above example, the tracer must
 do the following tasks:
 
 1.  Calculate the rip-relative address in the lea instruction and detect
@@ -1505,26 +1511,25 @@ void CDisassembler::UpdateTracer() {
 
     // Check the opcode to find out what has happened to this register
     switch (Opcodei) {
-        /* This part is currently unused:
-        case 0xB0: case 0xB1: case 0xB2: case 0xB3: 
-        case 0xB4: case 0xB5: case 0xB6: case 0xB7:
-        case 0xB8: case 0xB9: case 0xBA: case 0xBB: 
-        case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+    case 0xB0: case 0xB1: case 0xB2: case 0xB3: 
+    case 0xB4: case 0xB5: case 0xB6: case 0xB7:
+    case 0xB8: case 0xB9: case 0xBA: case 0xBB: 
+    case 0xBC: case 0xBD: case 0xBE: case 0xBF:
         // MOV register, constant
         t.Regist[reg] = 0;
         if (s.OperandSize < 32) {
-        // Only part of register is changed
-        return;
+            // Only part of register is changed
+            return;
         }
         if (s.ImmediateRelocation) {
-        if (s.OperandSize < WordSize || !(Relocations[s.ImmediateRelocation].Type & 0x21)) {
-        // Wrong size or type of relocation
-        return;
-        }
-        // Register contains the address of a symbol
-        t.Regist[reg] = 0x18;
-        t.Value [reg] = Relocations[s.ImmediateRelocation].TargetOldIndex;
-        return;
+            if (s.OperandSize < WordSize || !(Relocations[s.ImmediateRelocation].Type & 0x21)) {
+                // Wrong size or type of relocation
+                return;
+            }
+            // Register contains the address of a symbol
+            t.Regist[reg] = 0x18;
+            t.Value [reg] = Relocations[s.ImmediateRelocation].TargetOldIndex;
+            return;
         }
 
         // Register value is a known constant
@@ -1532,20 +1537,21 @@ void CDisassembler::UpdateTracer() {
         // Save value
         switch (s.ImmediateFieldSize) {
         case 1:
-        t.Value[reg] = Get<uint8>(s.ImmediateField);
-        break;
+            t.Value[reg] = Get<uint8>(s.ImmediateField);
+            break;
         case 2:
-        t.Value[reg] = Get<uint16>(s.ImmediateField);
-        break;
+            t.Value[reg] = Get<uint16>(s.ImmediateField);
+            break;
         case 4: 
         case 8: // 64-bit value truncated to 32 bits
-        t.Value[reg] = Get<uint32>(s.ImmediateField);
-        break;
+            t.Value[reg] = Get<uint32>(s.ImmediateField);
+            break;
         default:
-        // Error. Should not occur
-        t.Regist[reg] = 0;
+            // Error. Should not occur
+            t.Regist[reg] = 0;
         }
         return;
+        /* This part is currently unused:
         case 0x31: case 0x33: case 0x29: case 0x2B:
         // XOR or SUB. Check if source and destination is same register
         if ((s.Operands[0] & 0xFFFF) == (s.Operands[1] & 0xFFFF) && s.Reg == s.RM && s.OperandSize >= 32) {
@@ -1991,7 +1997,9 @@ void CDisassembler::FollowJumpTable(uint32 symi, uint32 RelType) {
     SourceSection = Symbols[symi].Section;
     SourceOffset  = Symbols[symi].Offset;
     SourceSize    = Symbols[symi].Size;
-    TargetType    = 0x82;                         // Target type = jump label
+    TargetType    = 0x82; 
+    
+    // Target type = jump label
     if ((Symbols[symi].Type & 0xFF) == 0x0C) TargetType++;  // Target type = call label
 
     // Find next label
@@ -2050,6 +2058,7 @@ void CDisassembler::FollowJumpTable(uint32 symi, uint32 RelType) {
         Addend = Relocations[Reli].Addend;
         // Check inline addend if target is section-relative and this is an object file
         if (!ExeType && Symbols[TargetSymI].Offset == 0) {
+
             switch (SourceSize) {
             case 2:
                 Addend += *(int16*)(Sections[SourceSection].Start + Pos);
@@ -2063,8 +2072,10 @@ void CDisassembler::FollowJumpTable(uint32 symi, uint32 RelType) {
             if (Addend) {
                 // Make new symbol at target address
                 uint32 NewSymOffset = Addend;
-                if (Relocations[Reli].Type & 2) {
-                    NewSymOffset -= Relocations[Reli].Offset;
+                if (Relocations[Reli].Type & 2) {  // relative
+                    if (RelType == 0x10) {  // arbitrary reference point                       
+                        NewSymOffset -= (Relocations[Reli].Offset - SourceOffset);
+                    }
                 }
                 uint32 NewSym = Symbols.NewSymbol(Symbols[TargetSymI].Section, NewSymOffset, 2);
                 if (NewSym) TargetSymI = NewSym;
@@ -2584,6 +2595,7 @@ void CDisassembler::FindMapEntry() {
     uint8  Byte = Buffer[i];                      // Current byte of code or index into map
     uint32 MapNumber = 0;                         // Map number in opcodes.cpp
     uint32 StartPage;                             // Index to start page in opcode map
+    uint32 MapNumber0 = 0;                        // Fallback start page if no map entry found in StartPage
     SOpcodeDef const * MapEntry;                  // Point to current opcode map entry
 
     // Get start page from VEX.mmmm or XOP.mmmm bits if any
@@ -2597,15 +2609,26 @@ void CDisassembler::FindMapEntry() {
         if (StartPage >= NumOpcodeStartPageVEX) {
             s.Errors |= 0x10000; StartPage = 0;     // mmmm bits out of range
         }
-        MapEntry = OpcodeStartPageVEX[StartPage] + Byte;   // Get entry [Byte] in map
-        // There are two entries for StartPage = 1: OpcodeMap1 for legacy code and OpcodeMapB1
-        // for VEX-only code. We don't want to have the same code in two different maps
-        // because this may cause errors if a code is updated only in one of the maps.
-        // Search OpcodeMapB1 first, then OpcodeMap1
-        if (StartPage == 1 && ((MapEntry->Name == 0 && MapEntry->TableLink == 0) || Byte >= OpcodeTableLength[0xB1])) {
-            // not found here, try in non-VEX map 1
-            MapEntry = OpcodeTables[1] + Byte;
+        MapNumber = OpcodeStartPageVEX[StartPage]; 
+        if (StartPage == 1) MapNumber0 = 1;
+        if (StartPage == 2 && s.Prefixes[5] == 0xF3 && s.Prefixes[3] == 0x62) {
+            StartPage = 8; MapNumber0 = MapNumber;  // shortcut for EVEX F3 0F 38
+            MapNumber = OpcodeStartPageVEX[StartPage]; 
         }
+        // Get entry [Byte] in map
+        MapEntry  = OpcodeTables[MapNumber] + Byte;
+        
+        // There are two entries for mm = 1: OpcodeMap1 for legacy code and OpcodeMapB1 for VEX-only code.
+        // There are two entries for mm = 2: OpcodeMap2 for legacy code and OpcodeMapB2 for EVEX-only code with F3 prefix.
+        // We don't want to have the same code in two different maps because this may cause errors if a code 
+        // is updated only in one of the maps.
+        // Search the shortcut map first, then the default map
+        if ((MapEntry->Name == 0 && MapEntry->TableLink == 0) || Byte >= OpcodeTableLength[MapNumber]) {
+            // not found here, try in default map
+            MapNumber = MapNumber0;
+            MapEntry  = OpcodeTables[MapNumber] + Byte;
+        }
+        if (MapNumber == 0) s.Errors |= 0x10000;   // no map found
         break;
     case 0x8F:  // XOP prefix
         StartPage = (s.Prefixes[6] & 0x1F) - 8;    // 4 mmmm bits or 0 if no VEX or XOP prefix
@@ -3269,8 +3292,8 @@ void CDisassembler::FindOperandTypes() {
             s.Operands[1] = s.Operands[2];  s.Operands[2] = 0;
         }
         // Preliminary AMD specification
-        if ((AllowedPref & 0x4000) && !(s.Prefixes[7] & 8)) {
-            // Swap src1 and src2 if XOP.W = 0
+        if ((AllowedPref & 0x7000) == 0x7000 && !(s.Prefixes[7] & 8)) {
+            // Swap src1 and src2 if XOP prefix and XOP.W = 0
             k = s.Operands[1]; s.Operands[1] = s.Operands[2]; s.Operands[2] = k;
         }
         break;
@@ -3303,7 +3326,7 @@ void CDisassembler::FindOperandTypes() {
         s.Operands[1] |= 0x60000;
         s.Operands[2] |= 0x30000;
         s.Operands[3] |= 0x70000;
-        if ((s.Prefixes[7] & 8) && (AllowedPref & 0x4000)) {
+        if ((s.Prefixes[7] & 8) && (AllowedPref & 0x7000) == 0x7000) {
             // Swap src2 and src3 if VEX.W
             k = s.Operands[2]; s.Operands[2] = s.Operands[3]; s.Operands[3] = k;
         }
@@ -3316,7 +3339,7 @@ void CDisassembler::FindOperandTypes() {
         s.Operands[1] |= 0x70000;
         s.Operands[2] |= 0x30000;
         s.Operands[3] |= 0x60000;
-        if ((s.Prefixes[7] & 8) && (AllowedPref & 0x4000)) {
+        if ((s.Prefixes[7] & 8) && (AllowedPref & 0x7000) == 0x7000) {
             // Swap src2 and src3 if VEX.W
             k = s.Operands[2]; s.Operands[2] = s.Operands[3]; s.Operands[3] = k;
         }
@@ -3417,9 +3440,26 @@ void CDisassembler::FindOperandTypes() {
             break;
 
         case 9: case 0x19: case 0x29: case 0x39: case 0xA9: 
-            // 16, 32 or 64 bits, depending on operand size
+            // 8, 16, 32 or 64 bits, depending on operand size prefixes
             s.Operands[i] &= ~0x0F;
-            s.Operands[i] |= (s.OperandSize == 16) ? 2 : ((s.OperandSize == 64) ? 4 : 3);
+            switch (AllowedPref & 0x7000) {
+            case 0x3000: default: // 32 or 64 depending on mode and 66 or REX.W prefix
+                s.Operands[i] |= (s.OperandSize == 16) ? 2 : ((s.OperandSize == 64) ? 4 : 3);
+                break;
+            case 0x4000:  // VEX.W prefix determines integer (vector) operand size b/w
+                if ((s.Prefixes[7] & 8) == 0) {  // W bit                
+                    s.OperandSize = 8;                
+                    s.Operands[i] |= 1;
+                }
+                else {
+                    s.OperandSize = 16;                
+                    s.Operands[i] |= 2;
+                }
+                break;
+            case 0x5000:  // VEX.W and 66 prefix determines integer operand size b/w/d/q (mask instructions. B = 66W0, W = _W0, D = 66W1, Q = _W1)
+                s.Operands[i] |= (s.Prefixes[5] != 0x66) + ((s.Prefixes[7] & 8) >> 2) + 1;
+                break;
+            }
             break;
 
         case 0xB: case 0xC: // 16, 32 or 64 bits. Fixed size = 64 in 64 bit mode
@@ -3488,9 +3528,12 @@ void CDisassembler::FindOperandTypes() {
             if (s.Prefixes[3] == 0x62) {             // EVEX or MVEX prefix
                 if (s.Prefixes[6] & 0x20) {
                     // EVEX prefix
-                    // Manual is unclear: Do LL bits specify vector size when b = 0 for instructions with "rounding semantic"?
-                    //if ((s.OpcodeDef->EVEX & 4) && (s.Mod == 3)) {
-                    if ((s.OpcodeDef->EVEX & 4) && (s.Mod == 3) && (s.Esss & 1)) {
+                    // Do LL bits specify vector size when b = 1 for instructions that allow 
+                    // sae but not rounding? Perhaps not, because sae is only allowed for
+                    // 512 bit vectors, but manual says otherwise. 
+                    // NASM version 2.11.06 sets LL = 0 when b = 1 for vrangeps instruction
+                    //??if ((s.OpcodeDef->EVEX & 4) && (s.Mod == 3) && (s.Esss & 1)) {
+                    if ((s.OpcodeDef->EVEX & 6) && (s.Mod == 3) && (s.Esss & 1)) {
                         // rounding control, register operand. L'L do not indicate vector size
                         oper |= 0x600;      // zmm
                     }
@@ -3536,7 +3579,7 @@ void CDisassembler::FindOperandTypes() {
         if ((s.Prefixes[6] & 0x60) == 0x40 && (s.Operands[i] & 0xF0000) == 0x30000) {
             int sw = (s.OpcodeDef->MVEX & 0x1F);
             if (sw) {
-                int optype = s.SwizRecord->memop;
+                int optype = s.SwizRecord ? s.SwizRecord->memop : 0; //?
                 if (s.OpcodeDef->InstructionFormat == 0x1E) {
                     // vsib addressing: s.Operands[i] & 0xF00 indicates index register size, s.Operands[i] & 0xFF indicates operand size
                     s.Operands[i] = (s.Operands[i] & ~0xFF) | (optype & 0xFF);
@@ -3632,7 +3675,7 @@ void CDisassembler::FindWarnings() {
         s.Warnings1 |= 0x80;
     }
     // Check for unnecessary REX.W prefix
-    if ((s.OpcodeDef->AllowedPrefixes & 0x2000) && s.Prefixes[7] == 0x48) {
+    if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x2000 && s.Prefixes[7] == 0x48) {
         s.Warnings1 |= 0x200;  // REX.W prefix valid but unnecessary
     }
     // Check for meaningless prefixes
@@ -3709,8 +3752,8 @@ void CDisassembler::FindWarnings() {
         // Check if REX.X bit used for base register with EVEX prefix
         if (s.Prefixes[3] == 0x62 && s.Mod == 3) RexBits &= ~2;
 
-        // Check if VEX.W bit used for operand swapping
-        if ((s.OpcodeDef->AllowedPrefixes & 0x3000) && (s.Prefixes[7] & 0xB0)) RexBits &= ~8;
+        // Check if VEX.W bit used for some purpose
+        if ((s.OpcodeDef->AllowedPrefixes & 0x7000) != 0 && (s.Prefixes[7] & 0xB0)) RexBits &= ~8;
 
         // Any unused bits left?
         if (RexBits) {

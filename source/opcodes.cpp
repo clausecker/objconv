@@ -1,13 +1,13 @@
 /****************************    opcodes.cpp    *******************************
 * Author:        Agner Fog
 * Date created:  2007-02-21 
-* Last modified: 2013-09-28
+* Last modified: 2014-12-06
 * Project:       objconv
 * Module:        opcodes.cpp
 * Description:
 * Definition of opcode maps used by disassembler
 *
-* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 
@@ -430,10 +430,10 @@ SOpcodeDef OpcodeMap1[256] = {
    {"sqrt",      0x76  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 51. Link to sqrtps/pd/ss/sd
    {"rsqrt",     0x77  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 52. Link to rsqrtps/ss
    {"rcp",       0x78  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 53. Link to rcpps/ss
-   {"and",       0x11  , 0xD0200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0     , 0     , 0     , 0x3   },    // 0F 54. andps/pd
-   {"andn",      0x11  , 0xD0200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0     , 0     , 0     , 0x3   },    // 0F 55. andnps/pd
-   {"or",        0x11  , 0xD0200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0     , 0     , 0     , 0x3   },    // 0F 56. orps/pd
-   {"xor",       0x11  , 0xD0200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0     , 0     , 0     , 0x3   },    // 0F 57. xorps/pd
+   {"and",       0x11  ,0x8D2200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F 54. andps/pd
+   {"andn",      0x11  ,0x8D2200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F 55. andnps/pd
+   {"or",        0x11  ,0x8D2200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F 56. orps/pd
+   {"xor",       0x11  ,0x8D2200, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F 57. xorps/pd
    {"add",       0x11  ,0xE92E00, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0x1304, 0     , 0x3   },    // 0F 58. addps/pd/ss/sd
    {"mul",       0x11  ,0xE92E00, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0x1304, 0     , 0x3   },    // 0F 59. mulps/pd/ss/sd
    {0,           0x49  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 5A. Link to cvtps2pd, etc.
@@ -443,20 +443,20 @@ SOpcodeDef OpcodeMap1[256] = {
    {"div",       0x11  ,0xA92E00, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0     , 0     , 0x3   },    // 0F 5E. divps/pd/ss/sd
    {"max",       0x11  ,0xA92E00, 0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x33  , 0     , 0     , 0x3   },    // 0F 5F. maxps/pd/ss/sd
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"punpcklbw", 0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 60
-   {"punpcklwd", 0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 61
-   {"punpckldq", 0x7   ,0x8D0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 62
-   {"packsswb",  0x7   , 0xD0200, 0x19  , 0x1101, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 63
-   {"pcmpgtb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 64
-   {"pcmpgtw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 65
+   {"punpcklbw", 0x7   ,0x8D0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 60
+   {"punpcklwd", 0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 61
+   {"punpckldq", 0x7   ,0x8D0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F 62
+   {"packsswb",  0x7   ,0x8D2200, 0x19  , 0x1201, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 63
+   {"pcmpgtb",   0x118 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 64
+   {"pcmpgtw",   0x119 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 65
    {"pcmpgtd",   0xC8  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 66. link to pcmpgtd
-   {"packuswb",  0x7   , 0xD0200, 0x19  , 0x1101, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 67
-   {"punpckhbw", 0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 68
-   {"punpckhwd", 0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 69
+   {"packuswb",  0x7   ,0x8D0200, 0x19  , 0x1201, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 67
+   {"punpckhbw", 0x7   ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 68
+   {"punpckhwd", 0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 69
    {"punpckhdq", 0x7   ,0x8D0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 6A
-   {"packssdw",  0x7   , 0xD0200, 0x19  , 0x1102, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 6B
-   {"punpcklqdq",0x12  ,0x8DA200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 6C. Not valid without 66 prefix
-   {"punpckhqdq",0x12  ,0x8DA200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 6D. Not valid without 66 prefix
+   {"packssdw",  0x7   ,0x8D0200, 0x19  , 0x1202, 0x1203, 0x203 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F 6B
+   {"punpcklqdq",0x12  ,0x8DB200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F 6C
+   {"punpckhqdq",0x12  ,0x8DB200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F 6D
    {0,           0x58  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x8   , 0     },    // 0F 6E. Link to tertiary map: movd/movq
    {0,           0x4D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 6F. Link to tertiary map: movq/movdqa/movdqu
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
@@ -464,8 +464,8 @@ SOpcodeDef OpcodeMap1[256] = {
    {0,           0x31  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x2   , 0     },    // 0F 71. Link to tertiary map for group 12
    {0,           0x32  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x2   , 0     },    // 0F 72. Link to tertiary map for group 13
    {0,           0x33  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x2   , 0     },    // 0F 73. Link to tertiary map for group 14
-   {"pcmpeqb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 74
-   {"pcmpeqw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 75
+   {"pcmpeqb",   0x116 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 74
+   {"pcmpeqw",   0x117 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 75
    {"pcmpeqd",   0xC7  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 76. link to pcmpeqd
    {"emms",      0x79  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // 0F 77. Link to emms, vzeroupper, vzeroall
    {0,           0x6C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 78. Link to map for wmread, insrtq, extrq
@@ -550,7 +550,7 @@ SOpcodeDef OpcodeMap1[256] = {
    {0,           0x38  , 0      , 0x52  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F C2. Link to tertiary map for cmpps etc.
    {"movnti",    0x11  , 0x1000 , 0x13  , 0x2009, 0x1009, 0     , 0     , 0     , 0     , 0     , 0     },    // 0F C3
    {0,           0x29  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F C4. Link to pinsrw
-   {"pextrw",    0x7   , 0x11200, 0x52  , 0x1009, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },    // 0F C5
+   {"pextrw",    0x7   ,0x812200, 0x52  , 0x1002, 0x1102, 0x11  , 0     , 0x1000, 0     , 0     , 0x2   },    // 0F C5
    {"shuf",      0x11  ,0x8D2200, 0x59  , 0x124F, 0x124F, 0x24F , 0x11  , 0x31  , 0     , 0     , 0x3   },    // 0F C6
    {0,           0x50  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x2   , 0     },    // 0F C7. Link to tertiary map for group 9
    {"bswap",     0x3   , 0x1000 , 0x3   , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F C8. bswap eax
@@ -566,34 +566,34 @@ SOpcodeDef OpcodeMap1[256] = {
    {"psrlw",     0x99  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F D1. Link to map for psrlw
    {"psrld",     0x9A  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F D2. Link to map for psrld
    {"psrlq",     0x9B  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F D3. Link to map for psrlq
-   {"paddq",     0x12  ,0x8D0200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F D4
-   {"pmullw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F D5
+   {"paddq",     0x12  ,0x8D3200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F D4
+   {"pmullw",    0x7   ,0x8DA200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D5
    {0,           0x53  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F D6. Link to tertiary map for movq2dq etc.
    {"pmovmskb",  0x93  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0B  , 0     },    // 0F D7. Link pmovmskb
-   {"psubusb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F D8
-   {"psubusw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F D9
-   {"pminub",    0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F DA
+   {"psubusb",   0x7   ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20   , 0     , 0     , 0x2   },    // 0F D8
+   {"psubusw",   0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D9
+   {"pminub",    0x7   ,0x8D0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F DA
    {"pand",      0xC2  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F DB. link to pand
-   {"paddusb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F DC
-   {"paddusw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F DD
-   {"pmaxub",    0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F DE
+   {"paddusb",   0x7   ,0x8D2200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F DC
+   {"paddusw",   0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F DD
+   {"pmaxub",    0x7   ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F DE
    {"pandn",     0xC3  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F DF. link to pandn
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pavgb",     0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E0
+   {"pavgb",     0x7   ,0x8D2200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E0
    {"psraw",     0x9C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F E1. Link to map for psraw
    {"psrad",     0x9D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F E2. Link to map for psrad
-   {"pavgw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E3
-   {"pmulhuw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E4
-   {"pmulhw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E5
+   {"pavgw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E3
+   {"pmulhuw",   0x7   ,0x8DA200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E4
+   {"pmulhw",    0x7   ,0x8DA200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E5
    {0,           0x54  , 0xE00  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F E6. Link to tertiary map for cvtpd2dq etc.
    {0,           0x55  , 0x200  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F E7. Link to tertiary map for movntq
-   {"psubsb",    0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E8
-   {"psubsw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E9
-   {"pminsw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F EA
+   {"psubsb",    0x7   ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E8
+   {"psubsw",    0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20   , 0     , 0     , 0x2   },    // 0F E9
+   {"pminsw",    0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F EA
    {"por",       0xC4  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F EB. link to por
-   {"paddsb",    0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F EC
-   {"paddsw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F ED
-   {"pmaxsw",    0x7   , 0x90200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F EE
+   {"paddsb",    0x7   ,0x8D2200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F EC
+   {"paddsw",    0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F ED
+   {"pmaxsw",    0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F EE
    {"pxor",      0xC5  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F EF. link to pxor
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0x56  , 0x800  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F F0. Link to tertiary map for lddqu
@@ -601,15 +601,15 @@ SOpcodeDef OpcodeMap1[256] = {
    {"pslld",     0x97  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F F2. Link to map for pslld
    {"psllq",     0x98  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F F3. Link to map for psllq
    {"pmuludq",   0x7   ,0x8D2200, 0x19  , 0x1104, 0x1103, 0x103 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F F4
-   {"pmaddwd",   0x7   , 0xD0200, 0x19  , 0x1103, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F5
-   {"psadbw",    0x7   , 0xD0200, 0x19  , 0x1102, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F6
+   {"pmaddwd",   0x7   ,0x8D2200, 0x19  , 0x1103, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F5
+   {"psadbw",    0x7   ,0x8D2200, 0x19  , 0x1102, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F6
    {0,           0x57  , 0x200  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F F7. Link to tertiary map for maskmovq
-   {"psubb",     0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F8
-   {"psubw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F9
-   {"psubd",     0x7   ,0xCD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x31  , 0x1406, 0     , 0x2   },    // 0F FA   
-   {"psubq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F FB
-   {"paddb",     0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F FC
-   {"paddw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F FD
+   {"psubb",     0x7   ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F8
+   {"psubw",     0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F9
+   {"psubd",     0x7   ,0xCD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x21  , 0x1406, 0     , 0x2   },    // 0F FA   
+   {"psubq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F FB
+   {"paddb",     0x7   ,0x8D2200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F FC
+   {"paddw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F FD
    {"paddd",     0x7   ,0xCD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x31  , 0x1406, 0     , 0x2   },    // 0F FE
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 0F FF
 
@@ -619,76 +619,77 @@ SOpcodeDef OpcodeMap1[256] = {
 // Indexed by third opcode byte
 SOpcodeDef OpcodeMap2[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pshufb",    0x14  , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 00
+   {"pshufb",    0x14  ,0x8D2200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 00
    {"phaddw",    0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 01
    {"phaddd",    0x14  , 0xD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 02
    {"phaddsw",   0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 03
-   {"pmaddubsw", 0x14  , 0xD0200, 0x19  , 0x1102, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 04
+   {"pmaddubsw", 0x14  ,0x8D2200, 0x19  , 0x1102, 0x1101, 0x101 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 04
    {"phsubw",    0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 05
    {"phsubd",    0x14  , 0xD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 06
    {"phsubsw",   0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 07
    {"psignb",    0x14  , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 08
    {"psignw",    0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 09
    {"psignd",    0x14  , 0xD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 0A
-   {"pmulhrsw",  0x14  , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 0B
+
+   {"pmulhrsw",  0x14  ,0x8DA200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 0B
    {"vpermilps", 0x19  ,0x8FA200, 0x19  , 0x124B, 0x124B, 0x24B , 0     , 0x31  , 0     , 0     , 0     },    // 0F 38 0C
    {"vpermilpd", 0x19  ,0x8FA200, 0x19  , 0x124C, 0x124C, 0x24C , 0     , 0x31  , 0     , 0     , 0     },    // 0F 38 0D
    {"vtestps",   0x19  , 0x78200, 0x12  , 0x124B, 0x24B , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 0E
    {"vtestpd",   0x19  , 0x78200, 0x12  , 0x124B, 0x24B , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 0F
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pblendvb",  0x15  , 0x8200 , 0x12  , 0x1401, 0x401 , 0xAE  , 0     , 0     , 0     , 0     , 0     },    // 0F 38 10
-   {0,           0xEA  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 11. Link to vpmovdb
-   {0,           0xED  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 12. Link to vpmovqb
-   {0,           0xF0  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 13. Link to vcvtph2ps and vpmovdw
+   {0,           0xEA  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0x11  , 0     },    // 0F 38 10. Link pblendvb and vpsrlvw
+   {"vpsravw",   0x1C  ,0x8FC200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 11
+   {"vpsllvw",   0x20  ,0x8FC200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 12
+   {"vcvtph2ps", 0x19  ,0x878200, 0x12  , 0x250 , 0xF4A , 0     , 0     , 0x2232, 0     , 0     , 0     },    // 0F 38 13
    {0,           0x8D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // 0F 38 14. Link to vprorvd blendvps and vpmovqw
    {0,           0x8E  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // 0F 38 15. Link to vprolvd blendvpd and vpmovqd
    {"vpermp",    0x1C  ,0x9F9200 ,0x19  , 0x124F, 0x1203, 0x24F , 0     , 0x31  , 0     , 0     , 0x1   },    // 0F 38 16
    {"ptest",     0x15  , 0x58200, 0x12  , 0x1250, 0x250 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 17. Also in AMD SSE5 instruction set
    {"vbroadcastss",0x19,0xC78200, 0x12  , 0x124B, 0x04B , 0     , 0     , 0x20  , 0x1048, 0     , 0     },    // 0F 38 18
    {"vbroadcastsd",0x19,0xC7A200, 0x12  , 0x124C, 0x04C , 0     , 0     , 0x20  , 0x1049, 0     , 0     },    // 0F 38 19
-   {0,           0xB2  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 1A. Link to broadcast instructions
+   {0,           0xE5  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 1A. Link to broadcast instructions
    {"vbroadcastf64x4",0x20,0xC29200,0x12, 0x164C, 0x254C, 0     , 0     , 0x20  , 0x1011, 0     , 0x100 },    // 0F 38 1B
-   {"pabsb",     0x14  , 0x50200, 0x12  , 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 1C
-   {"pabsw",     0x14  , 0x50200, 0x12  , 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 1D
-   {"pabsd",     0x14  ,0x850200, 0x12  , 0x1103, 0x103 , 0     , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 38 1E
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 1F
+   {"pabsb",     0x14  ,0x85A200, 0x12  , 0x1201, 0x201 , 0     , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 1C
+   {"pabsw",     0x14  ,0x85A200, 0x12  , 0x1202, 0x202 , 0     , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 1D
+   {"pabsd",     0x14  ,0x85B200, 0x12  , 0x1203, 0x203 , 0     , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 38 1E
+   {"vpabsq",    0x20  ,0x85B200, 0x12  , 0x1203, 0x203 , 0     , 0     , 0x31  , 0     , 0     , 0x0   },    // 0F 38 1F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0x7A  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 20. Link pmovsxbw
-   {0,           0xEB  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 21. Link pmovsxbd and vpmovdb
-   {0,           0xEE  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 22. Link pmovsxbq and vpmovqb
-   {0,           0xF1  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 23. Link pmovsxwd and vpmovdw
-   {0,           0xF4  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 24. Link pmovsxwq and vpmovqw
-   {0,           0xF7  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 25. Link pmovsxdq and vpmovqd
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 26
-   {"vptestm",   0x21  ,0xCBB200, 0x19  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 38 27
+   {0,           0x7B  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 21. Link pmovsxbd and vpmovdb
+   {0,           0x7D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 22. Link pmovsxbq and vpmovqb
+   {0,           0x7F  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 23. Link pmovsxwd and vpmovdw
+   {0,           0x80  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 24. Link pmovsxwq and vpmovqw
+   {0,           0x82  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 25. Link pmovsxdq and vpmovqd
+   {"vptestm",   0x20  ,0x8BC200, 0x19  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 1     },    // 0F 38 27
+   {"vptestm",   0x20  ,0xCBB200, 0x19  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 1     },    // 0F 38 27
    {"pmuldq",    0x15  ,0x8DA200, 0x19  , 0x1204, 0x1203, 0x203 , 0     , 0x31  , 0     , 0     , 0x2   },    // 0F 38 28
    {0,           0xE3  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 29. Link to pcmpeqq
    {0,           0x91  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 2A. Link to movntdqa and vpbroadcastmb2q
-   {"packusdw",  0x15  , 0xD8200, 0x19  , 0x1202, 0x1203, 0x203 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 2B
+   {"packusdw",  0x15  ,0x8D8200, 0x19  , 0x1202, 0x1203, 0x203 , 0     , 0x21  , 0     , 0     , 0x2   },    // 0F 38 2B
    {0,           0xFD  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 2C. Link to vmaskmovps and vscalefps
    {0,           0xFE  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 2D. Link to vmaskmovss and vscalefss
    {"vmaskmovps",0x19  , 0xF8200, 0x1A,   0x224B, 0x124B, 0x124B, 0     , 0     , 0     , 0     , 0     },    // 0F 38 2E
    {"vmaskmovpd",0x19  , 0xF8200, 0x1A,   0x224C, 0x124C, 0x124C, 0     , 0     , 0     , 0     , 0     },    // 0F 38 2F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0x83  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 30. Link pmovzxbv
-   {0,           0xEC  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 31. Link pmovzxbd and vpmovdb
-   {0,           0xEF  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 32. Link pmovzxbq and vpmovqb
-   {0,           0xF2  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 33. Link pmovzxwd and vpmovdw
-   {0,           0xF5  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 34. Link pmovzxwq and vpmovqw
-   {0,           0xF8  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 35. Link pmovzxdq and vpmovqd
+   {0,           0x85  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 31. Link pmovzxbd and vpmovdb
+   {0,           0x87  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 32. Link pmovzxbq and vpmovqb
+   {0,           0x89  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 33. Link pmovzxwd and vpmovdw
+   {0,           0x8A  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 34. Link pmovzxwq and vpmovqw
+   {0,           0x8C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 35. Link pmovzxdq and vpmovqd
    {"vperm",     0x1C  , 0xCFB200,0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x31  , 0x1000, 0     , 0x1   },    // 0F 38 36
-   {0,           0xE4  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 37
-   {"pminsb",    0x15  , 0xD8200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 38
+   {0,           0xE4  , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 37
+   {0,           0x12C , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 38. Link to pminsb etc.
    {0,           0xE6  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 39. Link pminsd
    {0,           0xFF  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 38 3A
    {0       ,    0xE7  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0x2   },    // 0F 38 3B. Link pminud
-   {"pmaxsb",    0x15  , 0xD8200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 3C
+   {"pmaxsb",    0x15  ,0x8DA200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 3C
    {0,           0xE8  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 3D. Link pmaxsd
-   {"pmaxuw",    0x15  , 0xD8200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 3E
+   {"pmaxuw",    0x15  ,0x8DA200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F 38 3E
    {0,           0xE9  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 3F. Link pmaxud
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pmulld",    0x15  ,0xCDA200, 0x19  , 0x1203, 0x1203, 0x203 , 0     , 0x31  , 0x1406, 0     , 0x2   },    // 0F 38 40
+   {"pmull",     0x15  ,0xCDB200, 0x19  , 0x1203, 0x1203, 0x203 , 0     , 0x31  , 0x1406, 0     , 0x3   },    // 0F 38 40
    {"phminposuw",0x15  , 0x18200, 0x12  , 0x1402, 0x402 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 41
    {"vgetexpp",  0x20  , 0xC29200,0x12  , 0x124F, 0x24F , 0     , 0     , 0x37  , 0x1204, 0     , 0x101 },    // 0F 38 42
    {"vgetexps",  0x20  , 0xC29200,0x12  , 0x144F, 0x04F , 0     , 0     , 0x32  , 0x1204, 0     , 0x101 },    // 0F 38 43
@@ -715,7 +716,7 @@ SOpcodeDef OpcodeMap2[] = {
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 57
    {"vpbroadcastd",0xA0, 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 58. Link to vpbroadcastd
    {"vpbroadcastq",0xA1, 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 59. Link to vpbroadcastq
-   {0,           0xB3  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 5A. Link to broadcast instructions
+   {0,           0x84  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 5A. Link to broadcast instructions
    {"vbroadcasti64x4",0x80,0xC29200,0x12, 0x1604, 0x2504, 0     , 0     , 0x20  , 0x1013, 0     , 0x100 },    // 0F 38 5B
    {"vpadcd",    0x80  , 0x4A8200,0x19  , 0x1603, 0x95  , 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 5C
    {"vpaddsetcd",0x80  , 0x4A8200,0x19  , 0x1603, 0x95  , 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 5D
@@ -726,9 +727,9 @@ SOpcodeDef OpcodeMap2[] = {
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 61
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 62
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 63
-   {"vpblendm",  0x80  ,0xCAB200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x21  , 0x1406, 0     , 0x101 },    // 0F 38 64
+   {"vpblendm",  0x20  ,0xCAB200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x21  , 0x1406, 0     , 0x001 },    // 0F 38 64 (alignment required only in Knights Corner)
    {"vblendmp",  0x80  ,0xCA9200, 0x19,   0x124F, 0x124F, 0x24F , 0     , 0x21  , 0x1404, 0     , 0x101 },    // 0F 38 65
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 66
+   {"vpblendm",  0x20  ,0x8AC200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x21  , 0x1406, 0     , 0x001 },    // 0F 38 66
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 67
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 68
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 69
@@ -744,33 +745,33 @@ SOpcodeDef OpcodeMap2[] = {
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 72
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 73
    {"vpcmpltd",  0x80  ,0x4B8200, 0x19  , 0x95  , 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 74
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 75
+   {"vpermi2" ,  0x23  ,0x8EC200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 1     },    // 0F 38 8D (instruction set avx512vbmi for byte version)
    {"vpermi2",   0x20  ,0x8AB200, 0x19,   0x1609, 0x1609, 0x0609, 0     , 0x31  , 0     , 0     , 0x1   },    // 0F 38 76
    {"vpermi2p",  0x20  ,0x8A9200, 0x19,   0x164F, 0x164F, 0x064F, 0     , 0x31  , 0     , 0     , 0x1   },    // 0F 38 77
    {"vpbroadcastb",0x9E, 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 78. Link to vpbroadcastb
    {"vpbroadcastw",0x9F, 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 38 79. Link to vpbroadcastw
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 7A
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 7B
+   {"vpbroadcastb",0x20,0x828200, 0x12,   0x1201, 0x1001, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 7A
+   {"vpbroadcastw",0x20,0x828200, 0x12,   0x1202, 0x1002, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 7B
    {"vpbroadcast",0x20 ,0x82B200, 0x12,   0x1209, 0x1009, 0     , 0     , 0x20  , 0     , 0     , 0x1   },    // 0F 38 7C
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 7D
-   {"vpermt2",   0x20  ,0x8AB200, 0x19,   0x1609, 0x1609, 0x0609, 0     , 0x31  , 0     , 0     , 0x1   },    // 0F 38 7E
-   {"vpermt2p",  0x20  ,0x8A9200, 0x19,   0x164F, 0x164F, 0x064F, 0     , 0x31  , 0     , 0     , 0x1   },    // 0F 38 7F
+   {"vpermt2" ,  0x20  ,0x8EC200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 1     },    // 0F 38 7D (instruction set avx512vbmi for byte version)
+   {"vpermt2",   0x20  ,0x8AB200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x21  , 0     , 0     , 0x1   },    // 0F 38 7E
+   {"vpermt2p",  0x20  ,0x8A9200, 0x19,   0x164F, 0x164F, 0x064F, 0     , 0x21  , 0     , 0     , 0x1   },    // 0F 38 7F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 80
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 81
    {"invpcid",   0x81D , 0x9200 , 0x12  , 0x1009, 0x2406, 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 82
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 83
+   {"vpmultishiftqb",0x23,0x8E9200,0x19 , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0     },    // 0F 38 83
    {"vscaleps",  0x80  ,0x4B8200, 0x19  , 0x164B, 0x164B, 0x603 , 0     , 0     , 0x1306, 0     , 0x100 },    // 0F 38 84
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 85
    {"vpmulhud",  0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 86
    {"vpmulhd",   0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 87
-   {"vexpandp",  0x20  ,0x801200, 0x12  , 0x164F, 0x064F, 0     , 0     , 0x1030, 0     , 0     , 0x1   },    // 0F 38 88
-   {"vpexpand",  0x20  ,0x83B200, 0x12  , 0x1209, 0x0209, 0     , 0     , 0x30  , 0     , 0     , 0x1   },    // 0F 38 89
+   {"vexpandp",  0x20  ,0x801200, 0x12  , 0x164F, 0x064F, 0     , 0     , 0x1030, 0     , 0     , 1     },    // 0F 38 88
+   {"vpexpand",  0x20  ,0x83B200, 0x12  , 0x1209, 0x0209, 0     , 0     , 0x30  , 0     , 0     , 1     },    // 0F 38 89
    {"vcompressp",0x20  ,0x809200, 0x13,   0x024F, 0x124F, 0     , 0     , 0x1030, 0     , 0     , 1     },    // 0F 38 8A
    {"vpcompress",0x20  ,0x80B200, 0x13,   0x0209, 0x1209, 0     , 0     , 0x1030, 0     , 0     , 1     },    // 0F 38 8B
-   {"vpmaskmov", 0x1C  , 0xFB200, 0x19,   0x1209, 0x1209, 0x2209, 0     , 0     , 0     , 0     , 0x1   },    // 0F 38 8C
-   {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 8D
-   {"vpmaskmov", 0x1C  , 0xFB200, 0x1A,   0x2209, 0x1209, 0x1209, 0     , 0     , 0     , 0     , 0x1   },    // 0F 38 8E
+   {"vpmaskmov", 0x1C  , 0xFB200, 0x19,   0x1209, 0x1209, 0x2209, 0     , 0     , 0     , 0     , 1     },    // 0F 38 8C
+   {"vperm" ,    0x23  ,0x8EC200, 0x19,   0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 1     },    // 0F 38 8D
+   {"vpmaskmov", 0x1C  , 0xFB200, 0x1A,   0x2209, 0x1209, 0x1209, 0     , 0     , 0     , 0     , 1     },    // 0F 38 8E
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 8F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0xCA  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 38 90. link to vpgatherd/q
@@ -812,8 +813,8 @@ SOpcodeDef OpcodeMap2[] = {
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 B1
    {"(reserved)",0x00  ,0x4D2E00, 0x401E, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 B2
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 B3
-   {"vpmadd233d",0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 B4
-   {"vpmadd231d",0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 },    // 0F 38 B5
+   {0,           0x128 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0x11  , 0     },    // 0F 38 B4. Link to vpmadd52luq
+   {0,           0x129 , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0x11  , 0     },    // 0F 38 B5. Link to vpmadd52huq
    {"vfmaddsub231p",0x1A,0x8F9200,0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0     , 0     , 0x1   },    // 0F 38 B6
    {"vfmsubadd231p",0x1A,0x8F9200,0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0     , 0     , 0x1   },    // 0F 38 B7
    {"vfmadd231p",   0x1A,0xCF9200,0x19  , 0x124F, 0x124F, 0x24F , 0     , 0x37  , 0x1304, 0     , 0x1   },    // 0F 38 B8
@@ -919,7 +920,7 @@ SOpcodeDef OpcodeMap4[] = {
    {"blendps",   0x15  , 0xD8200, 0x59  , 0x124B, 0x124B, 0x24B , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 0C
    {"blendpd",   0x15  , 0xD8200, 0x59  , 0x124C, 0x124C, 0x24C , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 0D
    {"pblendw",   0x15  , 0xD8200, 0x59  , 0x1202, 0x1202, 0x202 , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 0E
-   {"palignr",   0x14  , 0xD0200, 0x59  , 0x1150, 0x1150, 0x150 , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 0F
+   {"palignr",   0x14  ,0x8D2200, 0x59  , 0x1201, 0x1201, 0x201 , 0x31  , 0x20  , 0     , 0     , 0x2   },    // 0F 3A 0F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 10
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 11
@@ -928,16 +929,16 @@ SOpcodeDef OpcodeMap4[] = {
    {0,           0x61  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 3A 14. Link to pextrb
    {0,           0x62  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 3A 15. Link to pextrw
    {0,           0x63  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x8   , 0     },    // 0F 3A 16. Link to pextrd, pextrq
-   {"extractps", 0x15  ,0x819200, 0x53  , 0x3   , 0x144B, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 17
-   {"vinsertf128",0x19 ,0x9F8200, 0x59  , 0x1250, 0x1250, 0x450 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 18
-   {0          , 0xDE  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xD   , 0     },    // 0F 3A 19. Link to vextractf128
-   {"vinsertf64x4",0x20,0x8A1200, 0x59  , 0x1650, 0x1650, 0x550 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 1A
-   {"vextractf64x4",0x20,0x801200,0x53  , 0x54B , 0x164B, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // 0F 3A 1B
+   {"extractps" ,0x15  ,0x819200, 0x53  , 0x3   , 0x144B, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 17
+   {0           ,0x122 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 3A 18
+   {0           ,0x11E , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 3A 19. Link to vextractf128
+   {0           ,0x124 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 3A 1A. Link to vinsertf64x4
+   {0,           0xDE  , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 3A 1B. Link to vextractf64x4
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 1C
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"vcvtps2ph", 0x1D  ,0x878200, 0x53,   0xF4A , 0x250 , 0x31  , 0     , 0x22  , 0     , 0     , 0     },    // 0F 3A 1D
-   {"vpcmpud",   0xC9  , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F 3A 1E. link to vpcmpud
-   {"vpcmpd",    0xC6  , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F 3A 1F. link to vpcmpd
+   {0,           0x114 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F 3A 1E. link to vpcmpud
+   {0,           0x115 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F 3A 1F. link to vpcmpd
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0xA5  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 0F 3A 20. Link to pinsrb
    {"insertps",  0x15  ,0x898200, 0x59  , 0x144B, 0x144B, 0x4B  , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 21
@@ -956,56 +957,56 @@ SOpcodeDef OpcodeMap4[] = {
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 2E
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 2F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"kshiftrw",  0x20  , 0x3A200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 30
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 31
-   {"kshiftlw",  0x20  , 0x3A200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 32
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 33
+   {"kshiftr",   0x20  , 0x3C200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 1     },    // 0F 3A 30
+   {"kshiftr",   0x20  , 0x3B200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 1     },    // 0F 3A 30
+   {"kshiftl",   0x20  , 0x3C200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 1     },    // 0F 3A 32
+   {"kshiftl",   0x20  , 0x3B200, 0x52  , 0x1095, 0x1095, 0x11  , 0     , 0     , 0     , 0     , 1     },    // 0F 3A 33
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 34
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 35
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 36
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 37
-   {"vinserti128",0x1C ,0x9F8200, 0x59  , 0x1206, 0x1206, 0x406 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 38
-   {0          , 0xDF  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xD   , 0     },    // 0F 3A 19. Link to vextracti128
-   {"vinserti64x4",0x20,0x8A1200, 0x59  , 0x1650, 0x1650, 0x550 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 3A
-   {"vextracti64x4",0x20,0x801200, 0x53 , 0x504 , 0x1604, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // 0F 3A 3B
+   {0,           0x125 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 3A 38. Link to vinserti128
+   {0,           0x120 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 3A 39. Link to vextracti128
+   {0,           0x127 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 3A 3A. Link to vinserti64x4
+   {0,           0xDF  , 0      , 0x53 , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 3A 3B. Link to vextracti64x4
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 3C
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 3D
-   {"kextract",  0x20  , 0x38200, 0x52  , 0x1095, 0x1004, 0x11  , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 3E
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 3F
-//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0xC6  , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 3A 3E. Link to kextract and vpcmp
+   {0,           0x113 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     },    // 0F 3A 3F. Link to vpcmp
+   //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"dpps",      0x15  , 0xD8200, 0x59  , 0x124B, 0x124B, 0x24B , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 40
    {"dppd",      0x15  , 0x98200, 0x59  , 0x144C, 0x144C, 0x44C , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 41 (No ymm version)
-   {"mpsadbw",   0x15  , 0xD8200, 0x59  , 0x1202, 0x1202, 0x201 , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 42
+   {0,           0x11D , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0x2   },    // 0F 3A 42. Link to mpsadbw
    {0,           0x90  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 3A 43. Link to vshufi32x4
    {"pclmulqdq", 0x18  , 0x98200, 0x59,   0x1404, 0x1404, 0x404 , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 44
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 45
    {"vperm2i128",0x1C  , 0x1FB200,0x59  , 0x1506, 0x1506, 0x506 , 0x31  , 0     , 0     , 0     , 0     },    // 0F 3A 46
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 47
-   {"vpermil2ps",0x19  , 0xFD200, 0x5C,   0x124B, 0x124B, 0x24B , 0x24B , 0     , 0x31  , 0     , 0     },    // 0F 3A 48
-   {"vpermil2pd",0x19  , 0xFD200, 0x5C,   0x124C, 0x124C, 0x24C , 0x24C , 0     , 0x31  , 0     , 0     },    // 0F 3A 49
-   {"vblendvps", 0x19  , 0xFD200, 0x5C  , 0x124B, 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 4A
-   {"vblendvpd", 0x19  , 0xFD200, 0x5C  , 0x124C, 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 4B
-   {"vpblendvb", 0x19  , 0xFD200, 0x5C  , 0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // 0F 3A 4C
+   {"vpermil2ps",0x1005, 0xFF200, 0x5C,   0x124B, 0x124B, 0x24B , 0x24B , 0     , 0x31  , 0     , 0     },    // 0F 3A 48 AMD XOP
+   {"vpermil2pd",0x1005, 0xFF200, 0x5C,   0x124C, 0x124C, 0x24C , 0x24C , 0     , 0x31  , 0     , 0     },    // 0F 3A 49 AMD XOP
+   {"vblendvps", 0x19  , 0xF8200, 0x5C  , 0x124B, 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 4A
+   {"vblendvpd", 0x19  , 0xF8200, 0x5C  , 0x124C, 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 4B
+   {"vpblendvb", 0x19  , 0xF8200, 0x5C  , 0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // 0F 3A 4C
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 4D
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 4E
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 4F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 50
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 51
+   {"vrangep",   0x20  ,0x8EB200, 0x59,   0x124F, 0x124F, 0x24F , 0x31  , 0x23  , 0     , 0     , 1     },    // 0F 3A 50
+   {"vranges",   0x20  ,0x8EB200, 0x59,   0x144F, 0x144F, 0x44F , 0x31  , 0x33  , 0     , 0     , 1     },    // 0F 3A 50
    {"vrndfxpntp",0x80  , 0x4B9200,0x52  , 0x124F, 0x24F , 0x11  , 0     , 0     , 0x1204, 0     , 0x101 },    // 0F 3A 52
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 53
    {"vfixupimmp",0x20  ,0x881200, 0x59  , 0x124F, 0x124F, 0x024F, 0x31  , 0x33  , 0     , 0     , 1     },    // 0F 3A 54
    {"vfixupimms",0x20  ,0x8C1200, 0x59  , 0x104F, 0x104F, 0x004F, 0x31  , 0x32  , 0     , 0     , 1     },    // 0F 3A 55
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 56
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 57
+   {"vreducep",  0x20  ,0x86B200, 0x52  , 0x124F, 0x24f , 0     , 0x31  , 0x23  , 0     , 0     , 1     },    // 0F 3A 56
+   {"vreduces",  0x20  ,0x8EB200, 0x52  , 0x144F, 0x44f , 0     , 0x31  , 0x22  , 0     , 0     , 1     },    // 0F 3A 57
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 58
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 59
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 5A
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 5B
-   {"vfmaddsubps",0x1006,0xFD200,0x5D   , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 5C
-   {"vfmaddsubpd",0x1006,0xFD200,0x5D   , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 5D
-   {"vfmsubaddps",0x1006,0xFD200,0x5D   , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 5E
-   {"vfmsubaddpd",0x1006,0xFD200,0x5D   , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 5F
+   {"vfmaddsubps",0x1006,0xFF200,0x5C   , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 5C
+   {"vfmaddsubpd",0x1006,0xFF200,0x5C   , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 5D
+   {"vfmsubaddps",0x1006,0xFF200,0x5C   , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 5E
+   {"vfmsubaddpd",0x1006,0xFF200,0x5C   , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 5F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"pcmpestrm", 0x16  , 0x18200, 0x52  , 0x1401, 0x451 , 0x31  , 0     , 0     , 0     , 0     , 0x202 },    // 0F 3A 60
    {"pcmpestri", 0x16  , 0x18200, 0x52  , 0x1401, 0x451 , 0x31  , 0     , 0     , 0     , 0     , 0x202 },    // 0F 3A 61
@@ -1013,17 +1014,17 @@ SOpcodeDef OpcodeMap4[] = {
    {"pcmpistri", 0x16  , 0x18200, 0x52  , 0x1401, 0x451 , 0x31  , 0     , 0     , 0     , 0     , 0x202 },    // 0F 3A 63
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 64
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 65
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 66
-   {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 67
+   {"vfpclassp", 0x20  ,0x82B200, 0x52  , 0x95  , 0x24F , 0x31  , 0     , 0x10  , 0     , 0     , 1     },    // 0F 3A 66
+   {"vfpclasss", 0x20  ,0x82B200, 0x52  , 0x95  , 0x44F , 0x31  , 0     , 0x10  , 0     , 0     , 1     },    // 0F 3A 67
 // 4-operand FMA instructions. First specified by Intel, then Intel changed their plans, now supported by AMD
-   {"vfmaddps",  0x1006,0xFD200 , 0x5D  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 68
-   {"vfmaddpd",  0x1006,0xFD200 , 0x5D  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 69
-   {"vfmaddss",  0x1006,0xBD200 , 0x5D  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 6A
-   {"vfmaddsd",  0x1006,0xBD200 , 0x5D  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 6B
-   {"vfmsubps",  0x1006,0xFD200 , 0x5D  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 6C
-   {"vfmsubpd",  0x1006,0xFD200 , 0x5D  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 6D
-   {"vfmsubss",  0x1006,0xBD200 , 0x5D  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 6E
-   {"vfmsubsd",  0x1006,0xBD200 , 0x5D  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 6F
+   {"vfmaddps",  0x1006,0xFF200 , 0x5C  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 68
+   {"vfmaddpd",  0x1006,0xFF200 , 0x5C  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 69
+   {"vfmaddss",  0x1006,0xBF200 , 0x5C  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 6A
+   {"vfmaddsd",  0x1006,0xBF200 , 0x5C  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 6B
+   {"vfmsubps",  0x1006,0xFF200 , 0x5C  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 6C
+   {"vfmsubpd",  0x1006,0xFF200 , 0x5C  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 6D
+   {"vfmsubss",  0x1006,0xBF200 , 0x5C  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 6E
+   {"vfmsubsd",  0x1006,0xBF200 , 0x5C  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 6F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 70
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 71
@@ -1033,14 +1034,14 @@ SOpcodeDef OpcodeMap4[] = {
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 75
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 76
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 77
-   {"vfnmaddps", 0x1006,0xFD200 , 0x5D  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 78
-   {"vfnmaddpd", 0x1006,0xFD200 , 0x5D  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 79
-   {"vfnmaddss", 0x1006,0xBD200 , 0x5D  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 7A
-   {"vfnmaddsd", 0x1006,0xBD200 , 0x5D  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 7B
-   {"vfnmsubps", 0x1006,0xFD200 , 0x5D  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 7C
-   {"vfnmsubpd", 0x1006,0xFD200 , 0x5D  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 7D
-   {"vfnmsubss", 0x1006,0xBD200 , 0x5D  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 7E
-   {"vfnmsubsd", 0x1006,0xBD200 , 0x5D  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 7F
+   {"vfnmaddps", 0x1006,0xFF200 , 0x5C  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 78
+   {"vfnmaddpd", 0x1006,0xFF200 , 0x5C  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 79
+   {"vfnmaddss", 0x1006,0xBF200 , 0x5C  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 7A
+   {"vfnmaddsd", 0x1006,0xBF200 , 0x5C  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 7B
+   {"vfnmsubps", 0x1006,0xFF200 , 0x5C  , 0x24B , 0x24B , 0x24B , 0x24B , 0     , 0     , 0     , 0     },    // 0F 3A 7C
+   {"vfnmsubpd", 0x1006,0xFF200 , 0x5C  , 0x24C , 0x24C , 0x24C , 0x24C , 0     , 0     , 0     , 0     },    // 0F 3A 7D
+   {"vfnmsubss", 0x1006,0xBF200 , 0x5C  , 0x44B , 0x44B , 0x44B , 0x44B , 0     , 0     , 0     , 0     },    // 0F 3A 7E
+   {"vfnmsubsd", 0x1006,0xBF200 , 0x5C  , 0x44C , 0x44C , 0x44C , 0x44C , 0     , 0     , 0     , 0     },    // 0F 3A 7F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 80
    {0,           0     , 0      , 0x2052, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 81
@@ -1860,8 +1861,8 @@ SOpcodeDef OpcodeMap28[2] = {
 // Indexed by mod bits 0 register vs. memory operand
 SOpcodeDef OpcodeMap29[2] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pinsrw",    0x7   , 0x91200, 0x59  , 0x1102, 0x1102, 0x2002, 0x11  , 0     , 0     , 0     , 0x2   },    // 0F C4 mem16
-   {"pinsrw",    0x7   , 0x91200, 0x59  , 0x1102, 0x1102, 0x1009, 0x11  , 0     , 0     , 0     , 0x2   }};   // 0F C4 register
+   {"pinsrw",    0x7   ,0x892200, 0x59  , 0x1102, 0x1102, 0x2002, 0x11  , 0x1000, 0     , 0     , 0x2   },    // 0F C4 mem16
+   {"pinsrw",    0x7   ,0x892200, 0x59  , 0x1102, 0x1102, 0x1009, 0x11  , 0     , 0     , 0     , 0x2   }};   // 0F C4 register
 
 // Tertiary opcode map for group 6. Opcode byte = 0F 00
 // Indexed by reg bits = 0 - 7. 
@@ -1974,24 +1975,24 @@ SOpcodeDef OpcodeMap31[8] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0x7   , 0x90200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
    {0,           0x7   , 0x90200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
-   {"psrlw",     0x7   , 0xD2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     //
+   {"psrlw",     0x7   ,0x8D2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0x20  , 0     , 0     , 0x2   },     // 2
    {0,           0x7   , 0x90200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
-   {"psraw",     0x7   , 0xD2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     //
+   {"psraw",     0x7   ,0x8D2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0x20  , 0     , 0     , 0x2   },     // 4
    {0,           0x7   , 0x90200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
-   {"psllw",     0x7   , 0xD2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   },     //
+   {"psllw",     0x7   ,0x8D2200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0x20  , 0     , 0     , 0x2   },     // 6
    {0,           0x7   , 0x90200, 0x58  , 0x1102, 0x1102, 0x11  , 0     , 0     , 0     , 0     , 0x2   }};    // Illegal
 
 // Secondary opcode map for group 13. Opcode byte = 0F 72
 // Indexed by reg bits = 0 - 7. 
 SOpcodeDef OpcodeMap32[8] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"vpror",     0x20  ,0x893200, 0x58  , 0x1209, 0x209 , 0x11  , 0     , 0x31  , 0     , 0     , 0x1   },     // /0
-   {"vprol",     0x20  ,0x893200, 0x58  , 0x1209, 0x209 , 0x11  , 0     , 0x31  , 0     , 0     , 0x1   },     // /1
-   {"psrld",     0x12  ,0xC90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0x31  , 0x1406, 0     , 0x2   },     // /2
+   {"vpror",     0x20  ,0x893200, 0x58  , 0x1209, 0x209 , 0x11  , 0     , 0x21  , 0     , 0     , 0x1   },     // /0
+   {"vprol",     0x20  ,0x893200, 0x58  , 0x1209, 0x209 , 0x11  , 0     , 0x21  , 0     , 0     , 0x1   },     // /1
+   {"psrld",     0x12  ,0xC90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0x21  , 0x1406, 0     , 0x2   },     // /2
    {0,           0x12  , 0x90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
    {"psra",      0x12  ,0xC93200, 0x58  , 0x1109, 0x109 , 0x11  , 0     , 0x31  , 0x1406, 0     , 0x3   },     // /4. W bit controls operand size only if EVEX
    {0,           0x12  , 0x90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // Illegal
-   {"pslld",     0x12  ,0xC90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0x31  , 0x1406, 0     , 0x2   },     // /6
+   {"pslld",     0x12  ,0xCD0200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0x20  , 0x1406, 0     , 0x2   },     // /6
    {0,           0x12  , 0x90200, 0x58  , 0x1103, 0x103 , 0x11  , 0     , 0     , 0     , 0     , 0x2   }};    // Illegal
 
 // Secondary opcode map for group 14. Opcode byte = 0F 73
@@ -2000,12 +2001,12 @@ SOpcodeDef OpcodeMap33[8] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // /0 Illegal
    {0,           0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // /1 Illegal
-   {"psrlq",     0x12  ,0x8D2200, 0x58  , 0x1104, 0x104 , 0x11  , 0     , 0x31  , 0     , 0     , 0x2   },     // /2
+   {"psrlq",     0x12  ,0x8D3200, 0x58  , 0x1104, 0x104 , 0x11  , 0     , 0x21  , 0     , 0     , 0x2   },     // /2
    {"psrldq",    0x12  , 0xDA200, 0x58  , 0x1204, 0x204 , 0x11  , 0     , 0     , 0     , 0     , 0x2   },     // /3 Not valid without 66 prefix
    {0,           0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // /4 Illegal
    {0,           0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // /5 Illegal
-   {"psllq",     0x12  ,0x8D2200, 0x58  , 0x1104, 0x104 , 0x11  , 0     , 0x31  , 0     , 0     , 0x2   },     // /6 
-   {"pslldq",    0x12  , 0xDA200, 0x58  , 0x1204, 0x204 , 0x11  , 0     , 0     , 0     , 0     , 0x2   }};    // /7 Not valid without 66 prefix
+   {"psllq",     0x12  ,0x8D3200, 0x58  , 0x1104, 0x104 , 0x11  , 0     , 0x20  , 0     , 0     , 0x2   },     // /6 
+   {"pslldq",    0x12  ,0x8DA200, 0x58  , 0x1204, 0x204 , 0x11  , 0     , 0     , 0     , 0     , 0x2   }};    // /7 Not valid without 66 prefix
 
 // Secondary opcode map for group 15. Opcode byte = 0F AE 
 // Indexed by reg bits = 0 - 7 and mod = 3 
@@ -2018,8 +2019,8 @@ SOpcodeDef OpcodeMap34[16] = {
    {"stmxcsr",   0x11  , 0x10000, 0x11  , 0x2003, 0     , 0     , 0     , 0     , 0     , 0     , 0x2   },     // 0F AE /3
    {0,           0     , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // Illegal
    {0,           0     , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // Illegal
-   {"xsaveopt",  0x19  , 0x2000 , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 0F AE /6
-   {"clflush",   0x12  , 0      , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 0F AE /7
+   {0,           0xF3  , 0      , 0x11  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // 0F AE /6. Link xsaveopt
+   {0,           0xF2  , 0      , 0x11  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // 0F AE /7. Link clflush
    {"rdfsbase",  0x10000,0x1400 , 0x11  , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // F3 0F AE m-0
    {"rdgsbase",  0x10000,0x1400 , 0x11  , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // F3 0F AE m-1
    {"wrfsbase",  0x10000,0x1400 , 0x11  , 0     , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     },     // F3 0F AE m-2
@@ -2027,7 +2028,7 @@ SOpcodeDef OpcodeMap34[16] = {
    {0,           0     , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // Illegal
    {"lfence",    0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // m-5
    {"mfence",    0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // m-6
-   {"sfence",    0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};    // m-7
+   {0,           0xF4  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     }};    // m-7. Link sfence, pcommit
 
 // Secondary opcode map for group 16. Opcode byte = 0F 18
 // Indexed by reg bits = 0 - 7. 
@@ -2067,40 +2068,40 @@ SOpcodeDef OpcodeMap37[5] = {
 // Indexed by immediate byte following operands = 0 - 7
 SOpcodeDef OpcodeMap38[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"cmpeq",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 00: cmpeqps/pd
-   {"cmplt",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 01: 
-   {"cmple",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 02: 
-   {"cmpunord",  0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 03: 
-   {"cmpneq",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 04: 
-   {"cmpnlt",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 05: 
-   {"cmpnle",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 06: 
-   {"cmpord",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0x1204, 0     , 0x3   },    // 0F C2 op 07: 
+   {"cmpeq",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 00: cmpeqps/pd
+   {"cmplt",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 01: 
+   {"cmple",     0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 02: 
+   {"cmpunord",  0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 03: 
+   {"cmpneq",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 04: 
+   {"cmpnlt",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 05: 
+   {"cmpnle",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 06: 
+   {"cmpord",    0x12  ,0xCD2E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0x1204, 0     , 0x3   },    // 0F C2 op 07: 
 // imm > 7 only with VEX and EVEX prefix, not with MVEX
-   {"vcmpeq_uq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 08: 
-   {"vcmpnge_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 09: 
-   {"vcmpngt_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0A: 
-   {"vcmpfalse_oq",0x19,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0B: 
-   {"vcmpneq_oq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0C: 
-   {"vcmpge_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0D: 
-   {"vcmpgt_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0E: 
-   {"vcmptrue_uq",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 0F: 
-   {"vcmpeq_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 10: 
-   {"vcmplt_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 11: 
-   {"vcmple_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 12: 
-   {"vcmpunord_s",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 13: 
-   {"vcmpneq_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 14: 
-   {"vcmpnlt_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 15: 
-   {"vcmpnle_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 16: 
-   {"vcmpord_s", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 17: 
-   {"vcmpeq_us", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 18: 
-   {"vcmpnge_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 19: 
-   {"vcmpngt_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1A: 
-   {"vcmpfalse_os",0x19,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1B: 
-   {"vcmpneq_os",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1C: 
-   {"vcmpge_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1D: 
-   {"vcmpgt_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1E: 
-   {"vcmptrue_us",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x11  , 0     , 0     , 0x1   },    // 0F C2 op 1F: 
-   {"vcmp",      0x19  ,0x8E0200, 0x4059, 0x124F, 0x24F , 0x24F , 0x11  , 0x11  , 0     , 0     , 0x3   }};   // 0F C2 op > 1F: cmpps/pd, imm
+   {"vcmpeq_uq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 08: 
+   {"vcmpnge_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 09: 
+   {"vcmpngt_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0A: 
+   {"vcmpfalse_oq",0x19,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0B: 
+   {"vcmpneq_oq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0C: 
+   {"vcmpge_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0D: 
+   {"vcmpgt_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0E: 
+   {"vcmptrue_uq",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 0F: 
+   {"vcmpeq_os", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 10: 
+   {"vcmplt_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 11: 
+   {"vcmple_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 12: 
+   {"vcmpunord_s",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 13: 
+   {"vcmpneq_us",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 14: 
+   {"vcmpnlt_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 15: 
+   {"vcmpnle_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 16: 
+   {"vcmpord_s", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 17: 
+   {"vcmpeq_us", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 18: 
+   {"vcmpnge_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 19: 
+   {"vcmpngt_uq",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1A: 
+   {"vcmpfalse_os",0x19,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1B: 
+   {"vcmpneq_os",0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1C: 
+   {"vcmpge_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1D: 
+   {"vcmpgt_oq", 0x19  ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1E: 
+   {"vcmptrue_us",0x19 ,0x8E0E00, 0x59  , 0x124F, 0x24F , 0x24F , 0     , 0x13  , 0     , 0     , 0x1   },    // 0F C2 op 1F: 
+   {"vcmp",      0x19  ,0x8E0200, 0x4059, 0x124F, 0x24F , 0x24F , 0x11  , 0x13  , 0     , 0     , 0x3   }};   // 0F C2 op > 1F: cmpps/pd, imm
 
 // Secondary opcode map for cbw/cwde/cdqe. Opcode byte = 0x98
 // Indexed by operand size = 16, 32, 64
@@ -2277,7 +2278,7 @@ SOpcodeDef OpcodeMap4D[4] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"movq",      0x7   , 0      , 0x12  , 0x1351, 0x351 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 6F
    {"movdqa",    0xB8  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 66 0F 6F. Link to movdqa and vmovdqa32
-   {0,           0x7   , 0x800  , 0x4012, 0x1351, 0x351 , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 6F. Illegal
+   {"vmovdqu",   0x20  ,0x864800, 0x12  , 0x1209, 0x209 , 0     , 0     , 0x20  , 0     , 0     , 0x1200},    // F2 0F 6F
    {"movdqu",    0xB9  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     }};   // F3 0F 6F. Link to movdqu and vmovdqu32
 
 // Tertiary opcode map for movq/movdqa/movdqu. Opcode byte = 0F 7F
@@ -2286,7 +2287,7 @@ SOpcodeDef OpcodeMap4E[4] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"movq",      0x7   , 0      , 0x13  , 0x351 , 0x1351, 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 7F
    {"movdqa",    0xBA  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 66 0F 7F. Link to movdqa and vmovdqa32
-   {0,           0x7   , 0x800  , 0x4013, 0x351 , 0x1351, 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 7F. Illegal
+   {"vmovdqu",   0x20  ,0x864800, 0x13  , 0x209 , 0x1209, 0     , 0     , 0x20  , 0     , 0     ,0x1200 },    // E/MVEX F3 0F 7F
    {"movdqu",    0xBB  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     }};   // F3 0F 7F. Link to movdqu and vmovdqu32
 
 // Tertiary opcode map for pshufw etc. Opcode byte = 0F 70
@@ -2294,9 +2295,9 @@ SOpcodeDef OpcodeMap4E[4] = {
 SOpcodeDef OpcodeMap4F[4] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"pshufw",    0x7   , 0      , 0x52  , 0x1302, 0x302 , 0x31  , 0     , 0     , 0     , 0     , 0     },    // 0F 70
-   {"pshufd",    0x12  ,0xC52100, 0x52  , 0x1203, 0x203 , 0x31  , 0     , 0x31  , 0x1000, 0     , 0x2   },    // 66 0F 70
-   {"pshuflw",   0x12  , 0x50800, 0x52  , 0x1202, 0x202 , 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // F2 0F 70
-   {"pshufhw",   0x12  , 0x50400, 0x52  , 0x1202, 0x202 , 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // F3 0F 70
+   {"pshufd",    0x12  ,0xC52100, 0x52  , 0x1203, 0x203 , 0x31  , 0     , 0x21  , 0x1000, 0     , 0x2   },    // 66 0F 70
+   {"pshuflw",   0x12  ,0x852800, 0x52  , 0x1202, 0x202 , 0x31  , 0     , 0x20  , 0     , 0     , 0x2   },    // F2 0F 70
+   {"pshufhw",   0x12  ,0x852400, 0x52  , 0x1202, 0x202 , 0x31  , 0     , 0x20  , 0     , 0     , 0x2   }};   // F3 0F 70
 
 // Tertiary opcode map for group 9. Opcode byte = 0F C7
 // Indexed by reg bits = 0 - 7. 
@@ -2453,24 +2454,23 @@ SOpcodeDef OpcodeMap60[4] = {
 // Indexed by memory vs. register operand
 SOpcodeDef OpcodeMap61[2] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pextrb",    0x15  , 0x18200, 0x53  , 0x2001, 0x1401, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 14 memory
-   {"pextrb",    0x15  , 0x19200, 0x53  , 0x1009, 0x1401, 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 3A 14 register
+   {"pextrb",    0x15  ,0x81A200, 0x53  , 0x2001, 0x1401, 0x31  , 0     , 0x1000, 0     , 0     , 0x2   },    // 0F 3A 14 memory
+   {"pextrb",    0x15  ,0x81A200, 0x53  , 0x1009, 0x1401, 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 3A 14 register
 
 // Quarternary opcode map for pextrw. Opcode byte = 0F 3A 15
 // Indexed by memory vs. register operand
 SOpcodeDef OpcodeMap62[2] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pextrw",    0x15  , 0x19200, 0x53  , 0x2001, 0x1402, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 15 memory
-   {"pextrw",    0x15  , 0x19200, 0x53  , 0x1009, 0x1402, 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 3A 15 register
+   {"pextrw",    0x15  ,0x81A200, 0x53  , 0x2002, 0x1402, 0x31  , 0     , 0x1000, 0     , 0     , 0x2   },    // 0F 3A 15 memory
+   {"pextrw",    0x15  ,0x81A200, 0x53  , 0x1002, 0x1402, 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 3A 15 register
 
 // Quarternary opcode map for pextrd/q. Opcode byte = 0F 3A 16
 // Indexed by operand size (16, 32, 64)
 SOpcodeDef OpcodeMap63[3] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pextrd",    0x15  , 0x18200, 0x53  , 0x3   , 0x1403, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 16 pextrd
-   {"pextrd",    0x15  , 0x18200, 0x53  , 0x3   , 0x1403, 0x31  , 0     , 0     , 0     , 0     , 0x2   },    // 0F 3A 16 pextrd
-   {"pextrq",    0x15  , 0x19200, 0x53  , 0x4   , 0x1404, 0x31  , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 3A 16 pextrq
-
+   {"pextr",     0x15  ,0x81B200, 0x53  , 0x3   , 0x1403, 0x31  , 0     , 0x1000, 0     , 0     , 3     },    // 0F 3A 16 pextrd
+   {"pextr",     0x15  ,0x81B200, 0x53  , 0x3   , 0x1403, 0x31  , 0     , 0x1000, 0     , 0     , 3     },    // 0F 3A 16 pextrd
+   {"pextr",     0x15  ,0x81B200, 0x53  , 0x4   , 0x1404, 0x31  , 0     , 0x1000, 0     , 0     , 3     }};   // 0F 3A 16 pextrq
 
 // Opcode map for AMD instructions with XOP prefix and mmmmm = 01000
 // Indexed by first opcode byte after XOP prefix. Has one byte immediate data
@@ -2649,8 +2649,8 @@ SOpcodeDef OpcodeMap64[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"cvtph2ps",  0x1D  , 0x70000, 0x52  , 0x124B, 0x402 , 0x31  , 0     , 0     , 0     , 0     , 0     },    // XOP(8) A0
    {"cvtps2ph",  0x1D  , 0x70000, 0x53  , 0x402,  0x124B, 0x31  , 0     , 0     , 0     , 0     , 0     },    // XOP(8) A1
-   {"vpcmov",    0x1005, 0xF5000, 0x5C,   0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // XOP(8) A2
-   {"vpperm",    0x1005, 0xB5000, 0x5C,   0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // XOP(8) A3
+   {"vpcmov",    0x1005, 0xF7000, 0x5C,   0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // XOP(8) A2
+   {"vpperm",    0x1005, 0xB7000, 0x5C,   0x1201, 0x1201, 0x201 , 0x201 , 0     , 0     , 0     , 0     },    // XOP(8) A3
    {0,           0     , 0      , 0x2059, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(8) A4
    {0,           0     , 0      , 0x2059, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(8) A5
    {"vpmadcsswd",0x1005, 0xB0000, 0x5C,   0x1203, 0x1202, 0x202 , 0x1203, 0     , 0     , 0     , 0     },    // XOP(8) A6
@@ -2892,18 +2892,18 @@ SOpcodeDef OpcodeMap65[] = {
    {0,           0     , 0      , 0x2019, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 8F
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"vprotb",    0x1005, 0xB5000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 90
-   {"vprotw",    0x1005, 0xB5000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 91
-   {"vprotd",    0x1005, 0xB5000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 92
-   {"vprotq",    0x1005, 0xB5000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 93
-   {"vpshlb",    0x1005, 0xB5000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 94
-   {"vpshlw",    0x1005, 0xB5000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 95
-   {"vpshld",    0x1005, 0xB5000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 96
-   {"vpshlq",    0x1005, 0xB5000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 97
-   {"vpshab",    0x1005, 0xB5000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 98
-   {"vpshaw",    0x1005, 0xB5000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 99
-   {"vpshad",    0x1005, 0xB5000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9A
-   {"vpshaq",    0x1005, 0xB5000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9B
+   {"vprotb",    0x1005, 0xB7000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 90
+   {"vprotw",    0x1005, 0xB7000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 91
+   {"vprotd",    0x1005, 0xB7000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 92
+   {"vprotq",    0x1005, 0xB7000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 93
+   {"vpshlb",    0x1005, 0xB7000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 94
+   {"vpshlw",    0x1005, 0xB7000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 95
+   {"vpshld",    0x1005, 0xB7000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 96
+   {"vpshlq",    0x1005, 0xB7000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 97
+   {"vpshab",    0x1005, 0xB7000, 0x19  , 0x1401, 0x401 , 0x401 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 98
+   {"vpshaw",    0x1005, 0xB7000, 0x19  , 0x1402, 0x402 , 0x402 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 99
+   {"vpshad",    0x1005, 0xB7000, 0x19  , 0x1403, 0x403 , 0x403 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9A
+   {"vpshaq",    0x1005, 0xB7000, 0x19  , 0x1404, 0x404 , 0x404 , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9B
    {0,           0     , 0      , 0x2019, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9C
    {0,           0     , 0      , 0x2019, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9D
    {0,           0     , 0      , 0x2019, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // XOP(9) 9E
@@ -3657,9 +3657,9 @@ SOpcodeDef OpcodeMap74[2] = {
 // Submap for pinsrd/pinsrq. Opcode byte = 0F 3A 22
 // Indexed by operand size
 SOpcodeDef OpcodeMap75[3] = {
-   {"pinsrd",    0x15  , 0x99200, 0x59  , 0x1403, 0x1403, 0x3   , 0x11  , 0     , 0     , 0     , 0x2   },    // (16 bit). 66 prefix actually is 32 bits
-   {"pinsrd",    0x15  , 0x99200, 0x59  , 0x1403, 0x1403, 0x3   , 0x11  , 0     , 0     , 0     , 0x2   },    // 32 bit
-   {"pinsrq",    0x15  , 0x99200, 0x59  , 0x1404, 0x1404, 0x4   , 0x11  , 0     , 0     , 0     , 0x2   }};   // 64 bit. REX.W prefix
+   {"pinsrd",    0x15  ,0x89B200, 0x59  , 0x1403, 0x1403, 0x3   , 0x11  , 0x1000, 0     , 0     , 0x2   },    // (16 bit). 66 prefix actually is 32 bits
+   {"pinsrd",    0x15  ,0x89B200, 0x59  , 0x1403, 0x1403, 0x3   , 0x11  , 0x1000, 0     , 0     , 0x2   },    // 32 bit
+   {"pinsrq",    0x15  ,0x89B200, 0x59  , 0x1404, 0x1404, 0x4   , 0x11  , 0x1000, 0     , 0     , 0x2   }};   // 64 bit. REX.W prefix
 
 // Submap for sqrtps/pd/sd/ss. Opcode byte = 0F 51
 // Indexed by prefix = none, 66, F2, F3
@@ -3697,114 +3697,116 @@ SOpcodeDef OpcodeMap79[3] = {
 // Submap for pmovsxbw. Opcode byte = 0F 38 20. Indexed by memory/register operand
 SOpcodeDef OpcodeMap7A[2] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pmovsxbw",  0x15  , 0x58200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 20 mem, link by VEX.L
-   {"pmovsxbw",  0x15  , 0x58200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 38 20 reg
+   {"pmovsxbw",  0x15  ,0x85A200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 20 mem, link by VEX.L
+   {"pmovsxbw",  0x15  ,0x85A200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0x2220, 0     , 0     , 0x2   }};   // 0F 38 20 reg
 
 // Submap for pmovsxbd. Opcode byte = 0F 38 21. Indexed by memory/register operand
 SOpcodeDef OpcodeMap7B[2] = {
-   {"pmovsxbd",  0x7D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 21 mem, link by VEX.L
-   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x401 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 21 reg
+   {0,           0x7C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 21 mem, link by VEX.L
+   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x401 , 0     , 0     , 0x10  , 0     , 0     , 0x2   }};   // 0F 38 21 reg
 
 // Submap for pmovsxbd. Opcode byte = 0F 38 21 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap7C[] = {
-   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1403, 0x3   , 0     , 0     , 0x30   , 0     , 0     , 0x2   },    // 0F 38 21 L0
-   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1503, 0x301 , 0     , 0     , 0x30   , 0     , 0     , 0x2   },    // 0F 38 21 L1
-   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1603, 0x401 , 0     , 0     , 0x30   , 0     , 0     , 0x2   }};   // 0F 38 21 L2
+   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x3   , 0     , 0     , 0x2420 , 0     , 0     , 0x2   },    // 0F 38 21 L0
+   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x301 , 0     , 0     , 0x2420 , 0     , 0     , 0x2   },    // 0F 38 21 L1
+   {"pmovsxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x401 , 0     , 0     , 0x2420 , 0     , 0     , 0x2   }};   // 0F 38 21 L2
 
 // Submap for pmovsxbq. Opcode byte = 0F 38 22. Indexed by memory/register operand
 SOpcodeDef OpcodeMap7D[2] = {
-   {"pmovsxbq",  0x7F  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 22 mem, link by VEX.L
-   {"pmovsxbq",  0x15  ,0x858200, 0x12  , 0x1204, 0x401 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 22 reg
+   {"pmovsxbq",  0x7E  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 22 mem, link by VEX.L
+   {"pmovsxbq",  0x15  ,0x858200, 0x12  , 0x1204, 0x401 , 0     , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F 38 22 reg
 
 // Submap for pmovsxbq. Opcode byte = 0F 38 22 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap7E[] = {
-   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x2   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 22 L0
-   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 22 L1
-   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x4   , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 22 L2
+   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x2   , 0     , 0     , 0x2620, 0     , 0     , 0x2   },    // 0F 38 22 L0
+   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x2620, 0     , 0     , 0x2   },    // 0F 38 22 L1
+   {"pmovsxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x4   , 0     , 0     , 0x2620, 0     , 0     , 0x2   }};   // 0F 38 22 L2
 
 // Submap for pmovsxwd. Opcode byte = 0F 38 23. Indexed by memory/register operand
 SOpcodeDef OpcodeMap7F[2] = {
-   {"pmovsxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 23 mem, link by VEX.L
-   {"pmovsxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 23 reg
+   {"pmovsxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 23 mem, link by VEX.L
+   {"pmovsxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F 38 23 reg
 
 // Submap for pmovsxwq. Opcode byte = 0F 38 24. Indexed by memory/register operand
 SOpcodeDef OpcodeMap80[2] = {
-   {"pmovsxwq",  0x82  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 24 mem, link by VEX.L
+   {"pmovsxwq",  0x81  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 24 mem, link by VEX.L
    {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 24 reg
 
 // Submap for pmovsxwq. Opcode byte = 0F 38 24 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap81[] = {
-   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 24 L0
-   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x302 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 24 L1
-   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 24 L1
+   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x2420, 0     , 0     , 0x2   },    // 0F 38 24 L0
+   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x302 , 0     , 0     , 0x2420, 0     , 0     , 0x2   },    // 0F 38 24 L1
+   {"pmovsxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x2420, 0     , 0     , 0x2   }};   // 0F 38 24 L1
 
 // Submap for pmovsxdq. Opcode byte = 0F 38 25. Indexed by memory/register operand
 SOpcodeDef OpcodeMap82[2] = {
-   {"pmovsxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 25 mem, link by VEX.L
-   {"pmovsxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 25 reg
+   {"pmovsxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 25 mem, link by VEX.L
+   {"pmovsxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x2220, 0     , 0     , 0x2   }};   // 0F 38 25 reg
 
 // Submap for pmovzxbw. Opcode byte = 0F 38 30. Indexed by memory/register operand
 SOpcodeDef OpcodeMap83[2] = {
-   {"pmovzxbw",  0x85  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 30 mem, link by VEX.L
-   {"pmovzxbw",  0x15  , 0x58200, 0x12  , 0x1202, 0x401 , 0     , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 38 30 reg
+   {"pmovzxbw",  0x15  ,0x85A200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 30 L0
+   {"pmovzxbw",  0x15  ,0x85A200, 0x12  , 0x1202, 0xF01 , 0     , 0     , 0x2220, 0     , 0     , 0x2   }};   // 0F 38 30 reg
 
-// Submap for pmovzxbw. Opcode byte = 0F 38 30 mem. Indexed by VEX.L
+// Submap for 0F 38 5A, indexed by L bit and MVEX for vector size
 SOpcodeDef OpcodeMap84[] = {
-   {"pmovzxbw",  0x15  , 0x58200, 0x12  , 0x1202, 0x301 , 0     , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 30 L0
-   {"pmovzxbw",  0x15  , 0x58200, 0x12  , 0x1202, 0x401 , 0     , 0     , 0     , 0     , 0     , 0x2   }};   // 0F 38 30 L1
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 5A, 128 bits
+   {"vbroadcasti128",0x1C,0x978200,0x12 , 0x1550, 0x2451, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 5A, 256 bits
+   {"vbroadcasti32x4",0x80,0xC28200,0x12, 0x1603, 0x2403, 0     , 0     , 0x20  , 0x1012, 0     , 0x100 },    // 0F 38 5A, 512 bits
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 // Submap for pmovzxbd. Opcode byte = 0F 38 31. Indexed by memory/register operand
 SOpcodeDef OpcodeMap85[2] = {
-   {"pmovzxbd",  0x87  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 31 mem, link by VEX.L
+   {"pmovzxbd",  0x86  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 31 mem, link by VEX.L
    {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1203, 0x401 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 31 reg
 
 // Submap for pmovzxbd. Opcode byte = 0F 38 31 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap86[] = {
-   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1403, 0x3   , 0     , 0     , 0x30   , 0     , 0     , 0x2   },    // 0F 38 31 L0
-   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1503, 0x301 , 0     , 0     , 0x30   , 0     , 0     , 0x2   },    // 0F 38 31 L1
-   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1603, 0x401 , 0     , 0     , 0x30   , 0     , 0     , 0x2   }};   // 0F 38 31 L2
+   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1403, 0x3   , 0     , 0     , 0x2420 , 0     , 0     , 0x2   },    // 0F 38 31 L0
+   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1503, 0x301 , 0     , 0     , 0x2420 , 0     , 0     , 0x2   },    // 0F 38 31 L1
+   {"pmovzxbd",  0x15  ,0x85A200, 0x12  , 0x1603, 0x401 , 0     , 0     , 0x2420 , 0     , 0     , 0x2   }};   // 0F 38 31 L2
 
 // Submap for pmovzxbq. Opcode byte = 0F 38 32. Indexed by memory/register operand
 SOpcodeDef OpcodeMap87[2] = {
-   {"pmovzxbq",  0x89  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 32 mem, link by VEX.L
+   {"pmovzxbq",  0x88  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 32 mem, link by VEX.L
    {"pmovzxbq",  0x15  ,0x858200, 0x12  , 0x1204, 0x401 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 32 reg
 
 // Submap for pmovzxbq. Opcode byte = 0F 38 32 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap88[] = {
-   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x2   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 32 L0
-   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 32 L1
-   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x4   , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 32 L2
+   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x2   , 0     , 0     , 0x2620, 0     , 0     , 0x2   },    // 0F 38 32 L0
+   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x2620, 0     , 0     , 0x2   },    // 0F 38 32 L1
+   {"pmovzxbq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x4   , 0     , 0     , 0x2620, 0     , 0     , 0x2   }};   // 0F 38 32 L2
 
 // Submap for pmovzxwd. Opcode byte = 0F 38 33. Indexed by memory/register operand
 SOpcodeDef OpcodeMap89[2] = {
-   {"pmovzxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 33 mem, link by VEX.L
-   {"pmovzxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 33 reg
+   {"pmovzxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 33 mem, link by VEX.L
+   {"pmovzxwd",  0x15  ,0x85A200, 0x12  , 0x1203, 0xF02 , 0     , 0     , 0x2220, 0     , 0     , 0x2   }};   // 0F 38 33 reg
 
 // Submap for pmovzxwq. Opcode byte = 0F 38 34. Indexed by memory/register operand
 SOpcodeDef OpcodeMap8A[2] = {
-   {"pmovzxwq",  0x8C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 34 mem, link by VEX.L
-   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 34 reg
+   {"pmovzxwq",  0x8B  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x0D  , 0     },    // 0F 38 34 mem, link by VEX.L
+   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F 38 34 reg
 
 // Submap for pmovzxwq. Opcode byte = 0F 38 34 mem. Indexed by VEX.L
 SOpcodeDef OpcodeMap8B[] = {
-   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 34 L0
-   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x302 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 34 L1
-   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 34 L1
+   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x3   , 0     , 0     , 0x2420, 0     , 0     , 0x2   },    // 0F 38 34 L0
+   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x302 , 0     , 0     , 0x2420, 0     , 0     , 0x2   },    // 0F 38 34 L1
+   {"pmovzxwq",  0x15  ,0x85A200, 0x12  , 0x1204, 0x402 , 0     , 0     , 0x2420, 0     , 0     , 0x2   }};   // 0F 38 34 L1
 
 // Submap for pmovzxwq. Opcode byte = 0F 38 35. Indexed by memory/register operand
 SOpcodeDef OpcodeMap8C[2] = {
-   {"pmovzxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F 38 35 mem
-   {"pmovzxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F 38 35 reg
+   {"pmovzxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x2220, 0     , 0     , 0x2   },    // 0F 38 35 mem
+   {"pmovzxdq",  0x15  ,0x85A200, 0x12  , 0x1204, 0xF03 , 0     , 0     , 0x2220, 0     , 0     , 0x2   }};   // 0F 38 35 reg
 
 // submap for 0F 38 14. Indexed by VEX prefix
 SOpcodeDef OpcodeMap8D[] = {
    {"blendvps",  0x15  , 0x8200 , 0x12  , 0x124B, 0x24B , 0xAE  , 0     , 0     , 0     , 0     , 0     },    //      0F 38 14
-   {0,           0xF3  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     }};   //  VEX 0F 38 14
+   {"vprorv",    0x20  ,0x883200, 0x19  , 0x1209, 0x1209, 0x0209, 0     , 0x31  , 0     , 0     , 0x1   }};   //  VEX 0F 38 14
 
 // submap for 0F 38 15. Indexed by VEX prefix
 SOpcodeDef OpcodeMap8E[] = {
    {"blendvpd",  0x15  , 0x8200 , 0x12  , 0x124C, 0x24C , 0xAE  , 0     , 0     , 0     , 0     , 0     },    //     0F 38 15
-   {0,           0xF6  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     }};   // VEX 0F 38 15
+   {"vprolv",    0x20  ,0x883200, 0x19  , 0x1209, 0x1209, 0x0209, 0     , 0x31  , 0     , 0     , 0x1   }};   // VEX 0F 38 15
 
 // submap for 0F 3A 23. Index by W bit
 SOpcodeDef OpcodeMap8F[] = {
@@ -3821,9 +3823,7 @@ SOpcodeDef OpcodeMap91[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 2A
    {"movntdqa",  0x15  ,0x85A200, 0x12  , 0x1250, 0x2250, 0     , 0     , 0x00  , 0     , 0     , 0x102 },    // 66 0F 38 2A
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 2A
-   {0,           0xE5  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // F3 0F 38 2A
-// {"vpbroadcastmb2q",0x21,0x802400,0x12, 0x1203, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 38 2A
-// Uncertain: is VPBROADCASTMW2D coded as F3.0F 38 2A.W0 or F3.0F 38 3A.W0 ?!!
+   {"vpbroadcastmb2q",0x20,0x823400,0x12, 0x1204, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 38 2A. W1
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 // Submap for xlat. Opcode byte = D7. Indexed by assembly syntax: 0=MASM, 1=NASM/YASM, 2=GAS
@@ -3851,56 +3851,63 @@ SOpcodeDef OpcodeMap95[2] = {
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 // Submap for psllw, Opcode 0F F1, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap96[2] = {
-   {"psllw",     0x7   , 0xD2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F F1
-   {"psllw",     0x7   , 0xD2200, 0x19  , 0x1102, 0x1102, 0x402 , 0     , 0     , 0     , 0     , 0x2   }};   // 0F F1, L1
+SOpcodeDef OpcodeMap96[] = {
+   {"psllw",     0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F1
+   {"psllw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F1, L1
+   {"psllw",     0x20  ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F F1, L2
 
 // Submap for pslld, Opcode 0F F2, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap97[2] = {
-   {"pslld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F F2
-   {"pslld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x403 , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F F2, L1
-// {"pslld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x403 , 0     , 0x1030?,0     , 0     , 0x2   }};   // 0F F2, L1
+SOpcodeDef OpcodeMap97[] = {
+   {"pslld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F2
+   {"pslld",     0x7   ,0x8D2200, 0x19  , 0x1203, 0x1203, 0x403 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F F2, L1
+   {"pslld",     0x20  ,0x8D2200, 0x19  , 0x1203, 0x1203, 0x403 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F F2, L1
 
 // Submap for psllq, Opcode 0F F3, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap98[2] = {
+SOpcodeDef OpcodeMap98[] = {
    {"psllq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F F3
-   {"psllq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x404 , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F F3, L1
+   {"psllq",     0x7   ,0x8D2200, 0x19  , 0x1204, 0x1204, 0x404 , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F F3, L1
+   {"psllq",     0x20  ,0x8D2200, 0x19  , 0x1204, 0x1204, 0x404 , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F F3, L1
 
 // Submap for psrlw, Opcode 0F D1, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap99[2] = {
-   {"psrlw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F D1
-   {"psrlw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x402 , 0     , 0     , 0     , 0     , 0x2   }};   // 0F D1
+SOpcodeDef OpcodeMap99[] = {
+   {"psrlw",     0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D1
+   {"psrlw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D1
+   {"psrlw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F D1
 
 // Submap for psrld, Opcode 0F D2, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap9A[2] = {
-   {"psrld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F D2
-   {"psrld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x403 , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F D2
+SOpcodeDef OpcodeMap9A[] = {
+   {"psrld",     0x7   ,0x8D2200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D2
+   {"psrld",     0x7   ,0x8D2200, 0x19  , 0x1203, 0x1203, 0x403 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D2
+   {"psrld",     0x7   ,0x8D2200, 0x19  , 0x1203, 0x1203, 0x403 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F D2
 
 // Submap for psrlq, Opcode 0F D3, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap9B[2] = {
-   {"psrlq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x30  , 0     , 0     , 0x2   },    // 0F D3
-   {"psrlq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x404 , 0     , 0x30  , 0     , 0     , 0x2   }};   // 0F D3
+SOpcodeDef OpcodeMap9B[] = {
+   {"psrlq",     0x7   ,0x8D2200, 0x19  , 0x1104, 0x1104, 0x104 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D3
+   {"psrlq",     0x7   ,0x8D2200, 0x19  , 0x1204, 0x1204, 0x404 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F D3
+   {"psrlq",     0x7   ,0x8D2200, 0x19  , 0x1204, 0x1204, 0x404 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F D3
 
 // Submap for psraw, Opcode 0F E1, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap9C[2] = {
-   {"psraw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F E1
-   {"psraw",     0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x402 , 0     , 0     , 0     , 0     , 0x2   }};   // 0F E1
+SOpcodeDef OpcodeMap9C[] = {
+   {"psraw",     0x7   ,0x8D2200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E1
+   {"psraw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   },    // 0F E1
+   {"psraw",     0x7   ,0x8D2200, 0x19  , 0x1202, 0x1202, 0x402 , 0     , 0x20  , 0     , 0     , 0x2   }};   // 0F E1
 
 // Submap for psrad, Opcode 0F E2, Indexed by VEX.L bit
-SOpcodeDef OpcodeMap9D[2] = {
-   {"psra",      0x7   ,0x8D3200, 0x19  , 0x1109, 0x1109, 0x109 , 0     , 0x31  , 0     , 0     , 0x3   },    // 0F E2
-   {"psra",      0x7   ,0x8D3200, 0x19  , 0x1109, 0x1109, 0x409 , 0     , 0x31  , 0     , 0     , 0x3   }};   // 0F E2. w bit specifies operand size only if EVEX
+SOpcodeDef OpcodeMap9D[] = {
+   {"psra",      0x7   ,0x8D3200, 0x19  , 0x1109, 0x1109, 0x109 , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F E2
+   {"psra",      0x7   ,0x8D3200, 0x19  , 0x1109, 0x1109, 0x409 , 0     , 0x21  , 0     , 0     , 0x3   },    // 0F E2. w bit specifies operand size only if EVEX
+   {"psra",      0x7   ,0x8D3200, 0x19  , 0x1109, 0x1109, 0x409 , 0     , 0x21  , 0     , 0     , 0x3   }};   // 0F E2. w bit specifies operand size only if EVEX
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 // Submap for vpbroadcastb, Opcode 0F 38 78, Indexed by memory/register
 SOpcodeDef OpcodeMap9E[2] = {
-   {"vpbroadcastb",0x1C, 0x78200, 0x12,   0x1201, 0x1   , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 78 mem
-   {"vpbroadcastb",0x1C, 0x78200, 0x12,   0x1201, 0x401 , 0     , 0     , 0     , 0     , 0     , 0     }};   // 0F 38 78 reg
+   {"vpbroadcastb",0x1C,0x878200, 0x12,   0x1201, 0x1   , 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 78 mem
+   {"vpbroadcastb",0x1C,0x878200, 0x12,   0x1201, 0x401 , 0     , 0     , 0x20  , 0     , 0     , 0     }};   // 0F 38 78 reg
 
 // Submap for vpbroadcastw, Opcode 0F 38 79, Indexed by memory/register
 SOpcodeDef OpcodeMap9F[2] = {
-   {"vpbroadcastw",0x1C, 0x78200, 0x12,   0x1201, 0x2   , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 79 mem
-   {"vpbroadcastw",0x1C, 0x78200, 0x12,   0x1201, 0x402 , 0     , 0     , 0     , 0     , 0     , 0     }};   // 0F 38 79 reg
+   {"vpbroadcastw",0x1C,0x878200, 0x12,   0x1201, 0x2   , 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 79 mem
+   {"vpbroadcastw",0x1C,0x878200, 0x12,   0x1201, 0x402 , 0     , 0     , 0x20  , 0     , 0     , 0     }};   // 0F 38 79 reg
 
 // Submap for vpbroadcastd, Opcode 0F 38 58, Indexed by memory/register
 SOpcodeDef OpcodeMapA0[2] = {
@@ -3942,8 +3949,8 @@ SOpcodeDef OpcodeMapA4[4] = {
 // Indexed by memory vs. register operand
 SOpcodeDef OpcodeMapA5[2] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"pinsrb",    0x15  , 0x98200, 0x59  , 0x1401, 0x1401, 0x2001, 0x31  , 0     , 0     , 0     , 0x2   },   // 0F 3A 20 memory 8
-   {"pinsrb",    0x15  , 0x98200, 0x59  , 0x1401, 0x1401, 0x1003, 0x31  , 0     , 0     , 0     , 0x2   }};  // 0F 3A 20 register 32
+   {"pinsrb",    0x15  ,0x89A200, 0x59  , 0x1401, 0x1401, 0x2001, 0x31  , 0x1000, 0     , 0     , 0x2   },   // 0F 3A 20 memory 8
+   {"pinsrb",    0x15  ,0x89A200, 0x59  , 0x1401, 0x1401, 0x1003, 0x31  , 0     , 0     , 0     , 0x2   }};  // 0F 3A 20 register 32
 
 // Opcode map for VIA instructions. Opcode byte = 0F A6 ..
 // Indexed by mod and reg fields of mod/reg/rm byte
@@ -4056,7 +4063,7 @@ SOpcodeDef OpcodeMapAF[] = {
    {"rdseed",    0x1D  , 0x1100 , 0x11  , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 0F C7 /7 reg
 
 
-// Opcode map for VEX prefix and mmmm = 0000
+// Shortcut opcode map for VEX prefix and mmmm = 0000
 // Indexed by first opcode byte after VEX prefix. With or without mod/reg/rm byte, and any number of immediate bytes
 SOpcodeDef OpcodeMapB0[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
@@ -4196,7 +4203,7 @@ SOpcodeDef OpcodeMapB0[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 7E
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // VEX 7F
 
-// Opcode map for VEX or EVEX prefix and mmmm = 0001
+// Shortcut opcode map for VEX or EVEX prefix and mmmm = 0001
 // Important: if VEX prefix is optional then use OpcodeMap1 instead. Don't put the same code in both maps!
 // Indexed by first opcode byte after VEX prefix. With or without mod/reg/rm byte, and any number of immediate bytes
 SOpcodeDef OpcodeMapB1[] = {
@@ -4271,17 +4278,17 @@ SOpcodeDef OpcodeMapB1[] = {
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 40
-   {0,           0x102 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // VEX 0F 41. Link kand
-   {0,           0x103 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // VEX 0F 42. Link kandn
-   {"kandnr",    0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 43
-   {"knotw",     0x20  , 0x30000, 0x12  , 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 44
-   {0,           0x104 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // VEX 0F 45. Link kor
-   {0,           0x105 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // VEX 0F 46. Link kxnor
-   {0,           0x106 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xB   , 0     },    // VEX 0F 47. Link kxor
+   {"kand",      0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 41
+   {"kandn",     0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 42
+   {"kandnr",    0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 43
+   {"knot",      0x20  , 0xE5200, 0x12  , 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 44
+   {"kor",       0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 45
+   {"kxnor",     0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 46
+   {"kxor",      0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 47
    {"kmerge2l1h",0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 48
    {"kmerge2l1l",0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 49
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4A
-   {"kunpckbw",  0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4B
+   {"kadd",      0x20  , 0xE5200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 1     },    // VEX 0F 41
+   {0,           0xF0  , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // VEX 0F 4B. Link to kunpckbw
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4C
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4D
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4E
@@ -4353,16 +4360,16 @@ SOpcodeDef OpcodeMapB1[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 8E
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 8F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"kmovw",     0x20  , 0x30000, 0x12  , 0x1095, 0x95  , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 90. No offset multiplier because no EVEX prefix. Name without w in MIC syntax, but code identical
-   {"kmovw",     0x20  , 0x30000, 0x13  , 0x2095, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 91. No offset multiplier because no EVEX prefix. Name without w in MIC syntax, but code identical
-   {"kmovw",     0x20  , 0x30000, 0x12  , 0x95  , 0x1003, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 92. Name without w in MIC syntax, but code identical
-   {"kmovw",     0x20  , 0x30000, 0x12  , 0x03  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 93. Name without w in MIC syntax, but code identical
+   {0,           0xEB  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 3     ,       },    // VEX 0F 90. Link to kmov
+   {"kmov",      0x20  , 0x35200, 0x13  , 0x2009, 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 91. Name without w in KNC syntax, but code identical
+   {0,           0xEC  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // VEX 0F 92. Link to kmov r, k
+   {0,           0xEE  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // VEX 0F 93. Link to kmov k, r
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 94
    {"kconcath",  0x80  , 0xB0000, 0x19  , 0x1004, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     },    // VEX 0F 95
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 96
    {"kconcatl",  0x80  , 0xB0000, 0x19  , 0x1004, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     },    // VEX 0F 97
-   {"kortestw",  0x20  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 98
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 99
+   {"kortest",   0x20  , 0x25200, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 98
+   {"ktest",     0x20  , 0x25200, 0x12  , 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 99
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 9A
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 9B
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 9C
@@ -4384,22 +4391,210 @@ SOpcodeDef OpcodeMapB1[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F AB
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F AC
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F AD
-   {0,           0xCD  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x2   , 0     },    // VEX 0F AE. Link
+   {0,           0xCD  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x4   , 0     },    // VEX 0F AE. Link
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // VEX 0F AF
 
-// Submap for 0F 38 1A, indexed by VEX.L bit or MVEX or EVEX.LL for vector size
+// Shortcut opcode map for EVEX F3 0F 38
+// Indexed by first opcode byte after EVEX prefix
 SOpcodeDef OpcodeMapB2[] = {
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 1A, 128 bits
-   {"vbroadcastf128",0x19,0x878200,0x12 , 0x154B, 0x244B, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 1A, 256 bits
-   {"vbroadcastf32x4",0x80,0xC28200,0x12, 0x164B, 0x244B, 0     , 0     , 0x20  , 0x1010, 0     , 0x100 },    // 0F 38 1A, 512 bits
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 00
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 01
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 02
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 03
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 04
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 05
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 06
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 07
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 08
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 09
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 0F
+
+   {"vpmovuswb", 0x20  ,0x820400, 0x13  , 0x0F01, 0x1202, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 10
+   {"vpmovusdb", 0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2430, 0     , 0     , 0x800 },    // EVEX F3 0F 38 11
+   {"vpmovusqb", 0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2630, 0     , 0     , 0x800 },    // EVEX F3 0F 38 12
+   {"vpmovusdw", 0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 13
+   {"vpmovusqw", 0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2430, 0     , 0     , 0x800 },    // EVEX F3 0F 38 14
+   {"vpmovusqd", 0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 15
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 16
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 17
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 18
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 19
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 1F
+
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {"vpmovswb",  0x20  ,0x820400, 0x13  , 0x0F01, 0x1202, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 20
+   {"vpmovsdb",  0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2430, 0     , 0     , 0x800 },    // EVEX F3 0F 38 21
+   {"vpmovsqb",  0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2630, 0     , 0     , 0x800 },    // EVEX F3 0F 38 22
+   {"vpmovsdw",  0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 23
+   {"vpmovsqw",  0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2430, 0     , 0     , 0x800 },    // EVEX F3 0F 38 24
+   {"vpmovsqd",  0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x2220, 0     , 0     , 0     },    // EVEX F3 0F 38 25
+   {"vptestnm",  0x20  ,0x8EC200, 0x19  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0     , 0     , 1     },    // EVEX F3 0F 38 26
+   {"vptestnm",  0x20  ,0x8EB200, 0x19  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0     , 0     , 1     },    // EVEX F3 0F 38 27
+   {"vpmovm2",   0x20  ,0x86C400, 0x12  , 0x1201, 0x95  , 0     , 0     , 0     , 0     , 0     , 1     },    // EVEX F3 0F 38 28
+   {0,           0x12E , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // EVEX F3 0F 38 29
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 2F
+
+   {"vpmovwb",   0x20  ,0x820400, 0x13  , 0x0F01, 0x1202, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 30
+   {"vpmovdb",   0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2420, 0     , 0     , 0x800 },    // EVEX F3 0F 38 31
+   {"vpmovqb",   0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2620, 0     , 0     , 0x800 },    // EVEX F3 0F 38 32
+   {"vpmovdw",   0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 33
+   {"vpmovqw",   0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2420, 0     , 0     , 0x800 },    // EVEX F3 0F 38 34
+   {"vpmovqd",   0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x2220, 0     , 0     , 0x800 },    // EVEX F3 0F 38 35
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 36
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 37
+   {"vpmovm2",   0x20  ,0x86B400, 0x12  , 0x1201, 0x95  , 0     , 0     , 0     , 0     , 0     , 1     },    // EVEX F3 0F 38 38
+   {0,           0x12F , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // EVEX F3 0F 38 39
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 3F
+
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 40
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 41
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 42
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 43
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 44
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 45
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 46
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 47
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 48
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 49
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 4F
+
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 50
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 51
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 52
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 53
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 54
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 55
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 56
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 57
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 58
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 59
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 5F
+
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 60
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 61
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 62
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 63
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 64
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 65
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 67
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 68
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 69
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 6F
+
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 70
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 71
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 72
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 73
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 74
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 75
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 76
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 77
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 78
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 79
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 7F
+
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 80
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 81
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 82
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 83
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 84
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 85
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 86
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 87
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 88
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 89
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 8F
+
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 90
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 91
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 92
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 93
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 94
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 95
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 96
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 97
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 98
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 99
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9A
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9C
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9D
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9E
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 9F
+
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A0
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A2
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A3
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A4
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A5
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A6
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A7
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A8
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 A9
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 AA
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 AB
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 AC
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 AD
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 AE
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // EVEX F3 0F 38 AF
+
+
+// Vacant for future shortcut map
+SOpcodeDef OpcodeMapB3[] = {
    {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// Submap for 0F 38 5A, indexed by L bit and MVEX for vector size
-SOpcodeDef OpcodeMapB3[] = {
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 5A, 128 bits
-   {"vbroadcasti128",0x1C,0x978200,0x12 , 0x1550, 0x2451, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 5A, 256 bits
-   {"vbroadcasti32x4",0x80,0xC28200,0x12, 0x1603, 0x2403, 0     , 0     , 0x20  , 0x1012, 0     , 0x100 },    // 0F 38 5A, 512 bits
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 // Submap for vcvtfxpntpd2udq etc. Opcode byte = 0F 3A CA
 // Indexed by prefix: none/66/F2/F3
@@ -4517,48 +4712,36 @@ SOpcodeDef OpcodeMapC5[] = {
    {"pxor",      0x7   , 0xD0200, 0x19  , 0x1150, 0x1150, 0x150 , 0     , 0     , 0     , 0     , 0x2   },    // 0F EF
    {"vpxor",     0x20  ,0xC93200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x31  , 0x1406, 0     , 0x1   }};   // MVEX 0F EF
 
-// Submap for vpcmpd. Opcode byte = 0F 3A 1F
-// Indexed by immediate byte
+// Submap for vpcmpd. Opcode byte = 0F 3A 3E
+// Indexed by VEX / EVEX
 SOpcodeDef OpcodeMapC6[] = {
-   {"vpcmpeq",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 0
-   {"vpcmplt",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 1
-   {"vpcmple",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 2
-   {"vpcmp",     0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 3 = true
-   {"vpcmpneq",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 4
-   {"vpcmpnlt",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 5
-   {"vpcmpnle",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x001 },    // 0F 3A 1F / 6
-   {"vpcmp",     0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x001 }};   // 0F 3A 1F / >= 7 = false
+   {"kextract",  0x80  , 0x38200, 0x52  , 0x1095, 0x1004, 0x11  , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 3A 3E
+   {0,           0x112 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0x6   , 0     }};   // EVEX 0F 3A 3F. Link to vpcmp
 
 // Submap for pcmpeqd. Opcode byte = 0F 76
 // Indexed by E/MVEX prefix
 SOpcodeDef OpcodeMapC7[] = {
    {"pcmpeqd",   0x7   , 0xD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 76
-   {"vpcmpeqd",  0x20  ,0xCB8200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x11  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 76
+   {"vpcmpeqd",  0x20  ,0xCBA200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x11  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 76
 
 // Submap for pcmpgtd. Opcode byte = 0F 66
 // Indexed by MVEX prefix
 SOpcodeDef OpcodeMapC8[] = {
    {"pcmpgtd",   0x7   , 0xD0200, 0x19  , 0x1103, 0x1103, 0x103 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 66
-   {"vpcmpgtd",  0x20  ,0xCB8200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x11  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 66
+   {"vpcmpgtd",  0x20  ,0xCBA200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x11  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 66
 
-// Submap for vpcmpud. Opcode byte = 0F 3A 1E
-// Indexed by immediate byte
+// Opcode map for EVEX 66 0F 79. Indexed by W bit
 SOpcodeDef OpcodeMapC9[] = {
-   {"vpcmpequ",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 0
-   {"vpcmpltu",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 1
-   {"vpcmpleu",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 2
-   {"vpcmpu",    0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 3 = false
-   {"vpcmpnequ", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 4
-   {"vpcmpnltu", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 5
-   {"vpcmpnleu", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x1   },    // 0F 3A 1E / 6
-   {"vpcmpu",    0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x1   }};   // 0F 3A 1E / 7 = true
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+{"vcvtps2uqq",   0x20  ,0x840200, 0x12  , 0x204 , 0xF4B , 0     , 0     , 0x27  , 0     , 0     , 0     },    // EVEX 66 0F 79. W = 0
+{"vcvtpd2uqq",   0x20  ,0x841200, 0x12  , 0x204 , 0x24C , 0     , 0     , 0x27  , 0     , 0     , 0     }};   // EVEX 66 0F 79. W = 1
 
 // Submap for vpgatherd. Opcode byte = 0F 38 90
 // Indexed by VEX.W bit
    SOpcodeDef OpcodeMapCA[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"vpgatherdd",0x1C  ,0x8EB200, 0x1E,   0x203 , 0x2203, 0x203 , 0     , 0x1090, 0     , 0     , 0     },    // 0F 38 90
-   {"vpgatherdq",0x1C  ,0x8EB200, 0x1E,   0x204 , 0x2F04, 0x204 , 0     , 0x1090, 0     , 0     , 0     }};   // 0F 38 90
+   {"vpgatherdd",0x1C  ,0xCEB200, 0x1E,   0x203 , 0x2203, 0x203 , 0     , 0x1090, 0x100A, 0     , 0     },    // 0F 38 90
+   {"vpgatherdq",0x1C  ,0xCEB200, 0x1E,   0x204 , 0x2F04, 0x204 , 0     , 0x1090, 0x100A, 0     , 0     }};   // 0F 38 90
 
 // Submap for EVEX vgatherdps. Opcode byte = 0F 38 92
 // Indexed by VEX.W bit
@@ -4573,17 +4756,26 @@ SOpcodeDef OpcodeMapCC[] = {
    {"vgatherdpd",0x1C  ,0x0E9200,  0x1E,  0x24C , 0x2F4C, 0x24C , 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 38 92
 
 // Submap for opcodes VEX/MVEX 0F AE
-// Indexed by reg bits = 0 - 7 and mod = 3 
+// Indexed by reg bits = 0 - 7 and mod < 3 to mod = 3 
 // These codes are with VEX or MVEX prefix. Same codes without prefix are in OpcodeMap34
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 SOpcodeDef OpcodeMapCD[] = {
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /0
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /1
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /2
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /3
+   {"fxsave",    0x11  , 0      , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /0
+   {"fxrstor",   0x11  , 0      , 0x11  , 0     , 0x2006, 0     , 0     , 0     , 0     , 0     , 0x8   },     // VEX 0F AE /1
+   {"vldmxcsr",  0x11  , 0x10000, 0x11  , 0     , 0x2003, 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /2
+   {"vstmxcsr",  0x11  , 0x10000, 0x11  , 0x2003, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /3
    {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /4
    {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /5
-   {0       ,    0xCE   , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // VEX 0F AE /6. Link
-   {0       ,    0xCF   , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     }};    // VEX 0F AE /7. Link
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE /6
+   {0       ,    0xCF   , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // VEX 0F AE /7. Link
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /0
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /1
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /2
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /3
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /4
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // VEX 0F AE reg /5
+   {0       ,    0xCE   , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // VEX 0F AE reg /6. Link
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};    // VEX 0F AE reg /7
 
 // Submap for opcodes VEX/MVEX 0F AE /6
 // Indexed by prefixes 66 F2 F3
@@ -4661,7 +4853,7 @@ SOpcodeDef OpcodeMapD5[] = {
 SOpcodeDef OpcodeMapD6[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {0,           0xD9  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // EVEX 0F 79. Link to vcvtps/pd2udq
-   {0,           0000  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX 66 0F 79. Link to vcvtps/pd2udq
+   {0,           0xC9  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // EVEX 66 0F 79. Link to 
    {"vcvtsd2usi",0x20  ,0x803800, 0x12  , 0x1009, 0x4C  , 0     , 0     , 0x6   , 0     , 0     , 0     },    // EVEX F2 0F 79
    {"vcvtss2usi",0x20  ,0x803800, 0x12  , 0x1009, 0x4B  , 0     , 0     , 0x6   , 0     , 0     , 0     }};   // EVEX F3 0F 79
 
@@ -4697,28 +4889,25 @@ SOpcodeDef OpcodeMapDB[] = {
 SOpcodeDef OpcodeMapDC[] = {
    {0           , 0    , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX 0F 7A
    {0           , 0    , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66 EVEX 0F 7A
-   {"vcvtudq2ps",0x20  ,0xC28800, 0x12  , 0x124B, 0x203 , 0     , 0     , 0x37  , 0x1214, 0     , 0     },    // F2 EVEX 0F 7A
-   {"vcvtudq2pd",0x20  ,0xC28400, 0x12  , 0x124C, 0xF03 , 0     , 0     , 0x31  , 0x1214, 0     , 0     }};   // F3 E/MVEX 0F 7A
+   {0           ,0x11B , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // F2 EVEX 0F 7A. Link to vcvtudq2ps
+   {0           ,0x11C , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // F3 E/MVEX 0F 7A. Link to vcvtudq2pd
 
 // Opcode map for EVEX 0F 7B. Indexed by 66,F2,F3 prefix
 SOpcodeDef OpcodeMapDD[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    EVEX 0F 7B
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66 EVEX 0F 7B
+   {0,           0x11A , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 66 EVEX 0F 7B. Link to vcvtps/pd2qq
    {"vcvtusi2sd",0x20  ,0x803800, 0x19  , 0x104C, 0x104C, 9     , 0     , 0x06  , 0     , 0     , 0     },    // F2 EVEX 0F 7B
    {"vcvtusi2ss",0x20  ,0x803400, 0x19  , 0x104B, 0x104B, 9     , 0     , 0x06  , 0     , 0     , 0     }};   // F3 EVEX 0F 7B
 
-// Opcode map for 0F 3A 19. Indexed by L bits
+// Opcode map for 0F 3A 1B. Indexed by W bit
 SOpcodeDef OpcodeMapDE[] = {
-   {"vextractf128" ,0x19,0x978200,0x53,   0x450 , 0x1550, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // L0 0F 3A 19. Not allowed?
-   {"vextractf128" ,0x19,0x878200,0x53,   0x450 , 0x1550, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // L1 0F 3A 19. EVEX required
-   {"vextractf32x4",0x20,0x878200,0x53,   0x450 , 0x1650, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // L2 0F 3A 19
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {"vextractf32x8",0x20,0x801200,0x53  , 0x54B , 0x124B, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // 0F 3A 1B. W0
+   {"vextractf64x4",0x20,0x801200,0x53  , 0x54B , 0x124B, 0x31  , 0     , 0x30  , 0     , 0     , 0     }};   // 0F 3A 1B. W1
 
-// Opcode map for 0F 3A 39. Indexed by L bits
+// Opcode map for 0F 3A 3B. Indexed by W bit
 SOpcodeDef OpcodeMapDF[] = {
-   {"vextracti128",0x1C, 0x978200,0x53  , 0x406 , 0x1506, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // 0F 3A 39
-   {"vextracti128",0x1C, 0x878200,0x53  , 0x406 , 0x1506, 0x31  , 0     , 0x30  , 0     , 0     , 0     },    // 0F 3A 39
-   {"vextracti32x4",0x20,0x878200,0x53  , 0x406 , 0x1603, 0x31  , 0     , 0x30  , 0     , 0     , 0     }};   // 0F 3A 39
+   {"vextracti32x8",0x20,0x800200, 0x53 , 0x504 , 0x1204, 0x31  , 0     , 0x20  , 0     , 0     , 0     },    // 0F 3A 3B
+   {"vextracti64x4",0x20,0x801200, 0x53 , 0x504 , 0x1204, 0x31  , 0     , 0x20  , 0     , 0     , 0     }};   // 0F 3A 3B
 
 // Opcode map for 0F 38 93. Indexed by EVEX present
 SOpcodeDef OpcodeMapE0[] = {
@@ -4727,8 +4916,8 @@ SOpcodeDef OpcodeMapE0[] = {
 
 // Opcode map for 0F 38 93. Indexed by W bit
 SOpcodeDef OpcodeMapE1[] = {
-    {"vgatherqps",0x20  ,0xC39200, 0x1E ,  0xF4F , 0x224F, 0     , 0     , 0x1090, 0x3048, 0     , 0     },    // EVEX/MVEX 0F 38 92. W0
-    {"vgatherqpd",0x20  ,0xC39200, 0x1E ,  0x24F , 0x224F, 0     , 0     , 0x1090, 0x3048, 0     , 0     }};   // EVEX/MVEX 0F 38 92. W1
+   {"vgatherqps",0x20  ,0xC39200, 0x1E ,  0xF4F , 0x224F, 0     , 0     , 0x1090, 0x3048, 0     , 0     },    // EVEX/MVEX 0F 38 92. W0
+   {"vgatherqpd",0x20  ,0xC39200, 0x1E ,  0x24F , 0x224F, 0     , 0     , 0x1090, 0x3048, 0     , 0     }};   // EVEX/MVEX 0F 38 92. W1
 
 // map for movd/movq. Opcode byte = 0F 7E
 // Indexed by prefix: none/66/F2/F3
@@ -4741,25 +4930,26 @@ SOpcodeDef OpcodeMapE2[] = {
 // map for 0F 38 29
 // Indexed by EVEX
 SOpcodeDef OpcodeMapE3[] = {
-   {"pcmpeqq",   0x16  , 0xD8200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 29
-   {"vpcmpeqq",  0x20  ,0x8B8200, 0x19  , 0x95  , 0x1204, 0x204 , 0     , 0x11  , 0     , 0     , 0     }};   // EVEX 0F 38 29
+   {"pcmpeqq",   0x16  , 0xD8200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0     , 0     , 0     , 0x2   },    //      0F 38 29
+   {"vpcmpeqq",  0x20  ,0x8FB200, 0x19  , 0x95  , 0x1204, 0x204 , 0     , 0x11  , 0     , 0     , 0     }};   // EVEX 0F 38 29
 
 // map for 0F 38 37
 // Indexed by EVEX
 SOpcodeDef OpcodeMapE4[] = {
    {"pcmpgtq",   0x16  , 0xD8200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 38 37
-   {"vpcmpgtq",  0x20  ,0x8B8200, 0x19  , 0x95  , 0x1204, 0x204 , 0     , 0x11  , 0     , 0     , 0     }};   // EVEX 0F 38 37
+   {"vpcmpgtq",  0x20  ,0x8FB200, 0x19  , 0x95  , 0x1204, 0x204 , 0     , 0x11  , 0     , 0     , 0     }};   // EVEX 0F 38 37
 
-// submap for F3 0F 38 2A. Index by EVEX.W bit
+// Submap for 0F 38 1A, indexed by VEX.L bit or MVEX or EVEX.LL for vector size
 SOpcodeDef OpcodeMapE5[] = {
-   {"vpbroadcastmw2d?",0x21,0x803400,0x12,0x1604, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // F3 0F 38 2A. W0
-   {"vpbroadcastmb2q",0x21,0x803400,0x12, 0x1603, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 38 2A. W1
-// Uncertain: is VPBROADCASTMW2D coded as F3.0F 38 2A.W0 or F3.0F 38 3A.W0 ?!!
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 1A, 128 bits
+   {"vbroadcastf128",0x19,0x878200,0x12 , 0x154B, 0x244B, 0     , 0     , 0x20  , 0     , 0     , 0     },    // 0F 38 1A, 256 bits
+   {"vbroadcastf32x4",0x80,0xC28200,0x12, 0x164B, 0x244B, 0     , 0     , 0x20  , 0x1010, 0     , 0x100 },    // 0F 38 1A, 512 bits
+   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 // Map for 0F 38 39. Indexed by EVEX present
 SOpcodeDef OpcodeMapE6[] = {
-   {"pminsd",    0x15  ,0x4D8200, 0x19  , 0x1203, 0x1203, 0x203 , 0     , 0     , 0x1406, 0     , 0x2   },    // 0F 38 39
-   {"vpmins",    0x15  ,0xCDB200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x31  , 0x1406, 0     , 0x1   }};   // 0F 38 39
+   {"pminsd",    0x15  ,0x4D8200, 0x19  , 0x1203, 0x1203, 0x203 , 0     , 0     , 0x1406, 0     , 0x2   },    //      0F 38 39
+   {0,           0x12D , 0      , 0x19  , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     }};   // EVEX 0F 38 39
 
 // Map for 0F 38 3B. Indexed by EVEX present
 SOpcodeDef OpcodeMapE7[] = {
@@ -4776,111 +4966,85 @@ SOpcodeDef OpcodeMapE9[] = {
    {"pmaxud",    0x15  ,0x4D8200, 0x19  , 0x1203, 0x1203, 0x203 , 0     , 0     , 0x1406, 0     , 0x2   },    // 0F 38 3F
    {"vpmaxu",    0x15  ,0xCDB200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x31  , 0x1406, 0     , 0x1   }};   // 0F 38 3F
 
-// Map for 0F 38 11. Indexed by prefixes 66 F2 F3
+// Map for 0F 38 10. Indexed by VEX prefix type
 SOpcodeDef OpcodeMapEA[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 11
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66 0F 38 11
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 11
-   {"vpmovusdb", 0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2430, 0     , 0     , 0x800 }};   // F3 0F 38 11
+   {"pblendvb",  0x15  , 0x8200 , 0x12  , 0x1401, 0x401 , 0xAE  , 0     , 0     , 0     , 0     , 0     },    // 0F 38 10
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 38 10
+   {"vpsrlvw",   0x20  ,0x8FC200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x20  , 0     , 0     , 0     },    // EVEX 0F 38 10
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // MVEX 0F 38 10
 
-// Map for 0F 38 21. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 90. Indexed by memory/register
 SOpcodeDef OpcodeMapEB[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 21
-   {0,           0x7B  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 21. Link pmovsxbd
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 21
-   {"vpmovsdb",  0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2430, 0     , 0     , 0x800 }};   // F3 0F 38 21
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x1095, 0x2009, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 90. Name without w in KNC syntax, but code identical
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x1095, 0x95  , 0     , 0     , 0     , 0     , 0     , 1     }};   // VEX 0F 90. Name without w in KNC syntax, but code identical
 
-// Map for 0F 38 31. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 92. indexed by prefix 0 66 F2 F3
+// The coding with F2 is different from other k instructions. Allow coding with 66 instead in case this is an error in the manual
 SOpcodeDef OpcodeMapEC[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 31
-   {0,           0x85  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 31. Link pmovzxbd
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 31
-   {"vpmovdb",   0x20  ,0x820400, 0x13  , 0x0401, 0x1203, 0     , 0     , 0x2430, 0     , 0     , 0x800 }};   // F3 0F 38 31
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x95  , 0x1003, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 92. Name without w in KNC syntax, but code identical
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x95  , 0x1003, 0     , 0     , 0     , 0     , 0     , 1     },    // 66 VEX 0F 92
+   {0,           0xED  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // F2 VEX 0F 92
 
-// Map for 0F 38 12. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 92. indexed by VEX.W bit
 SOpcodeDef OpcodeMapED[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 12
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66 0F 38 12
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 12
-   {"vpmovusqb", 0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2630, 0     , 0     , 0x800 }};   // F3 0F 38 12
+   {"kmovd",    0x20  , 0x35200, 0x12  , 0x95  , 0x1003, 0     , 0     , 0     , 0     , 0     , 0     },    // F2 VEX 0F 92. W0
+   {"kmovq",    0x20  , 0x35200, 0x12  , 0x95  , 0x1004, 0     , 0     , 0     , 0     , 0     , 0     }};   // F2 VEX 0F 92. W1
 
-// Map for 0F 38 22. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 93. indexed by prefix 0 66 F2 F3
+// The coding with F2 is different from other k instructions. Allow coding with 66 instead in case this is an error in the manual
 SOpcodeDef OpcodeMapEE[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 22
-   {0,           0x7D  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 22. Link pmovsxbq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 22
-   {"vpmovsqb",  0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2630, 0     , 0     , 0x800 }};   // F3 0F 38 22
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x1003, 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // VEX 0F 93. Name without w in KNC syntax, but code identical
+   {"kmov",      0x20  , 0x35200, 0x12  , 0x1003, 0x1095, 0     , 0     , 0     , 0     , 0     , 1     },    // 66 VEX 0F 93
+   {0,           0xEF  , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // F2 VEX 0F 93
 
-// Map for 0F 38 32. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 93. indexed by VEX.W bit
 SOpcodeDef OpcodeMapEF[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 32
-   {0,           0x87  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 32. Link pmovzxbq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 32
-   {"vpmovqb",   0x20  ,0x820400, 0x13  , 0x0401, 0x1204, 0     , 0     , 0x2630, 0     , 0     , 0x800 }};   // F3 0F 38 32
+   {"kmovd",     0x20  , 0x35200, 0x12  , 0x1003, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // F2 VEX 0F 93 W0
+   {"kmovq",     0x20  , 0x35200, 0x12  , 0x1004, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F2 VEX 0F 93 W1
 
-// Map for 0F 38 13. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 4B. indexed by prefix 0 66 F2 F3
 SOpcodeDef OpcodeMapF0[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 13
-   {"vcvtph2ps", 0x19  ,0x878200, 0x12  , 0x250 , 0xF4A , 0     , 0     , 0x2232, 0     , 0     , 0     },    // 66 0F 38 13
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 13
-   {"vpmovusdw", 0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 13
+   {0,           0xF1  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }, 
+   {"kunpckbw",  0x20  ,0x1E3200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     },    // 66 VEX 0F 4B
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }}; 
 
-// Map for 0F 38 23. Indexed by prefixes 66 F2 F3
+// Map for VEX 0F 4B. indexed by VEX.W bit
 SOpcodeDef OpcodeMapF1[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 23
-   {0,           0x7F  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 23. Link pmovsxwd
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 23
-   {"vpmovsdw",  0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 23
+   {"kunpckwd",  0x20  ,0x1E3200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     },    // VEX 0F 4B
+   {"kunpckdq",  0x20  ,0x1E3200, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};
 
-// Map for 0F 38 33. Indexed by prefixes 66 F2 F3
+// Map for 0F AE /7. Indexed by 66 prefix
 SOpcodeDef OpcodeMapF2[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 33
-   {0,           0x89  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 33. Link pmovzxwd
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 33
-   {"vpmovdw",   0x20  ,0x820400, 0x13  , 0x0F02, 0x1203, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 33
+   {"clflush",   0x12  , 0      , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 0F AE /7
+   {"clflushopt",0x22  , 0x200  , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     }};    // 66 0F AE /7
 
-// submap for VEX 0F 38 14. Indexed by 66 F2 F3 prefix
+// Map for 0F AE /6. Indexed by 66 prefix
 SOpcodeDef OpcodeMapF3[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 14
-   {"vprorv",    0x20  ,0x883200, 0x19  , 0x1209, 0x1209, 0x0209, 0     , 0x31  , 0     , 0     , 0x1   },    // 66 0F 38 14
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 14
-   {"vpmovusqw", 0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2430, 0     , 0     , 0x800 }};   // F3 0F 38 14
+   {"xsaveopt",  0x19  , 0x2000 , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 0F AE /6
+   {"clwb    ",  0x22  , 0x200  , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 66 0F AE /6
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// Map for 0F 38 24. Indexed by prefixes 66 F2 F3
+// Map for 0F AE reg /7. Indexed by 66 prefix
 SOpcodeDef OpcodeMapF4[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 24
-   {0,           0x80  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 24. Link pmovsxwq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 24
-   {"vpmovsqw",  0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2430, 0     , 0     , 0x800}};   // F3 0F 38 24
+   {"sfence",    0x12  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // m-7
+   {"pcommit",   0x22  , 0x200  , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// Map for 0F 38 34. Indexed by prefixes 66 F2 F3
+// unused
 SOpcodeDef OpcodeMapF5[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 34
-   {0,           0x8A  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 34. Link pmovzxwq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 34
-   {"vpmovqw",   0x20  ,0x820400, 0x13  , 0x0402, 0x1204, 0     , 0     , 0x2430, 0     , 0     , 0x800 }};   // F3 0F 38 34
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// submap for VEX 0F 38 15. Indexed by 66 F2 F3 prefix
+// unused
 SOpcodeDef OpcodeMapF6[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 15
-   {"vprolv",    0x20  ,0x883200, 0x19  , 0x1209, 0x1209, 0x0209, 0     , 0x31  , 0     , 0     , 0x1   },    // 66 0F 38 14
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 15
-   {"vpmovusqd", 0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 15
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// Map for 0F 38 25. Indexed by prefixes 66 F2 F3
+// unused
 SOpcodeDef OpcodeMapF7[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 25
-   {0,           0x82  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 25. Link pmovsxdq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 25
-   {"vpmovsqd",  0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 25
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-// Map for 0F 38 35. Indexed by prefixes 66 F2 F3
+// unused
 SOpcodeDef OpcodeMapF8[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 35
-   {0,           0x8C  , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x3   , 0     },    // 66 0F 38 35. Link pmovzxdq
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 35
-   {"vpmovqd",   0x20  ,0x820400, 0x13  , 0x0F03, 0x1204, 0     , 0     , 0x30  , 0     , 0     , 0     }};   // F3 0F 38 35
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 // Map for 0F 3A 08. Indexed by EVEX present
 SOpcodeDef OpcodeMapF9[] = {
@@ -4915,10 +5079,9 @@ SOpcodeDef OpcodeMapFE[] = {
 // Map for 0F 38 3A. Indexed by 66 F2 F3 prefixes
 SOpcodeDef OpcodeMapFF[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 3A
-   {"pminuw",    0x15  , 0xD8200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0     , 0     , 0     , 0x2   },    // 66 0F 38 3A
+   {"pminuw",    0x15  ,0x8D8200, 0x19  , 0x1202, 0x1202, 0x202 , 0     , 0x20  , 0     , 0     , 0x2   },    // 66 0F 38 3A
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 3A
-   {"vpbroadcastmw2d",0x21,0x803400,0x12, 0x1604, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 38 2A
-// Uncertain: is VPBROADCASTMW2D coded as F3.0F 38 2A.W0 or F3.0F 38 3A.W0 ?!!
+   {"vpbroadcastmw2d",0x20,0x860400,0x12, 0x1203, 0x1095, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 38 2A
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 // Map for 0F 38 A". Indexed by W bit
@@ -4931,35 +5094,25 @@ SOpcodeDef OpcodeMap101[] = {
    {"vscatterqps",0x20 ,0xC39200, 0x1E  , 0x224B, 0x1F09, 0     , 0     , 0x1090, 0x304C, 0     , 0x000 },    // 0F 38 A3. W0
    {"vscatterqpd",0x20 ,0xC39200, 0x1E  , 0x224C, 0x1209, 0     , 0     , 0x1090, 0x304C, 0     , 0x000 }};   // 0F 38 A3. W1
 
-// Map for VEX 0F 41. Indexed by L bit
+// unused
 SOpcodeDef OpcodeMap102[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
-   {"kand",      0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 41. L0
-   {"kandw",     0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 41. L1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
 
-// Map for VEX 0F 42. Indexed by L bit
+// unused
 SOpcodeDef OpcodeMap103[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
-   {"kandn",     0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 42. L0
-   {"kandnw",    0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 42. L1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
 
-// Map for VEX 0F 45. Indexed by L bit
+// unused
 SOpcodeDef OpcodeMap104[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
-   {"kor",       0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 45. L0
-   {"korw",      0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 45. L1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
 
-// Map for VEX 0F 46. Indexed by L bit
+// unused
 SOpcodeDef OpcodeMap105[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
-   {"kxnor",     0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 46. L0
-   {"kxnorw",    0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 46. L1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
 
-// Map for VEX 0F 47. Indexed by L bit
+// unused
 SOpcodeDef OpcodeMap106[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
-   {"kxor",      0x80  , 0x30000, 0x12  , 0x95  , 0x1095, 0     , 0     , 0     , 0     , 0     , 0     },    // VEX 0F 47. L0
-   {"kxorw",     0x20  ,0x1F0000, 0x19  , 0x1095, 0x1095, 0x1095, 0     , 0     , 0     , 0     , 0     }};   // VEX 0F 47. L1
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
 
 // Map for 0F 38 C8. Indexed by VEX prefix type
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
@@ -5055,10 +5208,245 @@ SOpcodeDef OpcodeMap111[] = {
    {"bndcn" ,    0x22   , 0x800  , 0x12,  0x98  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 1B
    {"bndmk" ,    0x22   , 0x400  , 0x12,  0x98  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3 0F 1B
 
+// Submap for 0F 3A 3E. Indexed by immediate byte. VCMPUB/W
 SOpcodeDef OpcodeMap112[] = {
+   {"vpcmpequ",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 0
+   {"vpcmpltu",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 1
+   {"vpcmpleu",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 2
+   {"vpcmpu",    0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 3 = true
+   {"vpcmpnequ", 0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 4
+   {"vpcmpnltu", 0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 5
+   {"vpcmpnleu", 0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3E / 6
+   {"vpcmpu",    0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x10  , 0     , 0     , 0x01  }};   // 0F 3A 3E / >= 7 = false
+
+// Submap for 0F 3A 3F. Indexed by immediate byte. VCMPB/W
+SOpcodeDef OpcodeMap113[] = {
+   {"vpcmpeq",   0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 0
+   {"vpcmplt",   0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 1
+   {"vpcmple",   0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 2
+   {"vpcmp",     0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 3 = true
+   {"vpcmpneq",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 4
+   {"vpcmpnlt",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 5
+   {"vpcmpnle",  0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x10  , 0     , 0     , 0x01  },    // 0F 3A 3F / 6
+   {"vpcmp",     0x20  , 0x8FC200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x10  , 0     , 0     , 0x01  }};   // 0F 3A 3F / >= 7 = false
+
+// Submap for 0F 3A 1E. Indexed by immediate byte. VCMPUD/Q
+SOpcodeDef OpcodeMap114[] = {
+   {"vpcmpequ",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 0
+   {"vpcmpltu",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 1
+   {"vpcmpleu",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 2
+   {"vpcmpu",    0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 3 = true
+   {"vpcmpnequ", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 4
+   {"vpcmpnltu", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 5
+   {"vpcmpnleu", 0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1E / 6
+   {"vpcmpu",    0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x01  }};   // 0F 3A 1E / >= 7 = false
+
+// Submap for 0F 3A 1F. Indexed by immediate byte. VCMPD/Q
+SOpcodeDef OpcodeMap115[] = {
+   {"vpcmpeq",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 0
+   {"vpcmplt",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 1
+   {"vpcmple",   0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 2
+   {"vpcmp",     0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 3 = true
+   {"vpcmpneq",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 4
+   {"vpcmpnlt",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 5
+   {"vpcmpnle",  0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0     , 0x11  , 0x1406, 0     , 0x01  },    // 0F 3A 1F / 6
+   {"vpcmp",     0x20  , 0xCBB200,0x59  , 0x95  , 0x1209, 0x209 , 0x31  , 0x11  , 0x1406, 0     , 0x01  }};   // 0F 3A 1F / >= 7 = false
+
+// Submap for pcmpeqb. Opcode byte = 0F 74
+// Indexed by E/MVEX prefix
+SOpcodeDef OpcodeMap116[] = {
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {"pcmpeqb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 74
+   {"vpcmpeqb",  0x20  ,0x8FA200, 0x19  , 0x95  , 0x1201, 0x201 , 0     , 0x10  , 0     , 0     , 0     }};   // E/MVEX 0F 76
+
+// Submap for pcmpeqw. Opcode byte = 0F 75
+// Indexed by E/MVEX prefix
+SOpcodeDef OpcodeMap117[] = {
+   {"pcmpeqw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 75
+   {"vpcmpeqw",  0x20  ,0x8FA200, 0x19  , 0x95  , 0x1202, 0x202 , 0     , 0x10  , 0     , 0     , 0     }};   // E/MVEX 0F 76
+
+// Submap for pcmpgtb. Opcode byte = 0F 64
+// Indexed by EVEX prefix
+SOpcodeDef OpcodeMap118[] = {
+   {"pcmpgtb",   0x7   , 0xD0200, 0x19  , 0x1101, 0x1101, 0x101 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 64
+   {"vpcmpgtb",  0x20  ,0x8BA200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x10  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 66
+
+
+// Submap for pcmpgtw. Opcode byte = 0F 64
+// Indexed by EVEX prefix
+SOpcodeDef OpcodeMap119[] = {
+   {"pcmpgtw",   0x7   , 0xD0200, 0x19  , 0x1102, 0x1102, 0x102 , 0     , 0     , 0     , 0     , 0x2   },    // 0F 65
+   {"vpcmpgtw",  0x20  ,0x8BA200, 0x19  , 0x95  , 0x1203, 0x203 , 0     , 0x10  , 0x1406, 0     , 0x000 }};   // E/MVEX 0F 66
+
+
+// Opcode map for EVEX 66 0F 7B. Indexed by W bit
+SOpcodeDef OpcodeMap11A[] = {
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {"vcvtps2qq", 0x20  ,0x840200, 0x12  , 0x204 , 0xF4B , 0     , 0     , 0x27  , 0     , 0     , 0     },    // EVEX 66 0F 7B. W = 0
+   {"vcvtpd2qq", 0x20  ,0x841200, 0x12  , 0x204 , 0x24C , 0     , 0     , 0x27  , 0     , 0     , 0     }};   // EVEX 66 0F 7B. W = 1
+
+// Opcode map for EVEX F2 0F 7A. Indexed by W bit
+SOpcodeDef OpcodeMap11B[] = {
+   {"vcvtudq2ps",0x20  ,0xC28800, 0x12  , 0x124B, 0x203 , 0     , 0     , 0x37  , 0x1214, 0     , 0     },    // F2 EVEX 0F 7A W0
+   {"vcvtuqq2ps",0x20  ,0x869800, 0x12  , 0x1F4B, 0x204 , 0     , 0     , 0x27  , 0     , 0     , 0     }};   // F2 EVEX 0F 7A W0
+
+// Opcode map for EVEX F3 0F 7A. Indexed by W bit
+SOpcodeDef OpcodeMap11C[] = {
+   {"vcvtudq2pd",0x20  ,0xC28400, 0x12  , 0x124C, 0xF03 , 0     , 0     , 0x31  , 0x1214, 0     , 0     },    // F3 E/MVEX 0F 7A W0
+   {"vcvtuqq2pd",0x20  ,0x869800, 0x12  , 0x124C, 0x204 , 0     , 0     , 0x27  , 0     , 0     , 0     }};   // F2 EVEX 0F 7A W0
+
+// Opcode map for 0F 3A 42. Indexed by EVEX
+SOpcodeDef OpcodeMap11D[] = {
+   {"mpsadbw",   0x15  , 0xD8200, 0x59  , 0x1202, 0x1202, 0x201 , 0x31  , 0     , 0     , 0     , 0x2   },    // 0F 3A 42
+   {"vdbpsadbw", 0x20  ,0x8E8200, 0x59  , 0x1202, 0x1202, 0x201 , 0x31  , 0x20  , 0     , 0     , 0     }};   // EVEX 0F 3A 42
+
+// Opcode map for 0F 3A 19. Indexed by EVEX
+SOpcodeDef OpcodeMap11E[] = {
+   {"vextractf128" ,0x19,0x978200,0x53,   0x450 , 0x1550, 0x31  , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 19
+   {0              ,0x11F,0      ,0x53,   0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // EVEX 0F 3A 19
+
+// Opcode map for EVEX 0F 3A 19. Indexed by W bit
+SOpcodeDef OpcodeMap11F[] = {
+   {"vextractf32x4",0x20,0x868200,0x53,   0x44B , 0x124B, 0x31  , 0     , 0x20  , 0     , 0     , 0     },    // EVEX W0 0F 3A 19
+   {"vextractf64x2",0x20,0x869200,0x53,   0x44C , 0x124C, 0x31  , 0     , 0x20  , 0     , 0     , 0     }};   // EVEX W1 0F 3A 19
+
+// Opcode map for EVEX 0F 3A 39. Indexed by EVEX
+SOpcodeDef OpcodeMap120[] = {
+   {"vextracti128",0x1C, 0x978200,0x53  , 0x406 , 0x1506, 0x31  , 0     , 0     , 0     , 0     , 0     },    // 0F 3A 39
+   {0             ,0x121, 0      ,0x53  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // EVEX 0F 3A 39
+
+// Opcode map for EVEX 0F 3A 39. Indexed by W bit
+SOpcodeDef OpcodeMap121[] = {
+   {"vextracti32x4",0x20,0x868200,0x53  , 0x406 , 0x1203, 0x31  , 0     , 0x20  , 0     , 0     , 0     },    // 0F 3A 39
+   {"vextracti64x2",0x20,0x869200,0x53  , 0x406 , 0x1203, 0x31  , 0     , 0x20  , 0     , 0     , 0     }};   // 0F 3A 39
+
+// Opcode map for 0F 3A 18. Indexed by EVEX
+SOpcodeDef OpcodeMap122[] = {
+   {"vinsertf128",0x19 ,0x9F8200, 0x59  , 0x1250, 0x1250, 0x450 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 18
+   {0,           0x123 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};
+
+// Opcode map for EVEX 0F 3A 18. Indexed by W bit
+SOpcodeDef OpcodeMap123[] = {
+   {"vinsertf32x4",0x20,0x8AB200, 0x59  , 0x1250, 0x1250, 0x44B , 0x31  , 0x20  , 0     , 0     , 0     },    // EVEX 0F 3A 18. W0
+   {"vinsertf64x2",0x20,0x8AB200, 0x59  , 0x1250, 0x1250, 0x44C , 0x31  , 0x20  , 0     , 0     , 0     }};   // EVEX 0F 3A 18. W0
+
+// Opcode map for EVEX 0F 3A 1A. Indexed by W bit
+SOpcodeDef OpcodeMap124[] = {
+   {"vinsertf32x8",0x20,0x8AB200, 0x59  , 0x1250, 0x1250, 0x54B , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 1A
+   {"vinsertf64x4",0x20,0x8AB200, 0x59  , 0x1250, 0x1250, 0x54C , 0x31  , 0x30  , 0     , 0     , 0     }};   // 0F 3A 1A
+
+// Opcode map for 0F 3A 38. Indexed by EVEX
+SOpcodeDef OpcodeMap125[] = {
+   {"vinserti128",0x1C ,0x9F8200, 0x59  , 0x1206, 0x1206, 0x406 , 0x31  , 0x30  , 0     , 0     , 0     },    // 0F 3A 38
+   {0,           0x126 , 0      , 0x59  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};
+
+// Opcode map for EVEX 0F 3A 38. Indexed by W bit
+SOpcodeDef OpcodeMap126[] = {
+   {"vinserti32x4",0x1C ,0x8AB200, 0x59  , 0x1203, 0x1203, 0x403 , 0x31  , 0x20  , 0     , 0     , 0     },   // EVEX 0F 3A 38. W0
+   {"vinserti64x2",0x20 ,0x8AB200, 0x59  , 0x1204, 0x1204, 0x404 , 0x31  , 0x20  , 0     , 0     , 0     }};  // EVEX 0F 3A 38. W1
+
+// Opcode map for EVEX 0F 3A 3A. Indexed by W bit
+SOpcodeDef OpcodeMap127[] = {
+   {"vinserti32x8",0x20,0x8AB200, 0x59  , 0x1203, 0x1203, 0x503 , 0x31   , 0x20  , 0     , 0     , 0     },    // EVEX 0F 3A 3A. W0
+   {"vinserti64x4",0x20,0x8AB200, 0x59  , 0x1204, 0x1204, 0x504 , 0x31   , 0x20  , 0     , 0     , 0     }};   // EVEX 0F 3A 3A. W1
+
+// Opcode map for 0F 38 B4. Indexed by VEX prefix type
+SOpcodeDef OpcodeMap128[] = {
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX  0F 38 B4
+   {"vpmadd52luq",0x23 ,0x8EB200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0     },    // EVEX 0F 38 B4
+   {"vpmadd233d",0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 }};   // MVEX 0F 38 B4
+
+// Opcode map for 0F 38 B5. Indexed by VEX prefix type
+SOpcodeDef OpcodeMap129[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // VEX  0F 38 B5
+   {"vpmadd52huq",0x23 ,0x8EB200, 0x19  , 0x1204, 0x1204, 0x204 , 0     , 0x21  , 0     , 0     , 0     },    // EVEX 0F 38 B5
+   {"vpmadd231d",0x80  ,0x4A8200, 0x19  , 0x1603, 0x1603, 0x603 , 0     , 0     , 0x1406, 0     , 0x100 }};   // MVEX 0F 38 B5
+
+// unused
+SOpcodeDef OpcodeMap12A[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
-SOpcodeDef OpcodeMap113[] = {
+// unused
+SOpcodeDef OpcodeMap12B[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+// Opcode map for 0F 38 38. Indexed by prefix
+SOpcodeDef OpcodeMap12C[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 38
+   {"pminsb",    0x15  ,0x8DA200, 0x19  , 0x1201, 0x1201, 0x201 , 0     , 0x20  , 0     , 0     , 0x2   },    // 66 0F 38 38
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 38
+   // moved to map B2. this map can be removed
+//   {"vpmovm2",   0x20  ,0x86B400, 0x12  , 0x1209, 0x95  , 0     , 0     , 0     , 0     , 0     , 1     }};   // F3 0F 38 38
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+// Opcode map for EVEX 0F 38 39. Indexed by prefix
+SOpcodeDef OpcodeMap12D[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //    0F 38 39
+   {"vpmins",    0x15  ,0xCDB200, 0x19  , 0x1209, 0x1209, 0x209 , 0     , 0x31  , 0x1406, 0     , 0x1   },    // 66 0F 38 39
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2 0F 38 39
+   // this entry has been replaced by a link from map B2. this may be removed
+ //  {0,           0x12F , 0      , 0x12  , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // F3 0F 38 39
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+// Opcode map for EVEX 0F 38 29. Indexed by W bit
+SOpcodeDef OpcodeMap12E[] = {
+   {"vpmovb2m",  0x20  ,0x86C400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 29 W0
+   {"vpmovw2m",  0x20  ,0x86C400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     }};   // EVEX F3 0F 38 29 W1
+
+// Opcode map for EVEX 0F 38 39. Indexed by W bit
+SOpcodeDef OpcodeMap12F[] = {
+   {"vpmovd2m",  0x20  ,0x86B400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 39 W0
+   {"vpmovq2m",  0x20  ,0x86B400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     }};   // EVEX F3 0F 38 39 W1
+
+SOpcodeDef OpcodeMap130[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap131[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap132[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap133[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap134[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap135[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap136[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap137[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap138[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap139[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13A[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13B[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13C[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13D[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13E[] = {
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+
+SOpcodeDef OpcodeMap13F[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 
@@ -5133,6 +5521,17 @@ const SOpcodeDef * const OpcodeTables[] = {
    OpcodeMap108, OpcodeMap109, OpcodeMap10A, OpcodeMap10B,
    OpcodeMap10C, OpcodeMap10D, OpcodeMap10E, OpcodeMap10F,
    OpcodeMap110, OpcodeMap111, OpcodeMap112, OpcodeMap113,
+   OpcodeMap114, OpcodeMap115, OpcodeMap116, OpcodeMap117,
+   OpcodeMap118, OpcodeMap119, OpcodeMap11A, OpcodeMap11B,
+   OpcodeMap11C, OpcodeMap11D, OpcodeMap11E, OpcodeMap11F,
+   OpcodeMap120, OpcodeMap121, OpcodeMap122, OpcodeMap123,
+   OpcodeMap124, OpcodeMap125, OpcodeMap126, OpcodeMap127,
+   OpcodeMap128, OpcodeMap129, OpcodeMap12A, OpcodeMap12B,
+   OpcodeMap12C, OpcodeMap12D, OpcodeMap12E, OpcodeMap12F,
+   OpcodeMap130, OpcodeMap131, OpcodeMap132, OpcodeMap133,
+   OpcodeMap134, OpcodeMap135, OpcodeMap136, OpcodeMap137,
+   OpcodeMap138, OpcodeMap139, OpcodeMap13A, OpcodeMap13B,
+   OpcodeMap13C, OpcodeMap13D, OpcodeMap13E, OpcodeMap13F,
 };
 
 // size of each table pointed to by OpcodeTables[]
@@ -5206,6 +5605,17 @@ const uint32 OpcodeTableLength[] = {
    TableSize(OpcodeMap108), TableSize(OpcodeMap109), TableSize(OpcodeMap10A), TableSize(OpcodeMap10B),
    TableSize(OpcodeMap10C), TableSize(OpcodeMap10D), TableSize(OpcodeMap10E), TableSize(OpcodeMap10F),
    TableSize(OpcodeMap110), TableSize(OpcodeMap111), TableSize(OpcodeMap112), TableSize(OpcodeMap113),
+   TableSize(OpcodeMap114), TableSize(OpcodeMap115), TableSize(OpcodeMap116), TableSize(OpcodeMap117),
+   TableSize(OpcodeMap118), TableSize(OpcodeMap119), TableSize(OpcodeMap11A), TableSize(OpcodeMap11B),
+   TableSize(OpcodeMap11C), TableSize(OpcodeMap11D), TableSize(OpcodeMap11E), TableSize(OpcodeMap11F),
+   TableSize(OpcodeMap120), TableSize(OpcodeMap121), TableSize(OpcodeMap122), TableSize(OpcodeMap123),
+   TableSize(OpcodeMap124), TableSize(OpcodeMap125), TableSize(OpcodeMap126), TableSize(OpcodeMap127),
+   TableSize(OpcodeMap128), TableSize(OpcodeMap129), TableSize(OpcodeMap12A), TableSize(OpcodeMap12B),
+   TableSize(OpcodeMap12C), TableSize(OpcodeMap12D), TableSize(OpcodeMap12E), TableSize(OpcodeMap12F),
+   TableSize(OpcodeMap130), TableSize(OpcodeMap131), TableSize(OpcodeMap132), TableSize(OpcodeMap133),
+   TableSize(OpcodeMap134), TableSize(OpcodeMap135), TableSize(OpcodeMap136), TableSize(OpcodeMap137),
+   TableSize(OpcodeMap138), TableSize(OpcodeMap139), TableSize(OpcodeMap13A), TableSize(OpcodeMap13B),
+   TableSize(OpcodeMap13C), TableSize(OpcodeMap13D), TableSize(OpcodeMap13E), TableSize(OpcodeMap13F),
 };
 
 // number of entries in OpcodeTables
@@ -5213,18 +5623,21 @@ const uint32 NumOpcodeTables1 = TableSize(OpcodeTables);
 const uint32 NumOpcodeTables2 = TableSize(OpcodeTableLength);         
 
 // Index to start pages, depending on VEX.mmmm bits
-SOpcodeDef const * OpcodeStartPageVEX[] = {
-   OpcodeMapB0,                        // no escape,      VEX.mmmm = 0
-   OpcodeMapB1,                        // 0F    escape or VEX.mmmm = 1
-   OpcodeMap2,                         // 0F 38 escape or VEX.mmmm = 2
-   OpcodeMap4};                        // 0f 3A escape or VEX.mmmm = 3
+uint32 OpcodeStartPageVEX[] = {
+   0xB0,                        // no escape,      VEX.mmmm = 0
+   0xB1,                        // 0F    escape or VEX.mmmm = 1
+   0x2,                         // 0F 38 escape or VEX.mmmm = 2
+   0x4,                         // 0f 3A escape or VEX.mmmm = 3
+   0, 0, 0, 0,                  // reserved for higher mmmm
+   0xB2                         // 0F 38 escape or EVEX.mmmm = 2 with F3 prefix (pp = 10)
+};
 
 // Index to start pages, depending on XOP.mmmm bits
 SOpcodeDef const * OpcodeStartPageXOP[] = {
    OpcodeMap64,                        // XOP.mmmm = 8
    OpcodeMap65,                        // XOP.mmmm = 9
    OpcodeMap66                         // XOP.mmmm = 0xA
-   };   
+};   
 
 // Number of entries in OpcodeStartPages
 const uint32 NumOpcodeStartPageVEX = TableSize(OpcodeStartPageVEX);

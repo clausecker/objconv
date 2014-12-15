@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2013-09-28
+* Last modified: 2014-12-12
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2013 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -141,7 +141,7 @@ const char * InstructionSetNames[] = {
     "Supplementary SSE3", "SSE4.1", "SSE4.2", "AES", // 14 - 17
     "CLMUL", "AVX", "FMA3", "?",                     // 18 - 1B
     "AVX2", "BMI etc.", "?", "?",                    // 1C - 1F
-    "AVX-512", "AVX512PF/ER/CD", "MPX,SHA,TBD", "?", // 20 - 23
+    "AVX-512", "AVX512PF/ER/CD", "MPX,SHA,TBD", "AVX512IFMA/VBMI", // 20 - 23
     "?", "?", "?", "?",                              // 24 - 27
     "?", "?", "?", "?",                              // 28 - 2B
     "?", "?", "?", "?",                              // 2C - 2F
@@ -165,7 +165,7 @@ const char * InstructionSetNames[] = {
     "?", "?", "?", "?",                              // 74 - 77
     "?", "?", "?", "?",                              // 78 - 7B
     "?", "?", "?", "?",                              // 7C - 7F
-    "MIC Xeon Phi", "?", "?", "?",                   // 80 - 83
+    "Knights Corner", "?", "?", "?",                 // 80 - 83
     "?", "?", "?", "?"                               // 84 - 87
 };
 
@@ -626,7 +626,8 @@ void CDisassembler::WriteVEXOperand(uint32 Type, int i) {
 
 void CDisassembler::WriteOperandAttributeEVEX(int i, int isMem) {
     // Write operand attributes and instruction attributes from EVEX z, LL, b and aaa bits
-    // i = operand number (0 = destination, 1 = first source, 2 = second source, 99 = after last operand)
+    // i = operand number (0 = destination, 1 = first source, 2 = second source, 
+    // 98 = after last SIMD operand, 99 = after last operand)
     // isMem: true if memory operand, false if register operand
     uint32 swiz = s.OpcodeDef->EVEX;   // indicates meaning of EVEX attribute bits
 
@@ -666,7 +667,11 @@ void CDisassembler::WriteOperandAttributeEVEX(int i, int isMem) {
                 }
             }
         }
-        if (i == 99 && s.Mod == 3) {   // after last operand. no memory operand
+        if (i == 98 && s.Mod == 3) {   // after last SIMD operand. no memory operand
+            // NASM has rounding mode and sae decoration after last SIMD operand with a comma.
+            // No spec. for other assemblers available yet (2014). 
+            // use i == 99 if it should be placed after last operand.
+            // Perhaps the comma should be removed for other assemblers?
             if ((swiz & 0x4) && (s.Esss & 1)) {
                 // write rounding mode
                 uint32 rounding = (s.Esss >> 1) & 3;
@@ -704,14 +709,15 @@ void CDisassembler::WriteOperandAttributeMVEX(int i, int isMem) {
     }
     if (swiz & 0x1F) {
         // swizzle allowed    
-        if (isMem) {
+        if (isMem && i < 90) {
             // write memory broadcast/up/down conversion
             text = s.SwizRecord->name;
             if (text && *text) {
                 OutFile.Put(" {");  OutFile.Put(text);  OutFile.Put("}");
             }
         }
-        if (i == 2 || ((s.OpcodeDef->Source2 & 0xF0F00) == 0 && i == 1)) {
+        //if (i == 2 || ((s.OpcodeDef->Source2 & 0xF0F00) == 0 && i == 1)) {
+        if (i == 98) {   // after last SIMD operand
             // last register or memory operand
             if (s.Mod == 3 && !((swiz & 0x700) && (s.Esss & 8))) { // skip alternative meaning of sss field for register operand when E=1
                 // write register swizzle
@@ -3130,7 +3136,9 @@ void CDisassembler::WriteSegmentBeginYASM() {
     case 2: OutFile.Put("data");  break;
     case 3: OutFile.Put("bss");  break;
     case 4: OutFile.Put("const");  break;
-    default: OutFile.Put("unknown");  break;
+    default: OutFile.Put("unknown type: ");  
+        OutFile.PutHex(Sections[Section].Type & 0xFF);        
+        break;
     }
 
     // New line
@@ -3752,15 +3760,38 @@ void CDisassembler::WriteInstruction() {
     // Check suffix option
     if (s.OpcodeDef->Options & 1) {
         // Append suffix for operand size or type to name
-        if ((s.OpcodeDef->AllowedPrefixes & 0x3000) == 0x1000) {
+        if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x1000) {
             // F.P. operand size defined by W prefix bit
             i = s.Prefixes[7] & 8;  // W prefix bit
             OutFile.Put(i ? 'd' : 's');
         }
-        else if ((s.OpcodeDef->AllowedPrefixes & 0x3000) == 0x3000) {
+        else if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x3000) {
+            // Integer or f.p. operand size defined by W prefix bit
+            bool f = false;
+            // Find out if operands are integer or f.p.
+            for (i = 0; i < s.MaxNumOperands; i++) {
+                if ((s.Operands[i] & 0xF0) == 0x40) {
+                    f = true; break;
+                }
+            }
+            i = s.Prefixes[7] & 8;  // W prefix bit
+            if (f) {
+                OutFile.Put(i ? 'd' : 's');  // float precision suffix
+            }
+            else {            
+                OutFile.Put(i ? 'q' : 'd');  // integer size suffix
+            }
+        }
+        else if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x4000) {
             // Integer operand size defined by W prefix bit
             i = s.Prefixes[7] & 8;  // W prefix bit
-            OutFile.Put(i ? 'q' : 'd');
+            OutFile.Put(i ? 'w' : 'b');
+        }
+        else if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x5000) {
+            // mask register operand size defined by W prefix bit and 66 prefix
+            i  = (s.Prefixes[7] & 8) >> 2;      // W prefix bit
+            i |= s.Prefixes[5] != 0x66;         // 66 prefix bit
+            OutFile.Put("bwdq"[i]);
         }
         else if (s.OpcodeDef->AllowedPrefixes & 0xE00) {
             // F.P. operand type and size defined by prefixes
@@ -3790,10 +3821,14 @@ void CDisassembler::WriteInstruction() {
     // Alternative suffix option
     if (s.OpcodeDef->Options & 0x1000) {
         // Append alternative suffix for vector element size to name
-        if ((s.OpcodeDef->AllowedPrefixes & 0x3000) == 0x3000) {
+        if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x3000) {
             // Integer operand size defined by W prefix bit
-            i = s.Prefixes[7] & 8;  // W prefix bit
-            OutFile.PutDecimal(i ? 64 : 32);
+            i = ((s.Prefixes[7] & 8) + 8) * 4;  // W prefix bit -> 8 / 16
+            OutFile.PutDecimal(i);
+        }
+        if ((s.OpcodeDef->AllowedPrefixes & 0x7000) == 0x4000) { // 32 / 64
+            i = (s.Prefixes[7] & 8) + 8;  // W prefix bit -> 8 / 16
+            OutFile.PutDecimal(i);
         }
     }
     // More suffix option
@@ -3852,13 +3887,22 @@ void CDisassembler::WriteInstruction() {
             case 0x8:  // Register operand indicated by bits 0-3 of immediate operand
                 WriteVEXOperand(s.Operands[i], 2);  break; // Unused. For future use
             }
+            int isMem = optype == 3 && s.Mod != 3;
             if (s.Prefixes[3] == 0x62) { // EVEX and MVEX prefix can have extra operand attributes
-                int isMem = optype == 3 && s.Mod != 3;
                 if (s.Prefixes[6] & 0x20) {                
                     WriteOperandAttributeEVEX(i, isMem);
                 }
                 else {
                     WriteOperandAttributeMVEX(i, isMem);
+                }
+            }
+            if (s.Prefixes[3] == 0x62 && (i == s.MaxNumOperands - 1 || (s.Operands[i+1] & 0xFFF) < 0x40)) {
+                // This is the last SIMD operand
+                if (s.Prefixes[6] & 0x20) {                
+                    WriteOperandAttributeEVEX(98, isMem);
+                }
+                else {
+                    WriteOperandAttributeMVEX(98, isMem);
                 }
             }
         }
@@ -4255,6 +4299,20 @@ void CDisassembler::CountInstructions() {
 
 #if 0   // temporary test code
 
+    // find entries with 0x2000 prefix code
+    printf("\n\nInstructions with operand swap flag:\n");
+    // Loop through all maps
+    for (map = 0; map < NumOpcodeTables1; map++) {
+        // Loop through each map
+        for (index = 0; index < OpcodeTableLength[map]; index++) {
+            opcode = OpcodeTables[map] + index;
+            if ((opcode->AllowedPrefixes & 0x2000) == 0x2000) {
+                printf("\n%04X %02X  %s", map, index, opcode->Name);
+            }
+        }
+    }
+
+    /*
     printf("\n\nTables linked by type 0x0E:\n");
     // Loop through all maps
     for (map = 0; map < NumOpcodeTables1; map++) {
@@ -4265,18 +4323,8 @@ void CDisassembler::CountInstructions() {
                 printf("  0x%02X", opcode->InstructionSet);
             }
         }
-    }
-    printf("\n\nTables linked by type 0x11:\n");
-    // Loop through all maps
-    for (map = 0; map < NumOpcodeTables1; map++) {
-        // Loop through each map
-        for (index = 0; index < OpcodeTableLength[map]; index++) {
-            opcode = OpcodeTables[map] + index;
-            if (opcode->TableLink == 0x11) {
-                printf("  0x%02X", opcode->InstructionSet);
-            }
-        }
-    }
+    }*/
+
     printf("\n");
 
 #endif

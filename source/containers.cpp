@@ -71,7 +71,8 @@ void CMemoryBuffer::SetSize(uint32 size) {
         // Request to reduce size but not delete it
         return;                          // Ignore
     }
-    size = (size + 15) & uint32(-16);   // Round up size to value divisible by 16
+//  size = (size + 15) & uint32(-16);   // Round up size to value divisible by 16
+    size = (size + BufferSize + 15) & uint32(-16);   // Double size and round up to value divisible by 16
     int8 * buffer2 = 0;                 // New buffer
     buffer2 = new int8[size];           // Allocate new buffer
     if (buffer2 == 0) {err.submit(9006); return;} // Error can't allocate
@@ -161,7 +162,7 @@ void CMemoryBuffer::Align(uint32 a) {
     uint32 NewOffset = (DataSize + a - 1) / a * a;
     if (NewOffset > BufferSize) {
         // Allocate more space
-        SetSize (NewOffset * 2);
+        SetSize (NewOffset + 2048);
     }
     // Set DataSize to after alignment space
     DataSize = NewOffset;
@@ -198,7 +199,7 @@ void CFileBuffer::Read(int IgnoreError) {
     if (DataSize <= 0) {
         if (!IgnoreError) err.submit(2105, FileName); // Wrong size
         return;}
-    SetSize(DataSize + 1024);                  // Allocate buffer, 1k extra
+    SetSize(DataSize + 2048);                  // Allocate buffer, 2k extra
     status = _read(fh, Buf(), DataSize);       // Read from file
     if (status != DataSize) err.submit(2103, FileName);
     status = _close(fh);                       // Close file
@@ -222,7 +223,7 @@ void CFileBuffer::Read(int IgnoreError) {
     DataSize = (uint32)fsize;
     rewind(fh);
     // Allocate buffer
-    SetSize(DataSize + 1024);                 // Allocate buffer, 1k extra
+    SetSize(DataSize + 2048);                 // Allocate buffer, 2k extra
     // Read entire file
     status = (uint32)fread(Buf(), 1, DataSize, fh);
     if (status != DataSize) err.submit(2103, FileName);

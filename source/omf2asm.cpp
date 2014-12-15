@@ -1,13 +1,13 @@
 /****************************  omf2asm.cpp   *********************************
 * Author:        Agner Fog, modified by Don Clugston
 * Date created:  2007-05-27
-* Last modified: 2009-07-17
+* Last modified: 2014-05-32
 * Project:       objconv
 * Module:        omf2asm.cpp
 * Description:
 * Module for disassembling OMF object files
 *
-* (c) 2009 GNU General Public License www.gnu.org/copyleft/gpl.html
+* (c) 2007-2014 GNU General Public License www.gnu.org/copyleft/gpl.html
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -176,7 +176,7 @@ void COMF2ASM::CountSegments() {
          Records[i].Index = 3;
 
          uint8 flags = Records[i].GetByte();
-         if ((flags & 2)!= 0) {
+         if ((flags & 2) != 0) {
             // don't support iterated data yet
             err.submit(2318);           // Error message: not supported
             continue;
@@ -195,7 +195,11 @@ void COMF2ASM::CountSegments() {
          if ((attribs & 0xF) == 0){
             //publicBase = Records[i].GetIndex();
             publicSegment = Records[i].GetIndex();
-            if (publicSegment == 0) Records[i].GetIndex(); // skip frame in this case
+            if (publicSegment == 0) {
+                //Records[i].GetIndex(); // skip frame in this case
+                // I don't have the Digital Mars obj spec, but this seems to help ??
+                publicSegment = Records[i].GetIndex(); // ??
+            }
          }
          uint16 publicName = Records[i].GetIndex();
          uint32 RecSize = Records[i].End - Records[i].Index; // Calculate size of data
@@ -208,6 +212,9 @@ void COMF2ASM::CountSegments() {
             SegRecord.Type = 0x1000 | Segments[publicSegment].Type;
             SegRecord.WordSize = Segments[publicSegment].WordSize;
          }
+
+         //SegRecord.Type |= 1;//!!
+
          if (align != 0) {
             // alignment: (none), byte, word, paragraph, page, dword, arbitrary, arbitrary.
             static const int alignvalues[] = {0, 0, 1, 4, 16, 2, 3, 3};
