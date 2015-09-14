@@ -3622,7 +3622,8 @@ void CDisassembler::FindWarnings() {
     }
     // Check if displacement could be made smaller
     if (s.AddressFieldSize > 0 && s.AddressRelocation == 0 
-        && (s.BaseReg || (s.IndexReg && !s.BaseReg && s.Scale < 2))) {
+        && (s.BaseReg || (s.IndexReg && !s.BaseReg && s.Scale < 2))
+        && s.OffsetMultiplier <= 1) {
             // There is a displacement which might be unnecessary
             switch (s.AddressFieldSize) {
             case 1:  // 1 byte displacement

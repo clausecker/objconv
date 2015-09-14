@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2014-12-12
+* Last modified: 2015-09-14
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2015 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -645,7 +645,7 @@ void CDisassembler::WriteOperandAttributeEVEX(int i, int isMem) {
     }
     if (swiz & 0x07) {
         // broadcast, rounding or sae allowed
-        if (isMem) {
+        if (isMem && i < 8) {
             // memory operand
             if ((swiz & 0x01) && (s.Esss & 1)) {            
                 // write memory broadcast
