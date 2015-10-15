@@ -1,7 +1,7 @@
 /****************************    opcodes.cpp    *******************************
 * Author:        Agner Fog
 * Date created:  2007-02-21 
-* Last modified: 2015-09-11
+* Last modified: 2015-10-15
 * Project:       objconv
 * Module:        opcodes.cpp
 * Description:
@@ -774,8 +774,8 @@ SOpcodeDef OpcodeMap2[] = {
    {"vpmaskmov", 0x1C  , 0xFB200, 0x1A,   0x2209, 0x1209, 0x1209, 0     , 0     , 0     , 0     , 1     },    // 0F 38 8E
    {0,           0     , 0      , 0x2012, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 8F
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {0,           0xCA  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 38 90. link to vpgatherd/q
-   {0,           0x94  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 0F 38 91. Link to vpgatherqd/q
+   {0,           0x102 , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 90. link to vpgatherd/q
+   {0,           0x94  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 91. Link to vpgatherqd/q
    {0,           0xB6  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 92. Link to vpgatherdps/pd
    {0,           0xE0  , 0      , 0   ,   0     , 0     , 0     , 0     , 0     , 0     , 0xE   , 0     },    // 0F 38 93. Link to vpgatherqps/pd
    {"(reserved)",0x00  ,0x4D2E00, 0x4012, 0x609 , 0x609 , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 38 94
@@ -3805,10 +3805,10 @@ SOpcodeDef OpcodeMap93[3] = {
    {"pmovmskb",  0x7   , 0x51200, 0x12  , 0x100A, 0x1150, 0     , 0     , 0     , 0     , 0     , 0x2   }};   // 0F D7, VEX.L  (32/64 bit dest. depending on mode)
 
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-// Submap for vpgatherq, Opcode 0F 38 91, Indexed by VEX.W bit
+// Submap for vpgatherq, Opcode 0F 38 91, Indexed by VEX/EVEX
 SOpcodeDef OpcodeMap94[2] = {
-   {"vpgatherqd",0x1C  ,0x8EB200, 0x1E,   0xF03 , 0x2203, 0xF03 , 0     , 0x1090, 0     , 0     , 0     },    // 0F 38 91, W0
-   {"vpgatherqq",0x1C  ,0x8EB200, 0x1E,   0x204 , 0x2204, 0x204 , 0     , 0x1090, 0     , 0     , 0     }};   // 0F 38 91, W1
+   {0,           0x105 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 
+   {0,           0x106 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // 
 
 // Submap for vgatherqps/pd, Opcode 0F 38 93, Indexed by VEX.W bit
 SOpcodeDef OpcodeMap95[2] = {
@@ -4702,12 +4702,10 @@ SOpcodeDef OpcodeMapC9[] = {
 {"vcvtps2uqq",   0x20  ,0x840200, 0x12  , 0x204 , 0xF4B , 0     , 0     , 0x27  , 0     , 0     , 0     },    // EVEX 66 0F 79. W = 0
 {"vcvtpd2uqq",   0x20  ,0x841200, 0x12  , 0x204 , 0x24C , 0     , 0     , 0x27  , 0     , 0     , 0     }};   // EVEX 66 0F 79. W = 1
 
-// Submap for vpgatherd. Opcode byte = 0F 38 90
-// Indexed by VEX.W bit
-   SOpcodeDef OpcodeMapCA[] = {
+// unused
+SOpcodeDef OpcodeMapCA[] = {
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
-   {"vpgatherdd",0x1C  ,0xCEB200, 0x1E,   0x203 , 0x2203, 0x203 , 0     , 0x1090, 0x100A, 0     , 0     },    // 0F 38 90
-   {"vpgatherdq",0x1C  ,0xCEB200, 0x1E,   0x204 , 0x2F04, 0x204 , 0     , 0x1090, 0x100A, 0     , 0     }};   // 0F 38 90
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
 
 // Submap for EVEX vgatherdps. Opcode byte = 0F 38 92
 // Indexed by VEX.W bit
@@ -5135,25 +5133,36 @@ SOpcodeDef OpcodeMap101[] = {
    {"vscatterqps",0x20 ,0xC39200, 0x1E  , 0x224B, 0x1F09, 0     , 0     , 0x1090, 0x304C, 0     , 0x000 },    // 0F 38 A3. W0
    {"vscatterqpd",0x20 ,0xC39200, 0x1E  , 0x224C, 0x1209, 0     , 0     , 0x1090, 0x304C, 0     , 0x000 }};   // 0F 38 A3. W1
 
-// unused
+
+// Submap for vpgatherd. Opcode byte = 0F 38 90
+// Indexed by VEX/EVEX prefix
 SOpcodeDef OpcodeMap102[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
+   {0,           0x103 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     },    // 
+   {0,           0x104 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0xC   , 0     }};   // 
 
-// unused
+// Submap for vpgatherd. Opcode byte = 0F 38 90
+// Indexed by VEX.W bit
 SOpcodeDef OpcodeMap103[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {"vpgatherdd",0x1C  ,0xCEB200, 0x1E,   0x203 , 0x2203, 0x203 , 0     , 0     , 0     , 0     , 0     },    // 0F 38 90
+   {"vpgatherdq",0x1C  ,0xCEB200, 0x1E,   0x204 , 0x2F04, 0x204 , 0     , 0     , 0x100A, 0     , 0     }};   // 0F 38 90
 
-// unused
+// Submap for vpgatherd. Opcode byte = 0F 38 90
+// Indexed by EVEX.W bit
 SOpcodeDef OpcodeMap104[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {"vpgatherdd",0x1C  ,0xCEB200, 0x1E,   0x203 , 0x2203, 0     , 0     , 0x1090, 0x100A, 0     , 0     },    // EVEX 0F 38 90
+   {"vpgatherdq",0x1C  ,0xCEB200, 0x1E,   0x204 , 0x2F04, 0     , 0     , 0x1090, 0x100A, 0     , 0     }};   // EVEX 0F 38 90
 
-// unused
+// Submap for vpgatherq, Opcode 0F 38 91, Indexed by VEX.W bit
 SOpcodeDef OpcodeMap105[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
+   {"vpgatherqd",0x1C  ,0x8EB200, 0x1E,   0xF03 , 0x2203, 0xF03 , 0     , 0     , 0     , 0     , 0     },    // 0F 38 91, W0
+   {"vpgatherqq",0x1C  ,0x8EB200, 0x1E,   0x204 , 0x2204, 0x204 , 0     , 0     , 0     , 0     , 0     }};   // 0F 38 91, W1
 
-// unused
+// Submap for vpgatherq, Opcode 0F 38 91, Indexed by EVEX.W bit
 SOpcodeDef OpcodeMap106[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // 
+   {"vpgatherqd",0x1C  ,0x8EB200, 0x1E,   0xF03 , 0x2203, 0     , 0     , 0x1090, 0     , 0     , 0     },    // EVEX 0F 38 91, W0
+   {"vpgatherqq",0x1C  ,0x8EB200, 0x1E,   0x204 , 0x2204, 0     , 0     , 0x1090, 0     , 0     , 0     }};   // EVEX 0F 38 91, W1
 
 // Map for 0F 38 C8. Indexed by VEX prefix type
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
