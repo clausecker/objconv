@@ -2433,8 +2433,8 @@ void CDisassembler::ParseInstruction() {
 
 void CDisassembler::ScanPrefixes() {
     // Scan prefixes
-    uint32 i;                                     // Index to current byte
-    uint8  Byte;                                  // Current byte of code
+    uint32 i;                                            // Index to current byte
+    uint8  Byte;                                         // Current byte of code
     for (i = IBegin; i < SectionEnd; i++) {
 
         // Read code byte
@@ -2446,9 +2446,9 @@ void CDisassembler::ScanPrefixes() {
             // This is a REX prefix
             if (Byte & 0x08) {
                 // REX.W prefix
-                StorePrefix(4, 0x48);                // REX.W also in category operand size
+                StorePrefix(4, 0x48);                    // REX.W also in category operand size
             }
-            StorePrefix(7, Byte);                   // Store in category REX
+            StorePrefix(7, Byte);                        // Store in category REX
         }
         else if (i+1 < SectionEnd &&         
             ((((Byte & 0xFE) == 0xC4 || Byte == 0x62) && (WordSize == 64 || (Buffer[i+1] >= 0xC0)))
@@ -2459,17 +2459,17 @@ void CDisassembler::ScanPrefixes() {
                 if (s.Prefixes[5] | s.Prefixes[7]) s.Warnings1 |= 0x800;
 
                 // Get equivalent prefixes
-                uint8 prefix3 = Byte;                   // Repeat prefix (F2, F3) or VEX prefix (C4, C5, 62)
-                uint8 prefix4;                          // 66, 48 Operand size prefix
-                uint8 prefix5;                          // 66, F2, F3 operand type prefixes
-                uint8 prefix6;                          // VEX.mmmmm and VEX.L
-                uint8 prefix7;                          // equivalent to REX prefix
-                uint8 vvvv;                             // vvvv register operand
+                uint8 prefix3 = Byte;                    // Repeat prefix (F2, F3) or VEX prefix (C4, C5, 62)
+                uint8 prefix4;                           // 66, 48 Operand size prefix
+                uint8 prefix5;                           // 66, F2, F3 operand type prefixes
+                uint8 prefix6;                           // VEX.mmmmm and VEX.L
+                uint8 prefix7;                           // equivalent to REX prefix
+                uint8 vvvv;                              // vvvv register operand
                 if (Byte == 0xC5) {
                     // 2-bytes VEX prefix
                     if (i+2 >= SectionEnd) {
                         IEnd = i+2;
-                        s.Errors |= 0x10; return;            // End of buffer reached
+                        s.Errors |= 0x10; return;        // End of buffer reached
                     }
                     Byte = Buffer[++i];                  // Second byte
                     prefix5 = Byte & 3;                  // pp bits
@@ -2480,12 +2480,12 @@ void CDisassembler::ScanPrefixes() {
                     prefix7 |= (~Byte >> 5) & 4;         // R bit
                 }
                 else {
-                    // 3 or 4-bytes VEX prefix or XOP prefix
+                    // 3 or 4-bytes VEX/EVEX/MVEX prefix or XOP prefix
                     if (i+3+(Byte==0x62) >= SectionEnd) {
                         IEnd = i+3+(Byte==0x62);
                         s.Errors |= 0x10; return;        // End of buffer reached
                     }
-                    prefix7 = (Byte == 0x8F) ? 0x80 : 0x20;// Indicate 3-bytes VEX prefix or XOP prefix
+                    prefix7 = (Byte == 0x8F) ? 0x80 : 0x20;// Indicate 3/4-bytes VEX prefix or XOP prefix
                     Byte = Buffer[++i];                  // Second byte
                     prefix6 = Byte & 0x1F;               // mmmmm bits
                     prefix7 |= (~Byte >> 5) & 7;         // R,X,B bits

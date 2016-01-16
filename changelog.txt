@@ -1,3 +1,10 @@
+2016-01-16  version 2.42
+* fixed bugs with disassembly of some AVX512 and BMI2 instructions
+
+2015-10-15 version 2.41
+* fixed bugs with disassembly of some AVX512 instructions
+* fixed missing "ptr" in masm syntax disassembly
+
 2015-10-15 version 2.40
 * fixed bugs with disassembly of some AVX512 instructions
 
