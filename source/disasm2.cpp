@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2015-11-11
+* Last modified: 2016-11-09
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Changes that relate to assembly language syntax should be done in this file only.
 *
-* Copyright 2007-2015 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2016 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -142,7 +142,7 @@ const char * InstructionSetNames[] = {
     "CLMUL", "AVX", "FMA3", "?",                     // 18 - 1B
     "AVX2", "BMI etc.", "?", "?",                    // 1C - 1F
     "AVX-512", "AVX512PF/ER/CD", "MPX,SHA,TBD", "AVX512IFMA/VBMI", // 20 - 23
-    "?", "?", "?", "?",                              // 24 - 27
+    "AVX512_4FMAPS", "?", "?", "?",                                // 24 - 27
     "?", "?", "?", "?",                              // 28 - 2B
     "?", "?", "?", "?",                              // 2C - 2F
     "?", "?", "?", "?",                              // 30 - 33

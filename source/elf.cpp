@@ -1,7 +1,7 @@
 /****************************    elf.cpp    *********************************
 * Author:        Agner Fog
 * Date created:  2006-07-18
-* Last modified: 2009-07-15
+* Last modified: 2016-11-06
 * Project:       objconv
 * Module:        elf.cpp
 * Description:
@@ -9,7 +9,7 @@
 *
 * Class CELF is used for reading, interpreting and dumping ELF files.
 *
-* Copyright 2006-2009 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2006-2016 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 // All functions in this module are templated to make two versions: 32 and 64 bits.
@@ -238,14 +238,17 @@ void CELF<ELFSTRUCTURES>::ParseFile(){
    for (i = 0; i < NSections; i++) {
       SectionHeaders[i] = Get<TELF_SectionHeader>(SectionOffset);
       SectionOffset += SectionHeaderSize;
-
       if (SectionHeaders[i].sh_type == SHT_SYMTAB) {
          // Symbol table found
          Symtabi = i;
       }
    }
-   SecStringTable = Buf() + uint32(SectionHeaders[FileHeader.e_shstrndx].sh_offset);
-   SecStringTableLen = uint32(SectionHeaders[FileHeader.e_shstrndx].sh_size);
+
+   // if (Buf() && GetNumEntries()) {
+   if (Buf() && GetDataSize()) {
+       SecStringTable = Buf() + uint32(SectionHeaders[FileHeader.e_shstrndx].sh_offset);
+       SecStringTableLen = uint32(SectionHeaders[FileHeader.e_shstrndx].sh_size);
+   }
    if (SectionOffset > GetDataSize()) {
       err.submit(2110);     // Section table points to outside file
    }

@@ -1,7 +1,7 @@
 /****************************  disasm1.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2014-12-06
+* Last modified: 2016-11-09
 * Project:       objconv
 * Module:        disasm1.cpp
 * Description:
@@ -11,7 +11,7 @@
 * Instruction tables are in opcodes.cpp.
 * All functions relating to file output are in disasm2.cpp
 *
-* Copyright 2007-2014 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2016 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 #include "stdafx.h"
 
@@ -2611,10 +2611,14 @@ void CDisassembler::FindMapEntry() {
         }
         MapNumber = OpcodeStartPageVEX[StartPage]; 
         if (StartPage == 1) MapNumber0 = 1;
-        if (StartPage == 2 && s.Prefixes[5] == 0xF3 && s.Prefixes[3] == 0x62) {
-            StartPage = 8; MapNumber0 = MapNumber;  // shortcut for EVEX F3 0F 38
-            MapNumber = OpcodeStartPageVEX[StartPage]; 
+        if (StartPage == 2 && s.Prefixes[3] == 0x62) {
+            if ((s.Prefixes[5] & 0xFE) == 0xF2) {   // shortcut for EVEX F2 0F 38 and EVEX F3 0F 38
+                StartPage = 8 + (s.Prefixes[5] & 1); 
+                MapNumber0 = MapNumber;
+                MapNumber = OpcodeStartPageVEX[StartPage]; 
+            }
         }
+
         // Get entry [Byte] in map
         MapEntry  = OpcodeTables[MapNumber] + Byte;
         

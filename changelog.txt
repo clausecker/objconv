@@ -1,4 +1,8 @@
-2016-01-16  version 2.42
+2016-11-09 version 2.43
+* fixed "string table corrupt" message for ELF files
+* support for disassembly of AVX512_4VNNIW, AVX512_4FMAPS instructions
+
+2016-01-16 version 2.42
 * fixed bugs with disassembly of some AVX512 and BMI2 instructions
 
 2015-10-15 version 2.41
