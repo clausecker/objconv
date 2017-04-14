@@ -1,13 +1,13 @@
 /****************************    opcodes.cpp    *******************************
 * Author:        Agner Fog
 * Date created:  2007-02-21 
-* Last modified: 2016-11-09
+* Last modified: 2017-04-14
 * Project:       objconv
 * Module:        opcodes.cpp
 * Description:
 * Definition of opcode maps used by disassembler
 *
-* Copyright 2007-2016 GNU General Public License http://www.gnu.org/licenses
+* Copyright 2007-2017 GNU General Public License http://www.gnu.org/licenses
 *****************************************************************************/
 
 
@@ -369,7 +369,7 @@ SOpcodeDef OpcodeMap1[256] = {
    {0,           0x111 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x9   , 0     },    // 0F 1B. Link to BNDCL etc
    {"hint",      0x6   , 0      , 0x2012, 0     , 0x6   , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 1C. Hint instructions reserved for future use
    {"hint",      0x6   , 0      , 0x2012, 0     , 0x6   , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 1D. Hint instructions reserved for future use
-   {"hint",      0x6   , 0      , 0x2012, 0     , 0x6   , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 1E. Hint instructions reserved for future use
+   {"hint",      0x135 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },    // 0F 1E. link to endbr64 etc.
    {"nop",       0x6   , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0x40  },    // 0F 1F. Multi-byte nop
 //  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
    {"mov",       0x803 , 0      , 0x13  , 0x100A, 0x92  , 0     , 0     , 0     , 0     , 0     , 0     },    // 0F 20. mov r32/64,cr
@@ -1889,18 +1889,18 @@ SOpcodeDef OpcodeMap2B[16] = {
    {"lgdt",      0x802 , 0x1100 , 0x11  , 0     , 0x200D, 0     , 0     , 0     , 0     , 0     , 0     },    // 
    {"lidt",      0x802 , 0x1100 , 0x11  , 0     , 0x200D, 0     , 0     , 0     , 0     , 0     , 0     },    // 
    {"smsw",      0x2   , 0      , 0x11  , 0x2   , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
-   {0,           0     , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // illegal
+   {0,           0x133 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },    // link to rstorssp
    {"lmsw",      0x802 , 0      , 0x11  , 0     , 0x2   , 0     , 0     , 0     , 0     , 0     , 0     },    // 
    {"invlpg",    0x4   , 0      , 0x11  , 0     , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     },    // mod<3, reg=7
 
-   {0,           0x36  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 0x5   , 0     },    // link to quarternary map, vmcall etc.
-   {0,           0x37  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 0x5   , 0     },    // link to quarternary map, monitor, mwait
-   {0,           0xA9  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 0x5   , 0     },    // link to quarternary map, xgetbv, xsetbv
-   {0,           0xAA  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0x5   , 0     },    // link AMD virtualization
+   {0,           0x36  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     },    // link to quarternary map, vmcall etc.
+   {0,           0x37  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     },    // link to quarternary map, monitor, mwait
+   {0,           0xA9  , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     },    // link to quarternary map, xgetbv, xsetbv
+   {0,           0xAA  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     },    // link AMD virtualization
    {"smsw",      0x2   , 0x1100 , 0x11  , 0x9   , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
-   {0,           0     , 0      , 0x4011, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // illegal
+   {0,           0x130 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     },    // link to incssp etc.
    {"lmsw",      0x802 , 0      , 0x11  , 0     , 0x2   , 0     , 0     , 0     , 0     , 0     , 0     },    // 
-   {0,           0xAB  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0x5   , 0     }};   // link SWAPGS and RDTSCP
+   {0,           0xAB  , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     }};   // link SWAPGS and RDTSCP
 
 // Secondary opcode map for group 8. Opcode byte = 0F BA: bt
 // Indexed by reg bits = 0 - 7. 
@@ -2021,7 +2021,7 @@ SOpcodeDef OpcodeMap34[16] = {
    {"ldmxcsr",   0x11  , 0x10000, 0x11  , 0     , 0x2003, 0     , 0     , 0     , 0     , 0     , 0x2   },     // 0F AE /2
    {"stmxcsr",   0x11  , 0x10000, 0x11  , 0x2003, 0     , 0     , 0     , 0     , 0     , 0     , 0x2   },     // 0F AE /3
    {0,           0     , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // Illegal
-   {0,           0     , 0      , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // Illegal
+   {0,           0x134 , 0      , 0x11  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // 0F AE /5. Link setssbsy
    {0,           0xF3  , 0      , 0x11  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // 0F AE /6. Link xsaveopt
    {0,           0xF2  , 0      , 0x11  , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },     // 0F AE /7. Link clflush
    {"rdfsbase",  0x10000,0x1400 , 0x11  , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // F3 0F AE m-0
@@ -3904,7 +3904,7 @@ SOpcodeDef OpcodeMapA2[8] = {
 // Submap for 0F 38 F5. Indexed by prefixes
 SOpcodeDef OpcodeMapA3[4] = {
    {"bzhi"  ,    0x1D   , 0xB1000, 0x1B  , 0x1009, 0x9   , 0x1009, 0     , 0     , 0     , 0     , 0     },   // 0F 38 F5
-   {0       ,    0      , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },   // 66 0F 38 F5
+   {"wruss" ,    0      , 0x1200 , 0x13  , 0x2009, 0x1009, 0     , 0     , 0     , 0     , 0     , 0     },   // 66 0F 38 F5
    {"pdep"  ,    0x1D   , 0xB1000, 0x19  , 0x1009, 0x1009, 0x9   , 0     , 0     , 0     , 0     , 0     },   // F2 0F 38 F5
    {"pext"  ,    0x1D   , 0xB1000, 0x19  , 0x1009, 0x1009, 0x9   , 0     , 0     , 0     , 0     , 0     }};  // F3 0F 38 F5
 
@@ -4960,7 +4960,7 @@ SOpcodeDef OpcodeMapCF[] = {
 // Submap for opcodes 0F 38 F6
 // Indexed by prefixes 66 F2 F3
 SOpcodeDef OpcodeMapD0[] = {
-   {0       ,    0      , 0      , 0    , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     //    0F 38 F6
+   {"wrss"  ,    0      , 0x1000 , 0x13 , 0x2009, 0x1009, 0     , 0     , 0     , 0     , 0     , 0     },     //    0F 38 F6
    {"adcx"  ,    0x1D   , 0x1200 , 0x12 , 0x1009, 0x9   , 0     , 0     , 0     , 0     , 0     , 0     },     // 66 0F 38 F6
    {"mulx"  ,    0x1D   , 0xB1000, 0x19 , 0x1009, 0x1009, 0x9   , 0     , 0     , 0     , 0     , 0     },     // F2 0F 38 F6
    {"adox"  ,    0x1D   , 0x1400 , 0x12 , 0x1009, 0x9   , 0     , 0     , 0     , 0     , 0     , 0     }};    // F3 0F 38 F6
@@ -5184,7 +5184,8 @@ SOpcodeDef OpcodeMapF2[] = {
 SOpcodeDef OpcodeMapF3[] = {
    {"xsaveopt",  0x19  , 0x2000 , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 0F AE /6
    {"clwb    ",  0x22  , 0x200  , 0x11  , 0x2006, 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // 66 0F AE /6
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },     // F2 0F AE /6
+   {"clrssbsy",  0     , 0x400  , 0x11  , 0     , 0x2004, 0     , 0     , 0     , 0     , 0     , 0     }};    // F3 0F AE /6
 
 // Map for 0F AE reg /7. Indexed by 66 prefix
 SOpcodeDef OpcodeMapF4[] = {
@@ -5651,29 +5652,84 @@ SOpcodeDef OpcodeMap12F[] = {
    {"vpmovd2m",  0x20  ,0x86B400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     },    // EVEX F3 0F 38 39 W0
    {"vpmovq2m",  0x20  ,0x86B400, 0x12  , 0x95  , 0x1209, 0     , 0     , 0     , 0     , 0     , 0     }};   // EVEX F3 0F 38 39 W1
 
+// Opcode map for 0F 01, mod = 11b, reg = 5
+// Indexed by rm bits
 SOpcodeDef OpcodeMap130[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 0
+   {0,           0x131 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },    // rm = 1. link to incssp
+   {0,           0x132 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 9     , 0     },    // rm = 2. link to savessp
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 3
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 4
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 5
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 6
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // rm = 7
 
+// Opcode map for 0F 01, mod = 11b, reg = 5, rm = 1. Indexed by prefix
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
 SOpcodeDef OpcodeMap131[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2
+   {"incssp",    0     , 0x400  , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // F3
 
+// Opcode map for 0F 01, mod = 11b, reg = 5, rm = 2. Indexed by prefix
 SOpcodeDef OpcodeMap132[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2
+   {"savessp",   0     , 0x400  , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // F3
 
+// Opcode map for 0F 01, mod != 11b, reg = 5. Indexed by prefix
 SOpcodeDef OpcodeMap133[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2
+   {"rstorssp",  0     , 0x400  , 0x11  , 0     , 0x2004, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3
 
+// Opcode map for 0F AE /5. Link by prefix
 SOpcodeDef OpcodeMap134[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2
+   {"setssbsy",  0     , 0x400  , 0x11  , 0     , 0x2004, 0     , 0     , 0     , 0     , 0     , 0     }};   // F3
 
+// Opcode map for 0F 1E. Hint instructions. Link by prefix
 SOpcodeDef OpcodeMap135[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 66
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // F2
+   {0,           0x136 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 4     , 0     }};   // F3
 
+// Opcode map for F3 0F 1E. Hint instructions. Link by mod / reg
 SOpcodeDef OpcodeMap136[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    //  mod < 3
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 0 
+   {"rdssp",     0     , 0x1400 , 0x11  , 0     , 0x1009, 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 1 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 2 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 3 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 4 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 5 
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // mod = 3, reg = 6 
+   {0,           0x137 , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 5     , 0     }};   // mod = 3, reg = 7 
 
+// Opcode map for F3 0F 1E. mod = 3, reg = 7. Link by rm
 SOpcodeDef OpcodeMap137[] = {
-   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};
+//  name         instset prefix   format  dest.   source1 source2 source3 EVEX    MVEX    link    options
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 0
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 1
+   {"endbr64",   0     , 0x400  , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 2
+   {"endbr32",   0     , 0x400  , 0x10  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 3
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 4
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 5
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     },    // rm = 6
+   {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};   // rm = 7
 
 SOpcodeDef OpcodeMap138[] = {
    {0,           0     , 0      , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     }};

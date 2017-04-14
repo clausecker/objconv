@@ -1,7 +1,7 @@
 /****************************  disasm2.cpp   ********************************
 * Author:        Agner Fog
 * Date created:  2007-02-25
-* Last modified: 2016-11-09
+* Last modified: 2016-11-27
 * Project:       objconv
 * Module:        disasm2.cpp
 * Description:
@@ -1277,7 +1277,7 @@ void CDisassembler::WriteErrorsAndWarnings() {
         }
     }
 
-    if ((s.OpcodeDef->AllowedPrefixes & 8) && !s.Warnings1) {
+    if (s.OpcodeDef && (s.OpcodeDef->AllowedPrefixes & 8) && !s.Warnings1) {
         if (s.Prefixes[0]) {
             // Branch hint prefix. Write comment
             OutFile.Put(CommentSeparator);             // Write "; "
