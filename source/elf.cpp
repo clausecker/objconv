@@ -1,7 +1,7 @@
 /****************************    elf.cpp    *********************************
 * Author:        Agner Fog
 * Date created:  2006-07-18
-* Last modified: 2017-04-20
+* Last modified: 2017-10-18
 * Project:       objconv
 * Module:        elf.cpp
 * Description:
@@ -241,6 +241,10 @@ void CELF<ELFSTRUCTURES>::ParseFile(){
    SectionHeaders.SetZero();
    uint32 Symtabi = 0;                  // Index to symbol table
 
+   // check header integrity
+   if (FileHeader.e_phoff > GetDataSize() || FileHeader.e_phoff + FileHeader.e_phentsize > GetDataSize()) err.submit(2035);
+   if (FileHeader.e_shoff > GetDataSize() || FileHeader.e_shoff + FileHeader.e_shentsize > GetDataSize()) err.submit(2035);
+
    // Find section headers
    SectionHeaderSize = FileHeader.e_shentsize;
    if (SectionHeaderSize <= 0) err.submit(2033);
@@ -248,6 +252,12 @@ void CELF<ELFSTRUCTURES>::ParseFile(){
 
    for (i = 0; i < NSections; i++) {
       SectionHeaders[i] = Get<TELF_SectionHeader>(SectionOffset);
+      // check section header integrity
+      if (SectionHeaders[i].sh_type != SHT_NOBITS && (SectionHeaders[i].sh_offset > GetDataSize() 
+          || SectionHeaders[i].sh_offset + SectionHeaders[i].sh_size > GetDataSize() 
+          || SectionHeaders[i].sh_offset + SectionHeaders[i].sh_entsize > GetDataSize())) {
+              err.submit(2035);
+      }
       SectionOffset += SectionHeaderSize;
       if (SectionHeaders[i].sh_type == SHT_SYMTAB) {
          // Symbol table found
