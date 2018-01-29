@@ -1,3 +1,9 @@
+2018-01-29 version 2.49
+* fixed minor problem with disassembly of DLL
+
+2017-10-18 version 2.48
+* minor changes
+
 2017-07-27 version 2.47
 * fixed bug in library manager for long module names
 
