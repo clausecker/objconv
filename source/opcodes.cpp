@@ -5846,7 +5846,7 @@ const SOpcodeDef * const OpcodeTables[] = {
 };
 
 // size of each table pointed to by OpcodeTables[]
-const uint32 OpcodeTableLength[] = {    
+const uint32_t OpcodeTableLength[] = {    
    TableSize(OpcodeMap0),  TableSize(OpcodeMap1),  TableSize(OpcodeMap2),  TableSize(OpcodeMap3), 
    TableSize(OpcodeMap4),  TableSize(OpcodeMap5),  TableSize(OpcodeMap6),  TableSize(OpcodeMap7), 
    TableSize(OpcodeMap8),  TableSize(OpcodeMap9),  TableSize(OpcodeMapA),  TableSize(OpcodeMapB), 
@@ -5930,11 +5930,11 @@ const uint32 OpcodeTableLength[] = {
 };
 
 // number of entries in OpcodeTables
-const uint32 NumOpcodeTables1 = TableSize(OpcodeTables);         
-const uint32 NumOpcodeTables2 = TableSize(OpcodeTableLength);         
+const uint32_t NumOpcodeTables1 = TableSize(OpcodeTables);         
+const uint32_t NumOpcodeTables2 = TableSize(OpcodeTableLength);         
 
 // Index to start pages, depending on VEX.mmmm bits
-uint32 OpcodeStartPageVEX[] = {
+uint32_t OpcodeStartPageVEX[] = {
    0xB0,                        // no escape,      VEX.mmmm = 0
    0xB1,                        // 0F    escape or VEX.mmmm = 1
    0x2,                         // 0F 38 escape or VEX.mmmm = 2
@@ -5952,8 +5952,8 @@ SOpcodeDef const * OpcodeStartPageXOP[] = {
 };   
 
 // Number of entries in OpcodeStartPages
-const uint32 NumOpcodeStartPageVEX = TableSize(OpcodeStartPageVEX);
-const uint32 NumOpcodeStartPageXOP = TableSize(OpcodeStartPageXOP);
+const uint32_t NumOpcodeStartPageVEX = TableSize(OpcodeStartPageVEX);
+const uint32_t NumOpcodeStartPageXOP = TableSize(OpcodeStartPageXOP);
 
 
 // Define register names
@@ -6019,9 +6019,9 @@ SwizSpec Sf32m[8] = {  // 32-bit float memory broadcast or conversion
     {0x04B, 4,4,"1to16"},
     {0x44B,16,4,"4to16"},
     {0x54A,32,2,"float16"},
-    {0x401,16,1,"uint8"},
+    {0x401,16,1,"uint8_t"},
     {0x401,16,1,"sint8 N/A!"},
-    {0x502,32,2,"uint16"},
+    {0x502,32,2,"uint16_t"},
     {0x502,32,2,"sint16"}};
 
 SwizSpec Sf64m[8] = {  // 64-bit float memory broadcast (no conversion)
@@ -6039,9 +6039,9 @@ SwizSpec Si32m[8] = {  // 32-bit integer memory broadcast or conversion
     {0x003, 4,4,"1to16"},
     {0x403,16,4,"4to16"},
     {0x54A,32,2,"N/A!"},
-    {0x401,16,1,"uint8"},
+    {0x401,16,1,"uint8_t"},
     {0x401,16,1,"sint8"},
-    {0x502,32,2,"uint16"},
+    {0x502,32,2,"uint16_t"},
     {0x502,32,2,"sint16"}};
 
 SwizSpec Si64m[8] = {  // 64-bit integer memory broadcast (no conversion)
@@ -6059,9 +6059,9 @@ SwizSpec Uf32m[8] = {  // 32-bit float memory up- or down-conversion
     {0x04B, 4,4,"N/A!"},
     {0x54B,16,4,"N/A!"},
     {0x54A,32,2,"float16"},
-    {0x401,16,1,"uint8"},
+    {0x401,16,1,"uint8_t"},
     {0x401,16,1,"sint8"},
-    {0x502,32,2,"uint16"},
+    {0x502,32,2,"uint16_t"},
     {0x502,32,2,"sint16"}};
 
 SwizSpec Uf64m[8] = {  // 64-bit float memory, no up- or down-conversion
@@ -6079,9 +6079,9 @@ SwizSpec Ui32m[8] = {  // 32-bit integer memory up- or down-conversion
     {0x003, 4,4,"N/A!"},
     {0x503,16,4,"N/A!"},
     {0x54A,32,2,"N/A!"},
-    {0x401,16,1,"uint8"},
+    {0x401,16,1,"uint8_t"},
     {0x401,16,1,"sint8"},
-    {0x502,32,2,"uint16"},
+    {0x502,32,2,"uint16_t"},
     {0x502,32,2,"sint16"}};
 
 SwizSpec Ui64m[8] = {  // 64-bit integer memory, no up- or down-conversion
@@ -6101,9 +6101,9 @@ SwizSpec Uf32mx4[8] = {  // 32-bit float memory up-conversion, broadcast * 4, vb
     {0x04B,16,4*4,"N/A!"},
     {0x54B,16,4*4,"N/A!"},
     {0x004, 8,2*4,"float16"},
-    {0x003, 4,1*4,"uint8"},
+    {0x003, 4,1*4,"uint8_t"},
     {0x003, 4,1*4,"sint8"},
-    {0x004, 8,2*4,"uint16"},
+    {0x004, 8,2*4,"uint16_t"},
     {0x004, 8,2*4,"sint16"}};
 
 SwizSpec Uf64mx4[8] = {  // 64-bit float memory, no up-conversion, broadcast * 4, vbroadcastf64x4
@@ -6121,9 +6121,9 @@ SwizSpec Ui32mx4[8] = {  // 32-bit integer memory up-conversion, broadcast * 4, 
     {0x003,16,4*4,"N/A!"},
     {0x503,16,4*4,"N/A!"},
     {0x54A, 8,2*4,"N/A!"},
-    {0x003, 4,1*4,"uint8"},
+    {0x003, 4,1*4,"uint8_t"},
     {0x003, 4,1*4,"sint8"},
-    {0x004, 8,2*4,"uint16"},
+    {0x004, 8,2*4,"uint16_t"},
     {0x004, 8,2*4,"sint16"}};
 
 SwizSpec Ui64mx4[8] = {  // 64-bit integer memory, no up-conversion, broadcast * 4, vbroadcasti64x4

@@ -13,52 +13,55 @@
 #define MAINDEF_H
 
 // Program version
-#define OBJCONV_VERSION         2.51
+#define OBJCONV_VERSION         2.52
 
 
 // Integer type definitions with platform-independent sizes:
 #include <limits.h>
+#include <inttypes.h>
+/*
 #if defined(_I64_MAX)
 // Microsoft compilers use __int64 etc
-typedef char               int8;       // 8 bit  signed integer
-typedef unsigned char      uint8;      // 8 bit  unsigned integer
-typedef short int          int16;      // 16 bit signed integer
-typedef unsigned short int uint16;     // 16 bit unsigned integer
-typedef int                int32;      // 32 bit signed integer
-typedef unsigned int       uint32;     // 32 bit unsigned integer
-typedef __int64            int64;      // 64 bit signed integer
-typedef unsigned __int64   uint64;     // 64 bit unsigned integer
+typedef char               int8_t;       // 8 bit  signed integer
+typedef unsigned char      uint8_t;      // 8 bit  unsigned integer
+typedef short int          int16_t;      // 16 bit signed integer
+typedef unsigned short int uint16_t;     // 16 bit unsigned integer
+typedef int                int32_t;      // 32 bit signed integer
+typedef unsigned int       uint32_t;     // 32 bit unsigned integer
+typedef __int64            int64_t;      // 64 bit signed integer
+typedef unsigned __int64   uint64_t;     // 64 bit unsigned integer
 
 #elif defined(INT_MAX) && defined(LLONG_MAX) && INT_MAX==2147483647L && LLONG_MAX==9223372036854775807LL
 // Compiler has int = 32 bit and long long = 64 bit
-typedef char               int8;       // 8 bit  signed integer
-typedef unsigned char      uint8;      // 8 bit  unsigned integer
-typedef short int          int16;      // 16 bit signed integer
-typedef unsigned short int uint16;     // 16 bit unsigned integer
-typedef int                int32;      // 32 bit signed integer
-typedef unsigned int       uint32;     // 32 bit unsigned integer
-typedef long long          int64;      // 64 bit signed integer
-typedef unsigned long long uint64;     // 64 bit unsigned integer
+typedef char               int8_t;       // 8 bit  signed integer
+typedef unsigned char      uint8_t;      // 8 bit  unsigned integer
+typedef short int          int16_t;      // 16 bit signed integer
+typedef unsigned short int uint16_t;     // 16 bit unsigned integer
+typedef int                int32_t;      // 32 bit signed integer
+typedef unsigned int       uint32_t;     // 32 bit unsigned integer
+typedef long long          int64_t;      // 64 bit signed integer
+typedef unsigned long long uint64_t;     // 64 bit unsigned integer
 
 #else
   // Compilers supporting C99 or C++0x or C++1x have inttypes.h defining these integer types
   // This is the preferred solution:
   #include <inttypes.h>
-  //typedef int8_t         int8;       // Gnu compiler can't convert int8_t to char
-  typedef char             int8;       // 8 bit  signed integer
-  typedef uint8_t          uint8;      // 8 bit  unsigned integer
-  typedef int16_t          int16;      // 16 bit signed integer
-  typedef uint16_t         uint16;     // 16 bit unsigned integer
-  typedef int32_t          int32;      // 32 bit signed integer
-  typedef uint32_t         uint32;     // 32 bit unsigned integer
-  typedef int64_t          int64;      // 64 bit signed integer
-  typedef uint64_t         uint64;     // 64 bit unsigned integer
+  //typedef int8_t         int8_t;       // Gnu compiler can't convert int8_t to char
+  typedef char             int8_t;       // 8 bit  signed integer
+  typedef uint8_t          uint8_t;      // 8 bit  unsigned integer
+  typedef int16_t          int16_t;      // 16 bit signed integer
+  typedef uint16_t         uint16_t;     // 16 bit unsigned integer
+  typedef int32_t          int32_t;      // 32 bit signed integer
+  typedef uint32_t         uint32_t;     // 32 bit unsigned integer
+  typedef int64_t          int64_t;      // 64 bit signed integer
+  typedef uint64_t         uint64_t;     // 64 bit unsigned integer
 #endif
+*/
 
 
 // Get high part of a 64-bit integer
-static inline uint32 HighDWord (uint64 x) {
-   return (uint32)(x >> 32);
+static inline uint32_t HighDWord (uint64_t x) {
+   return (uint32_t)(x >> 32);
 }
 
 // Check if compiling for big-endian machine 
@@ -110,13 +113,13 @@ static inline uint32 HighDWord (uint64 x) {
 
 // Structure of integers and char *, used for tables of text strings
 struct SIntTxt {
-   uint32 a;
+   uint32_t a;
    const char * b;
 };
 
 // Translate integer value to text string by looking up in table of SIntTxt.
 // Parameters: p = table, n = length of table, x = value to find in table
-static inline char const * LookupText(SIntTxt const * p, int n, uint32 x) {
+static inline char const * LookupText(SIntTxt const * p, int n, uint32_t x) {
    for (int i=0; i<n; i++, p++) {
       if (p->a == x) return p->b;
    }
@@ -131,9 +134,9 @@ static inline char const * LookupText(SIntTxt const * p, int n, uint32 x) {
 
 
 // Function to convert powers of 2 to index
-int FloorLog2(uint32 x);
+int FloorLog2(uint32_t x);
 
 // Convert 32 bit time stamp to string
-const char * timestring(uint32 t);
+const char * timestring(uint32_t t);
 
 #endif // #ifndef MAINDEF_H

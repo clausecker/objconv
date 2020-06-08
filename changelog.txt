@@ -1,3 +1,6 @@
+2020-06-08 version 2.52
+* fix  problem in asm syntax output for lea
+
 2018-10-08 version 2.51
 * fix bug in movq mm0,rax
 
